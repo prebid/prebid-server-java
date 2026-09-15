@@ -7,7 +7,7 @@ import org.prebid.server.settings.model.Account;
 
 import java.util.Objects;
 
-public class AccountFetchFilter implements FetchActionFilter {
+public class AccountFetchFilter implements FetchFilter {
 
     private final ValuesFilter<String> accountFilter;
 

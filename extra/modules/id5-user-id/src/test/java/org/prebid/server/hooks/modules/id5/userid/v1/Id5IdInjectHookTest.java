@@ -18,7 +18,7 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl
 import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectActionFilter;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -84,33 +84,6 @@ class Id5IdInjectHookTest {
     }
 
     @Test
-    void shouldSkipWhenNoTimeLeft() {
-        // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
-
-        final BidRequest bidRequest = BidRequest.builder().user(User.builder().build()).build();
-
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1).minus(10_000);
-        final Id5IdModuleContext expectedContext = new Id5IdModuleContext(Future.succeededFuture(Id5UserId.empty()));
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                expectedContext);
-        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "appnexus");
-
-        // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                bidderCtx).result();
-
-        // then
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_invocation);
-        assertThat(result.moduleContext()).isEqualTo(expectedContext);
-    }
-
-    @Test
     void shouldSkipWhenFetcherReturnsEmpty() {
         // given
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
@@ -144,11 +117,11 @@ class Id5IdInjectHookTest {
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().eids(List.of()).build()).build();
 
-        final Id5UserId id5 = () -> List.of(
+        final Id5UserId id5 = new Id5UserId(List.of(
                 Eid.builder()
                         .source("id5-sync.com")
                         .uids(List.of(Uid.builder().id("id5-123").build()))
-                        .build());
+                        .build()));
 
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final Id5IdModuleContext expectedContext = new Id5IdModuleContext(Future.succeededFuture(id5));
@@ -203,11 +176,11 @@ class Id5IdInjectHookTest {
 
         final BidRequest bidRequest = BidRequest.builder().user(user).build();
 
-        final Id5UserId id5 = () -> List.of(
+        final Id5UserId id5 = new Id5UserId(List.of(
                 Eid.builder()
                         .source("id5-sync.com")
                         .uids(List.of(Uid.builder().id("id5-123").build()))
-                        .build());
+                        .build()));
 
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
@@ -261,7 +234,7 @@ class Id5IdInjectHookTest {
     @Test
     void shouldReturnNoInvocationWhenInjectFilterRejectsSingleFilter() {
         // given
-        final InjectActionFilter filter = Mockito.mock(InjectActionFilter.class);
+        final InjectFilter filter = Mockito.mock(InjectFilter.class);
         Mockito.when(filter.shouldInvoke(any(), any())).thenReturn(FilterResult.rejected("reject-by-filter"));
 
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of(filter));
@@ -286,9 +259,9 @@ class Id5IdInjectHookTest {
     @Test
     void shouldReturnNoInvocationWhenAnyInjectFilterRejectsMultipleFilters() {
         // given
-        final InjectActionFilter accept1 = Mockito.mock(InjectActionFilter.class);
-        final InjectActionFilter reject = Mockito.mock(InjectActionFilter.class);
-        final InjectActionFilter accept2 = Mockito.mock(InjectActionFilter.class);
+        final InjectFilter accept1 = Mockito.mock(InjectFilter.class);
+        final InjectFilter reject = Mockito.mock(InjectFilter.class);
+        final InjectFilter accept2 = Mockito.mock(InjectFilter.class);
         Mockito.when(accept1.shouldInvoke(any(), any())).thenReturn(FilterResult.accepted());
         Mockito.when(reject.shouldInvoke(any(), any())).thenReturn(FilterResult.rejected("block-by-second"));
         Mockito.when(accept2.shouldInvoke(any(), any())).thenReturn(FilterResult.accepted());

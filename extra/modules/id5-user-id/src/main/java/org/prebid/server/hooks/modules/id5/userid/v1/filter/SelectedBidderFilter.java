@@ -6,7 +6,7 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 
 import java.util.Objects;
 
-public class SelectedBidderFilter implements InjectActionFilter {
+public class SelectedBidderFilter implements InjectFilter {
 
     private final ValuesFilter<String> biddersFilter;
 

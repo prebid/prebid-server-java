@@ -2,8 +2,8 @@ package org.prebid.server.hooks.modules.id5.userid.v1;
 
 import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
-import org.prebid.server.hooks.modules.id5.userid.v1.fetch.FetchClient;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchActionFilter;
+import org.prebid.server.hooks.modules.id5.userid.v1.fetch.HttpFetchClient;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5PartnerIdProvider;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
@@ -25,14 +25,14 @@ public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
 
     private static final Logger logger = LoggerFactory.getLogger(Id5IdFetchHook.class);
 
-    public static final String CODE = "id5-user-id-fetch-hook";
+    public static final String CODE = "id5-user-id-fetch-processed-auction-request-hook";
 
-    private final FetchClient fetchClient;
-    private final List<FetchActionFilter> filters;
+    private final HttpFetchClient fetchClient;
+    private final List<FetchFilter> filters;
     private final Id5PartnerIdProvider partnerIdProvider;
 
-    public Id5IdFetchHook(FetchClient fetchClient,
-                          List<FetchActionFilter> filters,
+    public Id5IdFetchHook(HttpFetchClient fetchClient,
+                          List<FetchFilter> filters,
                           Id5PartnerIdProvider partnerIdProvider) {
 
         this.fetchClient = Objects.requireNonNull(fetchClient);
@@ -51,11 +51,11 @@ public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
         if (!filterResult.isAccepted()) {
             return noInvocation(filterResult.reason());
         }
-        final Optional<Long> maybePartnerId = partnerIdProvider.getPartnerId(invocationContext.auctionContext());
-        if (maybePartnerId.isEmpty()) {
+        final Optional<Long> partnerId = partnerIdProvider.getPartnerId(invocationContext.auctionContext());
+        if (partnerId.isEmpty()) {
             return noInvocation("partner id not configured");
         }
-        final Future<Id5UserId> id5IdFuture = fetchClient.fetch(maybePartnerId.get(), payload, invocationContext);
+        final Future<Id5UserId> id5IdFuture = fetchClient.fetch(partnerId.get(), payload, invocationContext);
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
@@ -71,7 +71,7 @@ public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
     }
 
     private FilterResult shouldInvoke(AuctionRequestPayload payload, AuctionInvocationContext invocationContext) {
-        for (FetchActionFilter filter : filters) {
+        for (FetchFilter filter : filters) {
             final FilterResult result = filter.shouldInvoke(payload, invocationContext);
             if (!result.isAccepted()) {
                 return result;

@@ -282,7 +282,7 @@ accounts:
                   "groups": [
                     {    
                       "hook-sequence": [
-                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-fetch-hook" }
+                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-fetch-processed-auction-request-hook" }
                       ]
                     }
                   ]
@@ -291,7 +291,7 @@ accounts:
                   "groups": [
                     {  
                       "hook-sequence": [
-                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-inject-hook" }
+                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-inject-bidder-request-hook" }
                       ]
                     }
                   ]
@@ -443,7 +443,7 @@ Functional tests for the module live in the main test suite at:
 src/test/groovy/org/prebid/server/functional/tests/module/id5userid/Id5UserIdModuleSpec.groovy
 ```
 
-Functional tests start the PBS container from the `prebid/prebid-server:latest` Docker image. The image must be built from `Dockerfile-modules` (which packages `prebid-server-bundle.jar`), and the bundle must include the ID5 module (declared as a dependency in `extra/bundle/pom.xml`). The default `Dockerfile` packages the plain `prebid-server.jar` which does **not** contain any modules — using it leads to the container exiting with code 1 and the error `Hooks execution plan contains unknown or disabled hook: id5-user-id-fetch-hook`.
+Functional tests start the PBS container from the `prebid/prebid-server:latest` Docker image. The image must be built from `Dockerfile-modules` (which packages `prebid-server-bundle.jar`), and the bundle must include the ID5 module (declared as a dependency in `extra/bundle/pom.xml`). The default `Dockerfile` packages the plain `prebid-server.jar` which does **not** contain any modules — using it leads to the container exiting with code 1 and the error `Hooks execution plan contains unknown or disabled hook: id5-user-id-fetch-processed-auction-request-hook`.
 
 Run from the project root:
 

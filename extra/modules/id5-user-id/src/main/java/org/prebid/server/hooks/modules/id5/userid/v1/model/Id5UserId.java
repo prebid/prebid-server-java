@@ -4,14 +4,11 @@ import com.iab.openrtb.request.Eid;
 
 import java.util.List;
 
-public interface Id5UserId {
+public record Id5UserId(List<Eid> eids) {
 
-    List<Eid> toEIDs();
+    private static final Id5UserId EMPTY = new Id5UserId(List.of());
 
-    Id5UserId EMPTY = List::of;
-
-    static Id5UserId empty() {
+    public static Id5UserId empty() {
         return EMPTY;
     }
-
 }

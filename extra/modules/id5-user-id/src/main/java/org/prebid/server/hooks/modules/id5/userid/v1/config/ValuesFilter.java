@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.id5.userid.v1.config;
 
 import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Set;
 
@@ -16,12 +17,7 @@ public class ValuesFilter<T> {
      * Null value is not allowed
      */
     public boolean isValueAllowed(T value) {
-        if (values == null || values.isEmpty()) {
-            return true;
-        }
-        if (value == null) {
-            return false;
-        }
-        return exclude != values.contains(value);
+        return CollectionUtils.isEmpty(values)
+                || (value != null && exclude != values.contains(value));
     }
 }

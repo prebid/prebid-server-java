@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Uid;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,6 +97,8 @@ class HttpFetchClientTest {
         userFpdActivityMask = Mockito.mock(UserFpdActivityMask.class);
         when(userFpdActivityMask.maskDevice(any(), any(Boolean.class), any(Boolean.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(userFpdActivityMask.maskUser(any(), any(Boolean.class), any(Boolean.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -119,7 +122,7 @@ class HttpFetchClientTest {
         final Id5UserId result = client.fetch(partnerId, payload, invocation).result();
 
         // then
-        assertThat(result.toEIDs()).isEmpty();
+        assertThat(result.eids()).isEmpty();
     }
 
     @Test
@@ -144,7 +147,7 @@ class HttpFetchClientTest {
         final Id5UserId result = client.fetch(partnerId, payload, invocation).result();
 
         // then
-        assertThat(result.toEIDs()).isEmpty();
+        assertThat(result.eids()).isEmpty();
     }
 
     @Test
@@ -173,8 +176,8 @@ class HttpFetchClientTest {
         final Id5UserId result = client.fetch(123L, payload, invocation).result();
 
         // then
-        assertThat(result.toEIDs()).hasSize(1);
-        assertThat(result.toEIDs().getFirst().getSource()).isEqualTo("id5-sync.com");
+        assertThat(result.eids()).hasSize(1);
+        assertThat(result.eids().getFirst().getSource()).isEqualTo("id5-sync.com");
     }
 
     @Test
@@ -482,6 +485,33 @@ class HttpFetchClientTest {
         });
         assertThat(json.get("ipv4")).isEqualTo(maskedDevice.getIp());
         assertThat(json.get("ipv6")).isEqualTo(maskedDevice.getIpv6());
+    }
+
+    @Test
+    void shouldMaskUserAccordingToActivityInfra() {
+        // given
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+                .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
+                        MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
+
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).thenReturn(false);
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).thenReturn(false);
+
+        final HttpFetchClient client = new HttpFetchClient(
+                URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
+
+        final User originalUser = User.builder().id("u1").build();
+        final BidRequest bidRequest = BidRequest.builder().user(originalUser).build();
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
+        final AuctionInvocationContext invocation = auctionInvocationContext(
+                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext("acc"), false);
+
+        // when
+        client.fetch(999L, payload, invocation).result();
+
+        // then
+        verify(activityInfrastructure).isAllowed(eq(Activity.TRANSMIT_EIDS), any());
+        verify(userFpdActivityMask).maskUser(eq(originalUser), eq(true), eq(true));
     }
 
     private static AuctionContext auctionContext(String accountId) {

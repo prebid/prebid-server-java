@@ -6,7 +6,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public class SamplingFetchFilter implements FetchActionFilter {
+public class SamplingFetchFilter implements FetchFilter {
 
     private final double sampleRate;
     private final Supplier<Double> randomSupplier;

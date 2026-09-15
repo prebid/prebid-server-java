@@ -12,7 +12,7 @@ accounts:
                     {
                       "timeout": 500,
                       "hook-sequence": [
-                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-fetch-hook" }
+                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-fetch-processed-auction-request-hook" }
                       ]
                     }
                   ]
@@ -22,7 +22,7 @@ accounts:
                     {
                       "timeout": 500,
                       "hook-sequence": [
-                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-inject-hook" }
+                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-inject-bidder-request-hook" }
                       ]
                     }
                   ]

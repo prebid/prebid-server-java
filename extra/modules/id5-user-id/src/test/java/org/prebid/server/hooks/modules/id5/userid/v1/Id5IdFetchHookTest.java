@@ -13,8 +13,8 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.id5.userid.v1.fetch.FetchClient;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchActionFilter;
+import org.prebid.server.hooks.modules.id5.userid.v1.fetch.HttpFetchClient;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5PartnerIdProvider;
@@ -40,8 +40,8 @@ class Id5IdFetchHookTest {
     @Test
     void shouldReturnNoInvocationAndSetModuleContextWithFutureWhenSampled() {
         // given
-        final FetchClient fetchClient = Mockito.mock(FetchClient.class);
-        final FetchActionFilter filter = Mockito.mock(FetchActionFilter.class);
+        final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
+        final FetchFilter filter = Mockito.mock(FetchFilter.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
         final Future<Id5UserId> future = Future.succeededFuture(Id5UserId.empty());
         when(fetchClient.fetch(anyLong(), any(AuctionRequestPayload.class), any())).thenReturn(future);
@@ -70,7 +70,7 @@ class Id5IdFetchHookTest {
     @Test
     void shouldReturnNoInvocationWhenId5IdAlreadyPresent() {
         // given
-        final FetchClient fetchClient = Mockito.mock(FetchClient.class);
+        final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
         final Id5IdFetchHook hook = new Id5IdFetchHook(fetchClient, List.of(), partnerIdProvider);
 
@@ -97,8 +97,8 @@ class Id5IdFetchHookTest {
     @Test
     void shouldReturnNoInvocationWhenSamplerRejects() {
         // given
-        final FetchClient fetchClient = Mockito.mock(FetchClient.class);
-        final FetchActionFilter filter = Mockito.mock(FetchActionFilter.class);
+        final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
+        final FetchFilter filter = Mockito.mock(FetchFilter.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
         when(filter.shouldInvoke(any(AuctionRequestPayload.class), any()))
                 .thenReturn(FilterResult.rejected("rejected by sampling"));
@@ -122,11 +122,11 @@ class Id5IdFetchHookTest {
     @Test
     void shouldReturnNoInvocationWhenAnyFetchFilterRejectsMultipleFilters() {
         // given
-        final FetchClient fetchClient = Mockito.mock(FetchClient.class);
+        final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
-        final FetchActionFilter accept1 = Mockito.mock(FetchActionFilter.class);
-        final FetchActionFilter reject = Mockito.mock(FetchActionFilter.class);
-        final FetchActionFilter accept2 = Mockito.mock(FetchActionFilter.class);
+        final FetchFilter accept1 = Mockito.mock(FetchFilter.class);
+        final FetchFilter reject = Mockito.mock(FetchFilter.class);
+        final FetchFilter accept2 = Mockito.mock(FetchFilter.class);
 
         when(accept1.shouldInvoke(any(AuctionRequestPayload.class), any()))
                 .thenReturn(FilterResult.accepted());
@@ -159,8 +159,8 @@ class Id5IdFetchHookTest {
     @Test
     void shouldReturnNoInvocationWhenPartnerIdNotConfigured() {
         // given
-        final FetchClient fetchClient = Mockito.mock(FetchClient.class);
-        final FetchActionFilter filter = Mockito.mock(FetchActionFilter.class);
+        final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
+        final FetchFilter filter = Mockito.mock(FetchFilter.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
         when(filter.shouldInvoke(any(AuctionRequestPayload.class), any())).thenReturn(FilterResult.accepted());
         when(partnerIdProvider.getPartnerId(any())).thenReturn(Optional.empty());

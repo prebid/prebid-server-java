@@ -8,8 +8,8 @@ import org.prebid.server.hooks.modules.id5.userid.v1.config.Id5IdModulePropertie
 import org.prebid.server.hooks.modules.id5.userid.v1.fetch.HttpFetchClient;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.AccountFetchFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.CountryFetchFilter;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchActionFilter;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectActionFilter;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchFilter;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.SamplingFetchFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.SelectedBidderFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.ConstantId5PartnerId;
@@ -38,7 +38,8 @@ public class Id5UserIdModuleConfiguration {
     @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "fetch-sampling-rate")
     SamplingFetchFilter fetchSampler(Id5IdModuleProperties properties) {
         logger.debug("id5-user-id-fetch-sampling-rate enabled with rate {}", properties.getFetchSamplingRate());
-        return new SamplingFetchFilter(() -> ThreadLocalRandom.current().nextDouble(),
+        return new SamplingFetchFilter(
+                () -> ThreadLocalRandom.current().nextDouble(),
                 properties.getFetchSamplingRate());
     }
 
@@ -88,7 +89,7 @@ public class Id5UserIdModuleConfiguration {
 
     @Bean
     Id5IdFetchHook id5UserIdFetchHook(HttpFetchClient fetchClient,
-                                      List<FetchActionFilter> filters,
+                                      List<FetchFilter> filters,
                                       Id5PartnerIdProvider id5PartnerIdProvider) {
 
         return new Id5IdFetchHook(fetchClient, filters, id5PartnerIdProvider);
@@ -96,7 +97,7 @@ public class Id5UserIdModuleConfiguration {
 
     @Bean
     Id5IdInjectHook id5UserIdInjectHook(Id5IdModuleProperties properties,
-                                        List<InjectActionFilter> injectFilters) {
+                                        List<InjectFilter> injectFilters) {
 
         logger.debug("id5-user-id-inject hook enabled");
         return new Id5IdInjectHook(properties.getInserterName(), injectFilters);

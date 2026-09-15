@@ -8,7 +8,6 @@ import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.DecimalMax;
 
@@ -27,7 +26,6 @@ public class Id5IdModuleProperties {
     private String inserterName;
 
     @NotBlank
-    @Pattern(regexp = "https?://.+", message = "must be a valid http(s) URL")
     private String fetchEndpoint;
 
     @PositiveOrZero

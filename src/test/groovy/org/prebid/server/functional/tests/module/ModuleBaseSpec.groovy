@@ -116,12 +116,12 @@ class ModuleBaseSpec extends BaseSpec {
                 (endpoint): new EndpointExecutionPlan(stages: [
                         (PROCESSED_AUCTION_REQUEST): new StageExecutionPlan(groups: [
                                 new ExecutionGroup(timeout: 5000, hookSequence: [
-                                        new HookId(moduleCode: ID5_USER_ID.code, hookImplCode: "${ID5_USER_ID.code}-fetch-hook" as String)
+                                        new HookId(moduleCode: ID5_USER_ID.code, hookImplCode: "${ID5_USER_ID.code}-fetch-processed-auction-request-hook" as String)
                                 ])
                         ]),
                         (BIDDER_REQUEST): new StageExecutionPlan(groups: [
                                 new ExecutionGroup(timeout: 5000, hookSequence: [
-                                        new HookId(moduleCode: ID5_USER_ID.code, hookImplCode: "${ID5_USER_ID.code}-inject-hook" as String)
+                                        new HookId(moduleCode: ID5_USER_ID.code, hookImplCode: "${ID5_USER_ID.code}-inject-bidder-request-hook" as String)
                                 ])
                         ])
                 ])

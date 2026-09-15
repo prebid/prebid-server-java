@@ -11,6 +11,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
@@ -38,6 +39,7 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.VersionInfo;
@@ -50,7 +52,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class HttpFetchClient implements FetchClient {
+public class HttpFetchClient {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpFetchClient.class);
 
@@ -76,7 +78,7 @@ public class HttpFetchClient implements FetchClient {
                            Id5IdModuleProperties id5IdModuleProperties,
                            UserFpdActivityMask userFpdActivityMask) {
 
-        this.fetchUrl = Objects.requireNonNull(endpoint);
+        this.fetchUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.clock = Objects.requireNonNull(clock);
         this.versionInfo = Objects.requireNonNull(versionInfo);
@@ -84,7 +86,6 @@ public class HttpFetchClient implements FetchClient {
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
-    @Override
     public Future<Id5UserId> fetch(long partnerId,
                                    AuctionRequestPayload payload,
                                    AuctionInvocationContext invocationContext) {
@@ -94,7 +95,7 @@ public class HttpFetchClient implements FetchClient {
         try {
             body = MAPPER.writeValueAsString(fetchRequest);
         } catch (JsonProcessingException e) {
-            return Future.failedFuture(e);
+            throw new RuntimeException("id5-user-id: failed to serialize fetch request", e);
         }
         final MultiMap headers = HttpUtil.headers();
         final String url = "%s/%s.json".formatted(fetchUrl, partnerId);
@@ -115,8 +116,10 @@ public class HttpFetchClient implements FetchClient {
         final PrebidServerMetadataBuilder providerMetadataBuilder = providerMetadataBuilder();
         final BidRequest bidRequest = maskBidRequest(payload.bidRequest(), invocationContext, providerMetadataBuilder);
         final Privacy privacy = invocationContext.auctionContext().getPrivacyContext().getPrivacy();
-        final Optional<Device> maybeDevice = Optional.ofNullable(bidRequest.getDevice());
-        final FetchRequest.FetchRequestBuilder fetchRequestBuilder = FetchRequest.builder()
+        final Optional<Device> device = Optional.ofNullable(bidRequest.getDevice());
+        final Optional<Site> site = Optional.ofNullable(bidRequest.getSite());
+
+        return FetchRequest.builder()
                 .trace(invocationContext.debugEnabled())
                 .partnerId(partnerId)
                 .origin("pbs-java")
@@ -125,13 +128,13 @@ public class HttpFetchClient implements FetchClient {
                 .provider(id5IdModuleProperties.getProviderName())
                 .providerMetadata(createProviderMetadata(bidRequest, providerMetadataBuilder))
                 .bundle(Optional.ofNullable(bidRequest.getApp()).map(App::getBundle).orElse(null))
-                .domain(Optional.ofNullable(bidRequest.getSite()).map(Site::getDomain).orElse(null))
-                .maid(maybeDevice.map(Device::getIfa).orElse(null))
-                .userAgent(maybeDevice.map(Device::getUa).orElse(null))
-                .ref(Optional.ofNullable(bidRequest.getSite()).map(Site::getRef).orElse(null))
-                .ipv4(maybeDevice.map(Device::getIp).orElse(null))
-                .ipv6(maybeDevice.map(Device::getIpv6).orElse(null))
-                .att(maybeDevice
+                .domain(site.map(Site::getDomain).orElse(null))
+                .ref(site.map(Site::getRef).orElse(null))
+                .maid(device.map(Device::getIfa).orElse(null))
+                .userAgent(device.map(Device::getUa).orElse(null))
+                .ipv4(device.map(Device::getIp).orElse(null))
+                .ipv6(device.map(Device::getIpv6).orElse(null))
+                .att(device
                         .map(Device::getExt)
                         .map(ExtDevice::getAtts)
                         .map(String::valueOf)
@@ -141,12 +144,12 @@ public class HttpFetchClient implements FetchClient {
                 .gppString(privacy.getGpp())
                 .gppSid(toStringOrNull(privacy.getGppSid()))
                 .gdpr(privacy.getGdpr())
-                .gdprConsent(privacy.getConsentString());
-
-        return fetchRequestBuilder.build();
+                .gdprConsent(privacy.getConsentString())
+                .build();
     }
 
-    private BidRequest maskBidRequest(BidRequest bidRequest, AuctionInvocationContext invocationContext,
+    private BidRequest maskBidRequest(BidRequest bidRequest,
+                                      AuctionInvocationContext invocationContext,
                                       PrebidServerMetadataBuilder providerMetadataBuilder) {
 
         final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
@@ -165,11 +168,17 @@ public class HttpFetchClient implements FetchClient {
                 Activity.TRANSMIT_GEO, activityInvocationPayload);
         providerMetadataBuilder.transmitGeoDisallowed(disallowTransmitGeo);
 
+        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_EIDS, activityInvocationPayload);
+
         final Device maskedDevice = userFpdActivityMask.maskDevice(
                 bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
+        final User maskedUser = userFpdActivityMask.maskUser(
+                bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
 
         return bidRequest.toBuilder()
                 .device(maskedDevice)
+                .user(maskedUser)
                 .build();
     }
 
@@ -177,31 +186,33 @@ public class HttpFetchClient implements FetchClient {
         return PrebidServerMetadata.builder().id5ModuleConfig(this.id5IdModuleProperties);
     }
 
-    private PrebidServerMetadata createProviderMetadata(BidRequest bidRequest, PrebidServerMetadataBuilder builder) {
-        Optional.ofNullable(bidRequest.getApp()).map(App::getPublisher)
+    private static PrebidServerMetadata createProviderMetadata(BidRequest bidRequest,
+                                                               PrebidServerMetadataBuilder builder) {
+
+        final Optional<ExtRequestPrebid> extPrebid = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid);
+        final Optional<ExtRequestPrebidChannel> extPrebidChannel = extPrebid.map(ExtRequestPrebid::getChannel);
+
+        return builder
+                .publisher(createPublisher(bidRequest))
+                .channel(extPrebidChannel.map(ExtRequestPrebidChannel::getName).orElse(null))
+                .channelVersion(extPrebidChannel.map(ExtRequestPrebidChannel::getVersion).orElse(null))
+                .bidders(extPrebid
+                        .map(ExtRequestPrebid::getData)
+                        .map(ExtRequestPrebidData::getBidders)
+                        .orElse(null))
+                .build();
+    }
+
+    private static Publisher createPublisher(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getApp()).map(App::getPublisher)
                 .or(() -> Optional.ofNullable(bidRequest.getSite()).map(Site::getPublisher))
-                .ifPresent(ortbPublisher -> builder.publisher(Publisher.builder()
+                .map(ortbPublisher -> Publisher.builder()
                         .id(ortbPublisher.getId())
                         .name(ortbPublisher.getName())
                         .domain(ortbPublisher.getDomain())
-                        .build()));
-
-        final Optional<ExtRequestPrebid> maybePrebidExt = Optional.ofNullable(bidRequest.getExt())
-                .map(ExtRequest::getPrebid);
-
-        maybePrebidExt
-                .map(ExtRequestPrebid::getChannel)
-                .ifPresent(channel -> builder
-                        .channel(channel.getName())
-                        .channelVersion(channel.getVersion())
-                );
-
-        maybePrebidExt
-                .map(ExtRequestPrebid::getData)
-                .map(ExtRequestPrebidData::getBidders)
-                .ifPresent(builder::bidders);
-
-        return builder.build();
+                        .build())
+                .orElse(null);
     }
 
     private Id5UserId parseResponse(HttpClientResponse response) {
@@ -209,7 +220,7 @@ public class HttpFetchClient implements FetchClient {
         final int statusCode = response.getStatusCode();
         if (statusCode == 200) {
             logger.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
-            return decodeResponse(body);
+            return new Id5UserId(decodeResponse(body).toEids());
         }
         logger.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
         return Id5UserId.empty();
@@ -226,7 +237,7 @@ public class HttpFetchClient implements FetchClient {
                 : null;
     }
 
-    private static Id5UserId decodeResponse(String body) {
+    private static FetchResponse decodeResponse(String body) {
         try {
             return MAPPER.readValue(body, FetchResponse.class);
         } catch (JsonProcessingException e) {

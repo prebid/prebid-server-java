@@ -8,7 +8,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectActionFilter;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -23,18 +23,17 @@ import org.prebid.server.util.ListUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class Id5IdInjectHook implements BidderRequestHook {
 
     private static final Logger logger = LoggerFactory.getLogger(Id5IdInjectHook.class);
 
-    public static final String CODE = "id5-user-id-inject-hook";
+    public static final String CODE = "id5-user-id-inject-bidder-request-hook";
 
     private final String inserter;
-    private final List<InjectActionFilter> filters;
+    private final List<InjectFilter> filters;
 
-    public Id5IdInjectHook(String inserter, List<InjectActionFilter> filters) {
+    public Id5IdInjectHook(String inserter, List<InjectFilter> filters) {
         this.inserter = inserter;
         this.filters = Objects.requireNonNull(filters);
     }
@@ -47,46 +46,29 @@ public class Id5IdInjectHook implements BidderRequestHook {
             return noInvocation("id5id already present in bidRequest", invocationContext);
         }
 
-        // evaluate inject filters
         final FilterResult filterResult = shouldInvoke(payload, invocationContext);
         if (!filterResult.isAccepted()) {
             return noInvocation(filterResult.reason(), invocationContext);
         }
 
-        final long remainingMs = invocationContext.timeout().remaining();
-        if (remainingMs <= 0) {
-            return noInvocation("no time left to resolve id5Id", invocationContext);
-        }
-
         final String bidder = invocationContext.bidder();
-        logger.debug("id5-user-id-inject: remaining time: {}ms for bidder {}", remainingMs, bidder);
         final Future<Id5UserId> userIdFuture = Id5IdModuleContext.from(invocationContext).getId5UserIdFuture();
         return userIdFuture.map(id5UserId -> {
             logger.debug("id5-user-id-inject: resolved userId for bidder {}", bidder);
-            if (id5UserId == null || CollectionUtils.isEmpty(id5UserId.toEIDs())) {
+            final List<Eid> eids = id5UserId == null ? List.of() : id5UserId.eids();
+            if (CollectionUtils.isEmpty(eids)) {
                 return resultBuilder(invocationContext)
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
                         .debugMessages(Collections.singletonList("id5-user-id-inject: no ids to inject"))
                         .build();
             }
-            final User originalUser = payload.bidRequest().getUser();
-            final List<Eid> eIDs = id5UserId.toEIDs().stream()
-                    .map(eid -> eid.toBuilder().inserter(inserter).build())
-                    .toList();
-
-            final User updatedUser = Optional.ofNullable(originalUser)
-                    .map(user -> user.toBuilder().eids(mergeEids(user, eIDs)))
-                    .orElseGet(() -> User.builder().eids(eIDs))
-                    .build();
-            final BidRequest updatedBidRequest = payload.bidRequest().toBuilder()
-                    .user(updatedUser)
-                    .build();
-            logger.debug("id5-user-id-inject: user updated with {} eid(s)", eIDs.size());
+            final BidRequest updatedBidRequest = updateBidRequest(payload.bidRequest(), eids);
+            logger.debug("id5-user-id-inject: user updated with {} eid(s)", eids.size());
             return resultBuilder(invocationContext)
                     .status(InvocationStatus.success)
                     .action(InvocationAction.update)
-                    .payloadUpdate(initial -> BidderRequestPayloadImpl.of(updatedBidRequest))
+                    .payloadUpdate(_ -> BidderRequestPayloadImpl.of(updatedBidRequest))
                     .debugMessages(Collections.singletonList("id5-user-id-inject: updated user with id5 eids"))
                     .build();
         });
@@ -100,13 +82,26 @@ public class Id5IdInjectHook implements BidderRequestHook {
     private FilterResult shouldInvoke(BidderRequestPayload payload,
                                       BidderInvocationContext invocationContext) {
 
-        for (InjectActionFilter filter : filters) {
+        for (InjectFilter filter : filters) {
             final FilterResult result = filter.shouldInvoke(payload, invocationContext);
             if (!result.isAccepted()) {
                 return result;
             }
         }
         return FilterResult.accepted();
+    }
+
+    private BidRequest updateBidRequest(BidRequest bidRequest, List<Eid> eidsToAdd) {
+        final User originalUser = bidRequest.getUser();
+        final List<Eid> enrichedEids = eidsToAdd.stream()
+                .map(eid -> eid.toBuilder().inserter(inserter).build())
+                .toList();
+
+        final User updatedUser = originalUser == null
+                ? User.builder().eids(enrichedEids).build()
+                : originalUser.toBuilder().eids(mergeEids(originalUser, enrichedEids)).build();
+
+        return bidRequest.toBuilder().user(updatedUser).build();
     }
 
     private static InvocationResultImpl.InvocationResultImplBuilder<BidderRequestPayload> resultBuilder(
