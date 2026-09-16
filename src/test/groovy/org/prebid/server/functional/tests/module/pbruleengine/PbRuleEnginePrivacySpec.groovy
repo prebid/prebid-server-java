@@ -31,6 +31,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_S
 import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_SID_IN
 import static org.prebid.server.functional.model.config.RuleEngineFunction.TCF_IN_SCOPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_FPD_AVAILABLE
+import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
@@ -38,6 +39,14 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 class PbRuleEnginePrivacySpec extends PbRuleEngineBaseSpec {
+
+    def setupSpec() {
+        vendorList.setErrorResponse()
+    }
+
+    def cleanupSpec() {
+        vendorList.reset()
+    }
 
     def "PBS should exclude bidder when eidAvailable match with condition"() {
         given: "Bid request with multiply bidders"
@@ -538,7 +547,7 @@ class PbRuleEnginePrivacySpec extends PbRuleEngineBaseSpec {
     def "PBS should exclude bidder when gppSidAvailable match with condition"() {
         given: "Default bid request with multiply bidder"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            regs = new Regs(gppSid: [PBSUtils.getRandomEnum(GppSectionId).getIntValue()])
+            regs = new Regs(gppSid: [PBSUtils.getRandomEnum(GppSectionId, [TCF_EU_V2]).getIntValue()])
         }
 
         and: "Account with rule engine config"
@@ -641,7 +650,7 @@ class PbRuleEnginePrivacySpec extends PbRuleEngineBaseSpec {
 
         and: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            regs = new Regs(gdpr: 0, gppSid: [PBSUtils.getRandomEnum(GppSectionId, [GppSectionId.TCF_EU_V2]).getIntValue()])
+            regs = new Regs(gdpr: 0, gppSid: [PBSUtils.getRandomEnum(GppSectionId, [TCF_EU_V2]).getIntValue()])
         }
 
         and: "Account with rule engine config"
@@ -745,7 +754,7 @@ class PbRuleEnginePrivacySpec extends PbRuleEngineBaseSpec {
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
         where:
-        gppSectionId << GppSectionId.values() - GppSectionId.TCF_EU_V2
+        gppSectionId << GppSectionId.values() - TCF_EU_V2
     }
 
     def "PBS shouldn't exclude bidder when gppSidIn not match with condition"() {
@@ -789,7 +798,7 @@ class PbRuleEnginePrivacySpec extends PbRuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         where:
-        gppSectionId << GppSectionId.values() - GppSectionId.TCF_EU_V2
+        gppSectionId << GppSectionId.values() - TCF_EU_V2
     }
 
     def "PBS should exclude bidder when tcfInScope match with condition"() {
