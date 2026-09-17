@@ -114,12 +114,6 @@ public class Content {
     Integer prodq;
 
     /**
-     * Video production quality retained for OpenRTB 2.5 round trips.
-     * Deprecated as of OpenRTB 2.5 and removed in 2.6 in favor of prodq.
-     */
-    Integer videoquality;
-
-    /**
      * Type of content (game, video, text, etc.). Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--content-contexts-">
      * List: Content Contexts</a> in AdCOM 1.0.
      */

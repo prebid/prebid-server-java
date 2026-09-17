@@ -45,30 +45,6 @@ public class Banner {
     Integer h;
 
     /**
-     * Maximum width in device independent pixels (DIPS), retained for OpenRTB 2.5 round trips.
-     * Deprecated as of OpenRTB 2.5 and removed in 2.6 in favor of format.
-     */
-    Integer wmax;
-
-    /**
-     * Maximum height in device independent pixels (DIPS), retained for OpenRTB 2.5 round trips.
-     * Deprecated as of OpenRTB 2.5 and removed in 2.6 in favor of format.
-     */
-    Integer hmax;
-
-    /**
-     * Minimum width in device independent pixels (DIPS), retained for OpenRTB 2.5 round trips.
-     * Deprecated as of OpenRTB 2.5 and removed in 2.6 in favor of format.
-     */
-    Integer wmin;
-
-    /**
-     * Minimum height in device independent pixels (DIPS), retained for OpenRTB 2.5 round trips.
-     * Deprecated as of OpenRTB 2.5 and removed in 2.6 in favor of format.
-     */
-    Integer hmin;
-
-    /**
      * Blocked banner ad types.
      * Values:
      * <p/> 1 = XHTML Text Ad,

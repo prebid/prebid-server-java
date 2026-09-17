@@ -75,12 +75,6 @@ public class Video {
     List<Integer> protocols;
 
     /**
-     * Video protocol retained for OpenRTB 2.5 round trips.
-     * Deprecated as of OpenRTB 2.5 and removed in 2.6 in favor of protocols.
-     */
-    Integer protocol;
-
-    /**
      * Width of the video player in device independent pixels (DIPS).
      */
     Integer w;

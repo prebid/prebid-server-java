@@ -362,21 +362,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void bannerMapperShouldLeaveMissingLegacyDimensionsUnset() {
-        // given
-        final Banner banner = givenBanner().toBuilder().wmax(null).hmax(null).wmin(null).hmin(null).build();
-        final ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> mapper =
-                ProtobufRequestUtils.bannerMapper(formatMapper, givenJsonExtensionMapper(OpenRtbTest.banner));
-
-        // when
-        final OpenRtb.BidRequest.Imp.Banner result = mapper.map(banner);
-
-        // then
-        assertThat(result).isEqualTo(givenProtobufBanner().toBuilder()
-                .clearWmax().clearHmax().clearWmin().clearHmin().build());
-    }
-
-    @Test
     public void nativeImageMapperShouldReturnValidMapper() {
         // when
         final ImageObject imageObject = givenNativeImage();
@@ -423,20 +408,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
         final OpenRtb.BidRequest.Content expectedResult = givenProtobufContent();
 
         assertThat(result).isEqualTo(expectedResult);
-    }
-
-    @Test
-    public void contentMapperShouldLeaveMissingVideoqualityUnset() {
-        // given
-        final Content content = givenContent().toBuilder().videoquality(null).build();
-        final ProtobufMapper<Content, OpenRtb.BidRequest.Content> mapper = ProtobufRequestUtils.contentMapper(
-                producerMapper, dataMapper, givenJsonExtensionMapper(OpenRtbTest.content));
-
-        // when
-        final OpenRtb.BidRequest.Content result = mapper.map(content);
-
-        // then
-        assertThat(result).isEqualTo(givenProtobufContent().toBuilder().clearVideoquality().build());
     }
 
     @Test
@@ -841,20 +812,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     @Test
-    public void videoMapperShouldLeaveMissingProtocolUnset() {
-        // given
-        final Video video = givenVideo().toBuilder().protocol(null).build();
-        final ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> mapper =
-                ProtobufRequestUtils.videoMapper(bannerMapper, givenJsonExtensionMapper(OpenRtbTest.video));
-
-        // when
-        final OpenRtb.BidRequest.Imp.Video result = mapper.map(video);
-
-        // then
-        assertThat(result).isEqualTo(givenProtobufVideo().toBuilder().clearProtocol().build());
-    }
-
-    @Test
     public void userMapperShouldReturnValidMapper() {
         // given
         final User user = givenUser();
@@ -1201,7 +1158,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .minduration(1)
                 .maxduration(2)
                 .startdelay(3)
-                .protocol(2)
                 .protocols(singletonList(4))
                 .w(5)
                 .h(6)
@@ -1233,7 +1189,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .setMinduration(1)
                 .setMaxduration(2)
                 .setStartdelay(3)
-                .setProtocol(2)
                 .addProtocols(4)
                 .setW(5)
                 .setH(6)
@@ -1388,10 +1343,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .format(singletonList(givenFormat()))
                 .w(1)
                 .h(2)
-                .wmax(640)
-                .hmax(480)
-                .wmin(160)
-                .hmin(120)
                 .btype(singletonList(3))
                 .battr(singletonList(4))
                 .pos(5)
@@ -1409,10 +1360,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .addAllFormat(singletonList(givenProtobufFormat()))
                 .setW(1)
                 .setH(2)
-                .setWmax(640)
-                .setHmax(480)
-                .setWmin(160)
-                .setHmin(120)
                 .addBtype(3)
                 .addBattr(4)
                 .setPos(5)
@@ -1673,7 +1620,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .url("url")
                 .cat(singletonList("cat"))
                 .prodq(2)
-                .videoquality(1)
                 .context(3)
                 .contentrating("contentrating")
                 .userrating("userrating")
@@ -1704,7 +1650,6 @@ public class ProtobufRequestUtilsTest extends VertxTest {
                 .setUrl("url")
                 .addCat("cat")
                 .setProdq(2)
-                .setVideoquality(1)
                 .setContext(3)
                 .setContentrating("contentrating")
                 .setUserrating("userrating")
