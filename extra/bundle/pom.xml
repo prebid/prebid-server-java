@@ -75,6 +75,11 @@
             <artifactId>pb-rule-engine</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>intentiq-identity</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
