@@ -297,7 +297,7 @@ public class EplanningBidder implements Bidder<Void> {
 
         schainBuilder.append(schain.getVer());
         schainBuilder.append(",");
-        schainBuilder.append(ObjectUtils.defaultIfNull(schain.getComplete(), 0));
+        schainBuilder.append(ObjectUtils.getIfNull(schain.getComplete(), 0));
         for (SupplyChainNode node : schain.getNodes()) {
             schainBuilder.append("!");
             schainBuilder.append(StringUtils.defaultString(node.getAsi()));

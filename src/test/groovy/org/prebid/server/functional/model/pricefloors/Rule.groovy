@@ -1,7 +1,7 @@
 package org.prebid.server.functional.model.pricefloors
 
 import com.fasterxml.jackson.annotation.JsonValue
-import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.Strings
 import org.prebid.server.functional.model.bidder.BidderName
 
 import java.lang.reflect.Modifier
@@ -33,7 +33,7 @@ class Rule {
             stringBuilder.append(this[it.name])
                          .append(delimiter)
         }
-        StringUtils.removeEnd(stringBuilder.toString(), delimiter).toLowerCase()
+        Strings.CS.removeEnd(stringBuilder.toString(), delimiter).toLowerCase()
     }
 
     @JsonValue
@@ -48,6 +48,6 @@ class Rule {
             result += classField[0]
             result += delimiter
         }
-        StringUtils.removeEnd(result, delimiter).toLowerCase()
+        Strings.CS.removeEnd(result, delimiter).toLowerCase()
     }
 }

@@ -7,6 +7,7 @@ import com.iab.openrtb.request.SupplyChainNode;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -48,7 +49,7 @@ public class SupplyChainResolver {
             bidderSchain = existingSchainOrNull(bidder, bidderSchain, schain);
         }
 
-        return enrich(ObjectUtils.defaultIfNull(bidderSchain, catchAllSchain), bidRequest);
+        return enrich(ObjectUtils.getIfNull(bidderSchain, catchAllSchain), bidRequest);
     }
 
     private static SupplyChainNode globalNodeOrNull(String globalNodeString, JacksonMapper mapper) {
@@ -84,7 +85,7 @@ public class SupplyChainResolver {
                 .map(ExtRequestPrebidSchain::getBidders)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .anyMatch(schainEntryBidder -> StringUtils.equalsIgnoreCase(schainEntryBidder, bidder));
+                .anyMatch(schainEntryBidder -> Strings.CI.equals(schainEntryBidder, bidder));
     }
 
     private SupplyChain enrich(SupplyChain bidderSpecificSchain, BidRequest bidRequest) {

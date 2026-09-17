@@ -99,7 +99,7 @@ public class BeachfrontFloorResolver {
     }
 
     private static BidFloorResult proceedWithHigherFloor(BigDecimal extImpBidFloor, BigDecimal convertedBidFloor) {
-        final BigDecimal resolvedExtImpBidFloor = ObjectUtils.defaultIfNull(extImpBidFloor, BigDecimal.ZERO);
+        final BigDecimal resolvedExtImpBidFloor = ObjectUtils.getIfNull(extImpBidFloor, BigDecimal.ZERO);
         if (convertedBidFloor != null && convertedBidFloor.compareTo(resolvedExtImpBidFloor) >= 0) {
             return BidFloorResult.succeeded(Price.of(DEFAULT_BID_CURRENCY, convertedBidFloor));
         }

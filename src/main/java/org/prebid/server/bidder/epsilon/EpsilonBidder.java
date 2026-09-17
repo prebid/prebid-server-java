@@ -12,6 +12,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -117,7 +118,7 @@ public class EpsilonBidder implements Bidder<BidRequest> {
 
     private BigDecimal resolveBidFloor(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
         if (BidderUtil.isValidPrice(bidfloor)
-                && !StringUtils.equalsIgnoreCase(bidfloorcur, BIDDER_CURRENCY)
+                && !Strings.CI.equals(bidfloorcur, BIDDER_CURRENCY)
                 && StringUtils.isNotBlank(bidfloorcur)) {
             return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, BIDDER_CURRENCY);
         }

@@ -1,7 +1,7 @@
 package org.prebid.server.it.hooks;
 
 import io.vertx.core.Future;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -27,11 +27,11 @@ public class SampleItEntrypointHook implements EntrypointHook {
     private Future<InvocationResult<EntrypointPayload>> maybeUpdate(EntrypointPayload entrypointPayload) {
         final String updateSelector = entrypointPayload.queryParams().get("sample-it-module-update");
 
-        final CaseInsensitiveMultiMap updatedHeaders = StringUtils.contains(updateSelector, "headers")
+        final CaseInsensitiveMultiMap updatedHeaders = Strings.CS.contains(updateSelector, "headers")
                 ? updateHeaders(entrypointPayload.headers())
                 : entrypointPayload.headers();
 
-        final String updatedBody = StringUtils.contains(updateSelector, "body")
+        final String updatedBody = Strings.CS.contains(updateSelector, "body")
                 ? updateBody(entrypointPayload.body())
                 : entrypointPayload.body();
 

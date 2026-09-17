@@ -47,7 +47,7 @@ public class JsonMerger {
 
     public <T> T merge(T originalObject, T mergingObject, Class<T> classToCast) {
         if (!ObjectUtils.allNotNull(originalObject, mergingObject)) {
-            return ObjectUtils.defaultIfNull(originalObject, mergingObject);
+            return ObjectUtils.getIfNull(originalObject, mergingObject);
         }
 
         final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);

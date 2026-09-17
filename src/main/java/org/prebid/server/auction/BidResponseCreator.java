@@ -22,6 +22,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
@@ -269,7 +270,7 @@ public class BidResponseCreator {
 
         final String generatedBidId = bidIdGenerator.generateId();
         final String enforcedRandomBidId = enforcedBidId(bid);
-        final String effectiveBidId = ObjectUtils.defaultIfNull(generatedBidId, enforcedRandomBidId);
+        final String effectiveBidId = ObjectUtils.getIfNull(generatedBidId, enforcedRandomBidId);
 
         return bid.toBuilder()
                 .id(enforcedRandomBidId)
@@ -1529,7 +1530,7 @@ public class BidResponseCreator {
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
 
         return channelConfig.entrySet().stream()
-                .filter(entry -> StringUtils.equalsIgnoreCase(channelFromRequest, entry.getKey()))
+                .filter(entry -> Strings.CI.equals(channelFromRequest, entry.getKey()))
                 .findFirst()
                 .map(entry -> BooleanUtils.isTrue(entry.getValue()))
                 .orElse(Boolean.FALSE);
@@ -1545,7 +1546,7 @@ public class BidResponseCreator {
 
     // TODO: remove alias resolving after transition period
     private static String recogniseChannelName(String channelName) {
-        if (StringUtils.equalsIgnoreCase("pbjs", channelName)) {
+        if (Strings.CI.equals("pbjs", channelName)) {
             return Ortb2ImplicitParametersResolver.WEB_CHANNEL;
         }
 

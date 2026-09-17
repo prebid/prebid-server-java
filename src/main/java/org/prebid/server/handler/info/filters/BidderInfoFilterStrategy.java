@@ -1,7 +1,7 @@
 package org.prebid.server.handler.info.filters;
 
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import java.util.function.Predicate;
 
@@ -14,7 +14,7 @@ public interface BidderInfoFilterStrategy {
     static boolean lookUpQueryParamInContext(String queryParamName, RoutingContext routingContext) {
         final String queryParamValue = routingContext.queryParams().get(queryParamName);
 
-        if (queryParamValue != null && !StringUtils.equalsAnyIgnoreCase(queryParamValue, "true", "false")) {
+        if (queryParamValue != null && !Strings.CI.equalsAny(queryParamValue, "true", "false")) {
             throw new IllegalArgumentException(
                     "Invalid value for '" + queryParamName + "' query param, must be of boolean type");
         }

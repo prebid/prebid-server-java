@@ -20,6 +20,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -140,7 +141,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final Map<String, BigDecimal> values = keysToLowerCase(modelGroup.getValues());
         final PrebidConfigSource source = SimpleSource.of(
                 WILDCARD_CATCH_ALL,
-                ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER),
+                ObjectUtils.getIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER),
                 values.keySet());
         final PrebidConfigParameters parameters = createParameters(schema, bidRequest, imp, mediaType, format, bidder);
 
@@ -477,11 +478,11 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final BigDecimal floorMin = floorMinValues.getValue();
         final String floorMinCur = floorMinValues.getCurrency();
 
-        final String effectiveRulesCurrency = ObjectUtils.defaultIfNull(rulesCurrency, DEFAULT_RULES_CURRENCY);
+        final String effectiveRulesCurrency = ObjectUtils.getIfNull(rulesCurrency, DEFAULT_RULES_CURRENCY);
         final String effectiveFloorMinCurrency =
                 ObjectUtils.firstNonNull(floorMinCur, rulesCurrency, DEFAULT_RULES_CURRENCY);
 
-        final BigDecimal convertedFloorMinValue = !StringUtils.equals(effectiveRulesCurrency, effectiveFloorMinCurrency)
+        final BigDecimal convertedFloorMinValue = !Strings.CS.equals(effectiveRulesCurrency, effectiveFloorMinCurrency)
                 ? currencyConversionService.convertCurrency(
                 floorMin,
                 bidRequest,
@@ -525,8 +526,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         return Price.of(
-                ObjectUtils.defaultIfNull(impFloorMinCur, requestFloorMinCur),
-                ObjectUtils.defaultIfNull(impFloorMin, requestFloorMin));
+                ObjectUtils.getIfNull(impFloorMinCur, requestFloorMinCur),
+                ObjectUtils.getIfNull(impFloorMin, requestFloorMin));
     }
 
     private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
@@ -551,14 +552,14 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final BigDecimal floorMinValue = ObjectUtil.getIfNotNull(convertedFloorMin, Price::getValue);
         final String floorMinCurrency = ObjectUtil.getIfNotNull(floor, Price::getCurrency);
 
-        if (StringUtils.equals(floorCurrency, floorMinCurrency) && floorValue != null && floorMinValue != null) {
+        if (Strings.CS.equals(floorCurrency, floorMinCurrency) && floorValue != null && floorMinValue != null) {
 
             return floorValue.compareTo(floorMinValue) > 0
                     ? roundPrice(floor)
                     : roundPrice(convertedFloorMin);
         }
 
-        return roundPrice(ObjectUtils.defaultIfNull(floor, floorMin));
+        return roundPrice(ObjectUtils.getIfNull(floor, floorMin));
     }
 
     private static Price roundPrice(Price price) {

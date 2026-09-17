@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.sparteo.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -33,8 +34,8 @@ public final class SparteoUtil {
         }
 
         h = h.toLowerCase();
-        h = StringUtils.removeStart(h, "www.");
-        h = StringUtils.removeEnd(h, ".");
+        h = Strings.CS.removeStart(h, "www.");
+        h = Strings.CS.removeEnd(h, ".");
 
         return "null".equals(h) ? "" : h;
     }

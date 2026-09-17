@@ -84,7 +84,7 @@ public class VisibleMeasuresBidder implements Bidder<BidRequest> {
         final String placementId = extImpVisibleMeasures.getPlacementId();
         final String endpointId = extImpVisibleMeasures.getEndpointId();
 
-        final VisibleMeasuresType type = ObjectUtils.defaultIfNull(
+        final VisibleMeasuresType type = ObjectUtils.getIfNull(
                 StringUtils.isNotEmpty(placementId) ? VisibleMeasuresType.PUBLISHER : null,
                 StringUtils.isNotEmpty(endpointId) ? VisibleMeasuresType.NETWORK : null);
 

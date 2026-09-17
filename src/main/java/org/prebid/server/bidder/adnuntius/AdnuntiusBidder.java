@@ -22,6 +22,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
@@ -213,7 +214,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             String bidType) {
 
         final String auId = extImpAdnuntius.getAuId();
-        final ExtImpAdnuntiusTargeting targeting = ObjectUtils.defaultIfNull(
+        final ExtImpAdnuntiusTargeting targeting = ObjectUtils.getIfNull(
                 extImpAdnuntius.getTargeting(),
                 ExtImpAdnuntiusTargeting.builder().build());
         return AdnuntiusRequestAdUnit.builder()
@@ -447,7 +448,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         }
 
         final String targetId = extractTargetId(adsUnit.getTargetId());
-        final int matchedCount = ObjectUtils.defaultIfNull(adsUnit.getMatchedAdCount(), 0);
+        final int matchedCount = ObjectUtils.getIfNull(adsUnit.getMatchedAdCount(), 0);
         final List<AdnuntiusAd> ads = adsUnit.getAds();
         final BigDecimal bidAmount = CollectionUtils.emptyIfNull(ads).stream()
                 .findFirst()
@@ -523,10 +524,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         if (StringUtils.isEmpty(bidType)) {
             amount = ObjectUtil.getIfNotNull(ad.getBid(), AdnuntiusBid::getAmount);
         }
-        if (StringUtils.endsWithIgnoreCase(bidType, "net")) {
+        if (Strings.CI.endsWith(bidType, "net")) {
             amount = ObjectUtil.getIfNotNull(ad.getNetBid(), AdnuntiusNetBid::getAmount);
         }
-        if (StringUtils.endsWithIgnoreCase(bidType, "gross")) {
+        if (Strings.CI.endsWith(bidType, "gross")) {
             amount = ObjectUtil.getIfNotNull(ad.getGrossBid(), AdnuntiusGrossBid::getAmount);
         }
 

@@ -11,10 +11,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -81,8 +81,8 @@ public class DsaEnforcerTest extends VertxTest {
         final ExtRegs extRegs = givenExtRegs(DsaRequired.NOT_REQUIRED, DsaPublisherRender.NOT_RENDER);
         final BidRequest givenRequest = BidRequest.builder().regs(Regs.builder().ext(extRegs).build()).build();
         final ObjectNode dsaNode = mapper.createObjectNode()
-                .put("behalf", RandomStringUtils.randomAlphabetic(101))
-                .put("paid", RandomStringUtils.randomAlphabetic(100))
+                .put("behalf", RandomStringUtils.insecure().nextAlphabetic(101))
+                .put("paid", RandomStringUtils.insecure().nextAlphabetic(100))
                 .put("adrender", DsaAdvertiserRender.NOT_RENDER.getValue());
         final ObjectNode ext = mapper.createObjectNode().set("dsa", dsaNode);
         final BidderBid bid = BidderBid.of(
@@ -114,8 +114,8 @@ public class DsaEnforcerTest extends VertxTest {
         final ExtRegs extRegs = givenExtRegs(DsaRequired.NOT_REQUIRED, DsaPublisherRender.NOT_RENDER);
         final BidRequest givenRequest = BidRequest.builder().regs(Regs.builder().ext(extRegs).build()).build();
         final ObjectNode dsaNode = mapper.createObjectNode()
-                .put("behalf", RandomStringUtils.randomAlphabetic(100))
-                .put("paid", RandomStringUtils.randomAlphabetic(101))
+                .put("behalf", RandomStringUtils.insecure().nextAlphabetic(100))
+                .put("paid", RandomStringUtils.insecure().nextAlphabetic(101))
                 .put("adrender", DsaAdvertiserRender.NOT_RENDER.getValue());
         final ObjectNode ext = mapper.createObjectNode().set("dsa", dsaNode);
         final BidderBid bid = BidderBid.of(
@@ -344,8 +344,8 @@ public class DsaEnforcerTest extends VertxTest {
         final BidRequest givenRequest = BidRequest.builder().regs(Regs.builder().ext(extRegs).build()).build();
 
         final ObjectNode dsaNode = mapper.createObjectNode()
-                .put("behalf", RandomStringUtils.randomAlphabetic(100))
-                .put("paid", RandomStringUtils.randomAlphabetic(101))
+                .put("behalf", RandomStringUtils.insecure().nextAlphabetic(100))
+                .put("paid", RandomStringUtils.insecure().nextAlphabetic(101))
                 .put("adrender", DsaAdvertiserRender.NOT_RENDER.getValue());
         final ObjectNode ext = mapper.createObjectNode().set("dsa", dsaNode);
         final BidderBid bid = BidderBid.of(
@@ -378,8 +378,8 @@ public class DsaEnforcerTest extends VertxTest {
         final BidRequest givenRequest = BidRequest.builder().regs(Regs.builder().ext(extRegs).build()).build();
 
         final ObjectNode dsaNode = mapper.createObjectNode()
-                .put("behalf", RandomStringUtils.randomAlphabetic(101))
-                .put("paid", RandomStringUtils.randomAlphabetic(100))
+                .put("behalf", RandomStringUtils.insecure().nextAlphabetic(101))
+                .put("paid", RandomStringUtils.insecure().nextAlphabetic(100))
                 .put("adrender", DsaAdvertiserRender.NOT_RENDER.getValue());
         final ObjectNode ext = mapper.createObjectNode().set("dsa", dsaNode);
         final BidderBid bid = BidderBid.of(

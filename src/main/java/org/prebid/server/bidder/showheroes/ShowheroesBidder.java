@@ -12,7 +12,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -148,7 +148,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
 
     private static boolean shouldConvertFloor(Imp imp) {
         return BidderUtil.isValidPrice(imp.getBidfloor())
-                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BID_CURRENCY);
+                && !Strings.CI.equals(imp.getBidfloorcur(), BID_CURRENCY);
     }
 
     private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {

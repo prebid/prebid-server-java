@@ -7,11 +7,11 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -258,7 +258,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                                          BidRequest bidderBidRequest,
                                          BidRequest bidRequest) {
 
-        final String resolvedFloorCurrency = ObjectUtils.defaultIfNull(floorCurrency,
+        final String resolvedFloorCurrency = ObjectUtils.getIfNull(floorCurrency,
                 resolveBidRequestCurrency(bidderBidRequest));
 
         final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);

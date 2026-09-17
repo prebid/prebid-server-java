@@ -112,8 +112,8 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static Banner updateBanner(Banner banner) {
         final Format firstFormat = banner.getFormat().getFirst();
         return banner.toBuilder()
-                .w(ObjectUtils.defaultIfNull(firstFormat.getW(), 0))
-                .h(ObjectUtils.defaultIfNull(firstFormat.getH(), 0))
+                .w(ObjectUtils.getIfNull(firstFormat.getW(), 0))
+                .h(ObjectUtils.getIfNull(firstFormat.getH(), 0))
                 .build();
     }
 

@@ -76,7 +76,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         }
 
         return IntStream.range(0, imps.size())
-                .mapToObj(i -> ObjectUtils.defaultIfNull(modifiedImps.get(i), imps.get(i)))
+                .mapToObj(i -> ObjectUtils.getIfNull(modifiedImps.get(i), imps.get(i)))
                 .toList();
     }
 

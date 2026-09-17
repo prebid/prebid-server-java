@@ -74,7 +74,7 @@ public class ConditionalLogger {
     }
 
     private void log(String message, long duration, TimeUnit unit, Consumer<String> logger) {
-        final String key = ObjectUtils.defaultIfNull(this.key, message);
+        final String key = ObjectUtils.getIfNull(this.key, message);
         final Instant currentTime = Instant.now();
         final Instant endTime = messageToWaitEndTime.get(key);
 

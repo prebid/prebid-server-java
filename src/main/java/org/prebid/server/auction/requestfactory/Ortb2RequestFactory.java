@@ -315,9 +315,9 @@ public class Ortb2RequestFactory {
         }
 
         return Future.succeededFuture(bidRequest.toBuilder()
-                .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
+                .ext(ObjectUtils.getIfNull(enrichedRequestExt, requestExt))
+                .device(ObjectUtils.getIfNull(enrichedDevice, device))
+                .regs(ObjectUtils.getIfNull(enrichedRegs, regs))
                 .build());
     }
 
@@ -498,12 +498,12 @@ public class Ortb2RequestFactory {
 
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
-        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+        return ObjectUtils.getIfNull(publisherId, StringUtils.EMPTY);
     }
 
     private String resolvePublisherId(Publisher publisher) {
         final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
-        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
+        return ObjectUtils.getIfNull(parentAccountId, publisher.getId());
     }
 
     private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {

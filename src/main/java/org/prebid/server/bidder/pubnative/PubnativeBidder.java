@@ -13,6 +13,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -106,8 +107,8 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         return resolvedBanner == null && resolvedBidFloor == null
                 ? imp
                 : imp.toBuilder()
-                  .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
-                  .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
+                  .banner(ObjectUtils.getIfNull(resolvedBanner, imp.getBanner()))
+                  .bidfloor(ObjectUtils.getIfNull(resolvedBidFloor, imp.getBidfloor()))
                   .bidfloorcur(resolvedBidFloor == null ? imp.getBidfloorcur() : PUBNATIVE_CURRENCY)
                   .build();
     }
@@ -136,7 +137,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCur = resolveBidFloorCurrency(bidRequest, imp.getBidfloorcur());
         if (!BidderUtil.isValidPrice(bidFloor)
-                || StringUtils.equals(bidFloorCur, PUBNATIVE_CURRENCY)
+                || Strings.CS.equals(bidFloorCur, PUBNATIVE_CURRENCY)
                 || StringUtils.isEmpty(bidFloorCur)) {
             return null;
         }

@@ -433,7 +433,7 @@ public class AmpHandler implements ApplicationResource {
         }
         if (origin == null) {
             // Just to be safe
-            origin = ObjectUtils.defaultIfNull(routingContext.request().headers().get("Origin"), StringUtils.EMPTY);
+            origin = ObjectUtils.getIfNull(routingContext.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
     }

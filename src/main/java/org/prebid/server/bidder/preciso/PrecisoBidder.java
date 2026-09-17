@@ -8,7 +8,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -134,7 +134,7 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                         : initialBidFloorPrice;
 
         return BidderUtil.isValidPrice(resolvedPrice)
-                        && !StringUtils.equalsIgnoreCase(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
+                        && !Strings.CI.equals(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
                         ? convertBidFloor(resolvedPrice, imp.getId(), bidRequest)
                         : resolvedPrice;
     }

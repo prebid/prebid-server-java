@@ -132,8 +132,8 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
         if (CollectionUtils.isNotEmpty(format)) {
             return format.stream()
                     .map(singleFormat -> FORMAT_TEMPLATE.formatted(
-                            ObjectUtils.defaultIfNull(singleFormat.getW(), 0),
-                            ObjectUtils.defaultIfNull(singleFormat.getH(), 0)))
+                            ObjectUtils.getIfNull(singleFormat.getW(), 0),
+                            ObjectUtils.getIfNull(singleFormat.getH(), 0)))
                     .collect(Collectors.joining(","));
         }
 

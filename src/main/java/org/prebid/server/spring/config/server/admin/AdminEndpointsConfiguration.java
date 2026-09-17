@@ -205,7 +205,7 @@ public class AdminEndpointsConfiguration {
 
     @Bean
     Map<String, String> adminEndpointCredentials(@Autowired(required = false) AdminEndpointCredentials credentials) {
-        return ObjectUtils.defaultIfNull(credentials.getCredentials(), Collections.emptyMap());
+        return ObjectUtils.getIfNull(credentials.getCredentials(), Collections.emptyMap());
     }
 
     @Component

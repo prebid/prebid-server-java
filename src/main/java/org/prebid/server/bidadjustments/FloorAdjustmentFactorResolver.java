@@ -1,7 +1,7 @@
 package org.prebid.server.bidadjustments;
 
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
@@ -36,7 +36,7 @@ public class FloorAdjustmentFactorResolver {
                 .map(adjustmentFactorsByMediaTypes::get)
                 .map(bidderToFactor -> MapUtils.isNotEmpty(bidderToFactor)
                         ? bidderToFactor.entrySet().stream()
-                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))
+                        .filter(entry -> Strings.CI.equals(entry.getKey(), bidder))
                         .map(Map.Entry::getValue)
                         .findFirst()
                         .orElse(null)

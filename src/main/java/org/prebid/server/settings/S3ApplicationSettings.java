@@ -5,7 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.collections4.SetUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
@@ -94,7 +94,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
 
     private static void validateAccount(Account account, String requestedAccountId) {
         final String receivedAccountId = account != null ? account.getId() : null;
-        if (!StringUtils.equals(receivedAccountId, requestedAccountId)) {
+        if (!Strings.CS.equals(receivedAccountId, requestedAccountId)) {
             throw new PreBidException(
                     "Account with id %s does not match id %s in file".formatted(requestedAccountId, receivedAccountId));
         }

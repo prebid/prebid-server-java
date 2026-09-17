@@ -51,7 +51,7 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static String getRandomSpecialChars(int stringLength = 20) {
-        RandomStringUtils.random(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
+        RandomStringUtils.insecure().next(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
     }
 
     static String getRandomStringWithSpecials(int stringLength = 20) {
