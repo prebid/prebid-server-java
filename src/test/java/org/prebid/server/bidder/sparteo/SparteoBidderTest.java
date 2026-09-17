@@ -21,6 +21,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -190,7 +191,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldMergeNetworkIdIntoExistingPublisherExtParams() throws JsonProcessingException {
+    public void makeHttpRequestsShouldMergeNetworkIdIntoExistingPublisherExtParams() {
         // given
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
@@ -222,8 +223,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddParamsToPublisherExtWhenExtExistsWithoutParams()
-            throws JsonProcessingException {
+    public void makeHttpRequestsShouldAddParamsToPublisherExtWhenExtExistsWithoutParams() {
         // given
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
@@ -247,7 +247,7 @@ public class SparteoBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPublisher)
                 .extracting(Publisher::getExt)
-                .extracting(ext -> ext.getProperties())
+                .extracting(FlexibleExtension::getProperties)
                 .allSatisfy(properties -> {
                     assertThat(properties.get("params").get("networkId").asText()).isEqualTo("testNetworkId");
                     assertThat(properties.get("otherField").asText()).isEqualTo("otherValue");
@@ -406,7 +406,7 @@ public class SparteoBidderTest extends VertxTest {
 
         // then
         assertMissingBundleWarning(result);
-        final BidRequest out = result.getValue().get(0).getPayload();
+        final BidRequest out = result.getValue().getFirst().getPayload();
         assertThat(out.getApp()).isNotNull();
         assertThat(out.getApp().getPublisher()).isNotNull();
 
@@ -436,7 +436,7 @@ public class SparteoBidderTest extends VertxTest {
 
         // then
         assertMissingBundleWarning(result);
-        final BidRequest out = result.getValue().get(0).getPayload();
+        final BidRequest out = result.getValue().getFirst().getPayload();
         assertThat(out.getApp()).isNotNull();
         assertThat(out.getApp().getPublisher()).isNotNull();
 
@@ -657,7 +657,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResultWhenBidResponseIsNull() {
         // given
         final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(givenBidRequest()).build(),
@@ -673,7 +673,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenBidResponseHasNoSeatBids() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResultWhenBidResponseHasNoSeatBids() {
         // given
         final BidResponse bidResponse = BidResponse.builder().seatbid(Collections.emptyList()).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
@@ -687,7 +687,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWhenMediaTypeIsBanner() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenMediaTypeIsBanner() {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").price(BigDecimal.valueOf(1.23)).adm("adm-banner"),
                 BidType.banner.getName());
@@ -704,7 +704,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidWhenMediaTypeIsVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidWhenMediaTypeIsVideo() {
         // given
         final Bid bid = givenBid(builder ->
                         builder.impid("imp2").price(BigDecimal.valueOf(2.34)).adm("adm-video"),
@@ -722,7 +722,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidWhenMediaTypeIsNative() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidWhenMediaTypeIsNative() {
         // given
         final Bid bid = givenBid(builder ->
                         builder.impid("imp3").price(BigDecimal.valueOf(3.45)).adm("adm-native"),
@@ -740,7 +740,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorForUnsupportedMediaTypeAndProcessOthers() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorForUnsupportedMediaTypeAndProcessOthers() {
         // given
         final Bid audioBid = givenBid(builder ->
                 builder.impid("impAudio").price(BigDecimal.ONE),
@@ -765,7 +765,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenBidExtIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidExtIsNull() {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(null), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
@@ -782,7 +782,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenPrebidIsMissingInBidExt() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenPrebidIsMissingInBidExt() {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(mapper.createObjectNode()), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
@@ -799,7 +799,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenPrebidTypeIsMissingInBidExt() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenPrebidTypeIsMissingInBidExt() {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(createBidExtWithEmptyPrebid()), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
@@ -816,7 +816,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenPrebidCannotBeParsed() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenPrebidCannotBeParsed() {
         // given
         final ObjectNode malformedExt = mapper.createObjectNode();
         malformedExt.putArray("prebid");
@@ -835,7 +835,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenPrebidTypeIsUnsupported() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenPrebidTypeIsUnsupported() {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1"), "unknown-type");
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
@@ -852,7 +852,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldProcessValidBidsWhenSeatBidContainsNulls() throws JsonProcessingException {
+    public void makeBidsShouldProcessValidBidsWhenSeatBidContainsNulls() {
         // given
         final Bid validBid = givenBid(builder ->
                         builder.impid("validImp").price(BigDecimal.ONE),
@@ -875,7 +875,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldCorrectlyProcessMultipleBidsAndSeatBids() throws JsonProcessingException {
+    public void makeBidsShouldCorrectlyProcessMultipleBidsAndSeatBids() {
         // given
         final Bid bid1 = givenBid(builder ->
                         builder.impid("imp1").price(BigDecimal.valueOf(1.0)),
@@ -908,7 +908,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenPrebidExtIsNullNode() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenPrebidExtIsNullNode() {
         // given
         final ObjectNode bidExtWithNullPrebid = mapper.createObjectNode();
         bidExtWithNullPrebid.set("prebid", NullNode.getInstance());
@@ -928,7 +928,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldProcessValidSeatBidsWhenResponseContainsNulls() throws JsonProcessingException {
+    public void makeBidsShouldProcessValidSeatBidsWhenResponseContainsNulls() {
         // given
         final Bid validBid1 = givenBid(builder ->
                         builder.impid("validImp1").price(BigDecimal.TEN),
@@ -960,7 +960,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenSeatBidHasNullBidList() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResultWhenSeatBidHasNullBidList() {
         // given
         final SeatBid seatBidWithNullBids = SeatBid.builder().bid(null).build();
         final BidResponse bidResponse =
@@ -976,7 +976,7 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenSeatBidHasEmptyBidList() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResultWhenSeatBidHasEmptyBidList() {
         // given
         final SeatBid seatBidWithEmptyBids = SeatBid.builder().bid(Collections.emptyList()).build();
         final BidResponse bidResponse =

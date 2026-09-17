@@ -555,10 +555,6 @@ public class RemoteFileSyncerTest extends VertxTest {
         };
     }
 
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return withSelfAndPassObjectToHandler(obj, 1);
-    }
-
     @SuppressWarnings("unchecked")
     private static <T, V> Answer<Object> withReturnObjectAndPassObjectToHandler(T obj, V ret, int index) {
         return inv -> {

@@ -2,7 +2,6 @@ package org.prebid.server.bidder.tpmn;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -251,10 +250,10 @@ public class TpmnBidderTest extends VertxTest {
 
     private Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(
-                Imp.builder().ext(givenImpExt("publisher_id", "ad_unit_id"))).build();
+                Imp.builder().ext(givenImpExt())).build();
     }
 
-    private ObjectNode givenImpExt(String publisherId, String adUnitId) {
+    private ObjectNode givenImpExt() {
         return mapper.valueToTree(
                 ExtPrebid.of(null, mapper.createObjectNode()));
     }
@@ -266,15 +265,6 @@ public class TpmnBidderTest extends VertxTest {
                         .bid(List.of(bids))
                         .build()))
                 .build();
-    }
-
-    private static ObjectNode givenBidExt(String value) {
-        return mapper.createObjectNode()
-                .set("prebid", mapper.createObjectNode().set("type", TextNode.valueOf(value)));
-    }
-
-    private static Bid givenBid(String type) {
-        return Bid.builder().impid("123").ext(givenBidExt(type)).build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

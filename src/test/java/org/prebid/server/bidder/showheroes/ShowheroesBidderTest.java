@@ -89,7 +89,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -106,7 +106,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("BidRequest.site.page is required");
+        assertThat(result.getErrors().getFirst().getMessage()).isEqualTo("BidRequest.site.page is required");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -123,7 +123,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("BidRequest.app.bundle is required");
+        assertThat(result.getErrors().getFirst().getMessage()).isEqualTo("BidRequest.app.bundle is required");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -138,7 +138,7 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL);
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo(ENDPOINT_URL);
     }
 
     @Test

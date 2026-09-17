@@ -305,10 +305,6 @@ public class UnrulyBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
-    }
-
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         final ObjectNode impExt = mapper.valueToTree(
                 UnrulyExtPrebid.of(ExtImpUnruly.of(123), "gpid"));

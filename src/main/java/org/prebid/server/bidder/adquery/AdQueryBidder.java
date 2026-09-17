@@ -159,7 +159,7 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<AdQueryRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<AdQueryRequest> httpCall, BidRequest bidRequest) {
         try {
             final AdQueryResponse bidResponse = mapper.decodeValue(
                     httpCall.getResponse().getBody(), AdQueryResponse.class);

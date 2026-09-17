@@ -1607,8 +1607,7 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateImpsShouldReturnValidationMessageWhenExtImpPrebidHasStoredAuctionResponseWithoutId()
-            throws ValidationException {
+    public void validateImpsShouldReturnValidationMessageWhenExtImpPrebidHasStoredAuctionResponseWithoutId() {
 
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
@@ -1623,8 +1622,7 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateImpsShouldNotReturnValidationMessageWhenStoredAuctionResponseWithoutIdAndWithSeatBidObj()
-            throws ValidationException {
+    public void validateImpsShouldNotReturnValidationMessageWhenStoredAuctionResponseWithoutIdAndWithSeatBidObj() {
 
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()

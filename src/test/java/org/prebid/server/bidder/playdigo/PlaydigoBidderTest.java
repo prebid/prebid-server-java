@@ -140,7 +140,7 @@ public class PlaydigoBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
+        assertThat(errors.getFirst().getMessage())
                 .startsWith("found no valid impressions");
     }
 

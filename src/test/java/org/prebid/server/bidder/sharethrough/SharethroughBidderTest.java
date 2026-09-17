@@ -274,14 +274,14 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.getFirst())
+                .extracting(List::getFirst)
                 .allSatisfy(impression -> assertThat(impression.getId()).isEqualTo("123"));
 
         // The multiformat bid request is split into a bid request per media type
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.getFirst())
+                .extracting(List::getFirst)
                 // Ignore audio impressions because it is currently not supported
                 .satisfiesExactlyInAnyOrder(
                         impression -> {

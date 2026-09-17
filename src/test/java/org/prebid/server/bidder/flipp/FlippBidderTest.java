@@ -567,7 +567,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -595,7 +595,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -625,7 +625,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -652,7 +652,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test

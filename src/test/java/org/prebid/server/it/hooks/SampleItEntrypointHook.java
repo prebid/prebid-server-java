@@ -49,7 +49,7 @@ public class SampleItEntrypointHook implements EntrypointHook {
     }
 
     private static String updateBody(String body) {
-        return body.replaceAll("\"language\":\"en\"", "\"language\":\"fr\"");
+        return body.replace("\"language\":\"en\"", "\"language\":\"fr\"");
     }
 
     @Override

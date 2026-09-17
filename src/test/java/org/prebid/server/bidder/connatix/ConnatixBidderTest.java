@@ -465,14 +465,6 @@ public class ConnatixBidderTest extends VertxTest {
                 null);
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest request,
-                                                        String response) throws JsonProcessingException {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(request).build(),
-                HttpResponse.of(200, null, response),
-                null);
-    }
-
     private static String givenBidResponse(Bid... bid) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")

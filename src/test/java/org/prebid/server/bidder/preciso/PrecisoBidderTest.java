@@ -65,7 +65,7 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
 
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -82,7 +82,7 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
 
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(null));
 
         // when
@@ -97,7 +97,7 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
 
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -112,7 +112,7 @@ public class PrecisoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner)))));
 
         // when
@@ -222,9 +222,9 @@ public class PrecisoBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                   HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                   HttpRequest.<BidRequest>builder().payload(null).build(),
                    HttpResponse.of(200, null, body),
                    null);
     }

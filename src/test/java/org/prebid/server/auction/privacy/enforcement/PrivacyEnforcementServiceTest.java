@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -68,7 +69,7 @@ public class PrivacyEnforcementServiceTest {
         assertThat(result)
                 .isSucceeded()
                 .unwrap()
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactlyInAnyOrder(expectedResult);
     }
 }

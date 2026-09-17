@@ -100,7 +100,7 @@ public class MobkoiBidderTest extends VertxTest {
         // given
         final ObjectNode mobkoiExt = impExt("pid");
         final Imp givenImp = givenImp(impBuilder -> impBuilder.tagid("tagId").ext(mobkoiExt));
-        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp)).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(givenImp)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -118,7 +118,7 @@ public class MobkoiBidderTest extends VertxTest {
         // given
         final ObjectNode mobkoiExt = impExt(null);
         final Imp givenImp = givenImp(impBuilder -> impBuilder.tagid("tagId").ext(mobkoiExt));
-        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp)).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(givenImp)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
