@@ -2,27 +2,43 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
+import com.iab.openrtb.request.Eid;
+import com.iab.openrtb.request.Segment;
+import com.iab.openrtb.request.Uid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
+import org.prebid.server.hooks.execution.model.ExecutionGroup;
+import org.prebid.server.hooks.execution.model.ExecutionPlan;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
+import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.settings.model.Account;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,57 +46,61 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
+class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
 
     private ConfigResolver configResolver;
 
     @Mock
     private OptableTargeting optableTargeting;
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private UserFpdActivityMask userFpdActivityMask;
-
-    private OptableTargetingProcessedAuctionRequestHook target;
 
     @Mock
     private AuctionRequestPayload auctionRequestPayload;
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private AuctionInvocationContext invocationContext;
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private ActivityInfrastructure activityInfrastructure;
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private Timeout timeout;
 
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private TimeoutFactory timeoutFactory;
+
+    private TargetingRequestExecutor targetingRequestExecutor;
+
+    private OptableTargetingProcessedAuctionRequestHook target;
+
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
+        targetingRequestExecutor = new TargetingRequestExecutor(
+                optableTargeting, userFpdActivityMask, timeoutFactory, 0.01);
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                optableTargeting,
-                userFpdActivityMask,
-                0.01);
+                configResolver, targetingRequestExecutor, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
 
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
-        when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout, Account.builder().id("accountId").build()));
         when(invocationContext.timeout()).thenReturn(timeout);
         when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
         when(timeout.remaining()).thenReturn(1000L);
     }
 
     @Test
-    public void shouldHaveRightCode() {
+    void codeShouldReturnRightCode() {
         // when and then
         assertThat(target.code()).isEqualTo("optable-targeting-processed-auction-request-hook");
     }
 
     @Test
-    public void shouldReturnResultWithPBSAnalyticsTags() {
+    void callShouldReturnResultWithPBSAnalyticsTags() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), any()))
@@ -95,16 +115,16 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         assertThat(result.analyticsTags().activities().getFirst()
                 .results().getFirst().values().get("execution-time")).isNotNull();
     }
 
     @Test
-    public void shouldReturnResultWithUpdateActionWhenOptableTargetingReturnTargeting() {
+    void callShouldReturnResultWithUpdateActionWhenOptableTargetingReturnsTargeting() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), any()))
@@ -119,30 +139,233 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final BidRequest bidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
                 .bidRequest();
-        assertThat(bidRequest.getUser().getEids().getFirst().getUids().getFirst().getId()).isEqualTo("id");
-        assertThat(bidRequest.getUser().getData().getFirst().getSegment().getFirst().getId()).isEqualTo("id");
+        assertThat(bidRequest.getUser().getEids())
+                .flatExtracting(Eid::getUids)
+                .extracting(Uid::getId)
+                .containsExactly("id");
+        assertThat(bidRequest.getUser().getData())
+                .flatExtracting(Data::getSegment)
+                .extracting(Segment::getId)
+                .containsExactly("id");
     }
 
     @Test
-    public void shouldReturnFailWhenOriginIsAbsentInAccountConfiguration() {
+    void callShouldSetId5SignatureOnModuleContextWhenTargetingResultContainsId5Signature() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult(List.of(id5Eid), null, refs)));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat((ModuleContext) future.result().moduleContext())
+                .isNotNull()
+                .extracting(ModuleContext::getId5Signature)
+                .isEqualTo(signature);
+    }
+
+    @Test
+    void callShouldLeaveId5SignatureNullWhenTargetingResultHasNoId5Signature() {
+        // given
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat((ModuleContext) future.result().moduleContext())
+                .isNotNull()
+                .extracting(ModuleContext::getId5Signature)
+                .isNull();
+    }
+
+    @Test
+    void callShouldReturnResultWithUpdateActionWhenEarlyOptableCallIsEnabled() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                targetingRequestExecutor,
+                CompositeHookExecutionPlan.of(givenExecutionPlan(true, false)),
+                0.01);
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        moduleContext.setOptableTargetingCall(
+                targetingRequestExecutor.makeRequest(
+                        auctionRequestPayload,
+                        invocationContext,
+                        givenOptableTargetingProperties("key", "tenant", "origin", false),
+                        null));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        final BidRequest bidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(bidRequest.getUser().getEids())
+                .flatExtracting(Eid::getUids)
+                .extracting(Uid::getId)
+                .containsExactly("id");
+        assertThat(bidRequest.getUser().getData())
+                .flatExtracting(Data::getSegment)
+                .extracting(Segment::getId)
+                .containsExactly("id");
+    }
+
+    @Test
+    void callShouldReturnResultWithEnrichedBidRequestWhenBothHooksAreAbsent() {
+        // given
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                targetingRequestExecutor,
+                CompositeHookExecutionPlan.of(givenExecutionPlan(false, false)),
+                0.01);
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        final BidRequest bidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(bidRequest.getUser().getEids())
+                .flatExtracting(Eid::getUids)
+                .extracting(Uid::getId)
+                .containsExactly("id");
+        assertThat(bidRequest.getUser().getData())
+                .flatExtracting(Data::getSegment)
+                .extracting(Segment::getId)
+                .containsExactly("id");
+    }
+
+    @Test
+    void callShouldReturnResultWithEnrichedBidRequestWhenOnlyBidderRequestHookIsPresent() {
+        // given
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                targetingRequestExecutor,
+                CompositeHookExecutionPlan.of(givenExecutionPlan(false, true)),
+                0.01);
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        final BidRequest bidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(bidRequest.getUser().getEids())
+                .flatExtracting(Eid::getUids)
+                .extracting(Uid::getId)
+                .containsExactly("id");
+        assertThat(bidRequest.getUser().getData())
+                .flatExtracting(Data::getSegment)
+                .extracting(Segment::getId)
+                .containsExactly("id");
+    }
+
+    @Test
+    void callShouldReturnResultWithoutEnrichedBidRequestWhenBothHooksArePresent() {
+        // given
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                targetingRequestExecutor,
+                CompositeHookExecutionPlan.of(givenExecutionPlan(true, true)),
+                0.01);
+        when(invocationContext.moduleContext()).thenReturn(new ModuleContext());
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        final BidRequest bidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(bidRequest.getUser().getEids()).isNull();
+        assertThat(bidRequest.getUser().getData()).isNull();
+    }
+
+    @Test
+    void callShouldReturnFailWhenOriginIsAbsentInAccountConfiguration() {
         // given
         configResolver = new ConfigResolver(
                 mapper,
                 jsonMerger,
                 givenOptableTargetingProperties("key", "tenant", null, false));
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                optableTargeting,
-                userFpdActivityMask,
-                0.01);
+                configResolver, targetingRequestExecutor, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
         when(invocationContext.accountConfig())
                 .thenReturn(givenAccountConfig("key", "tenant", null, true));
 
@@ -155,26 +378,23 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
         assertThat((ModuleContext) result.moduleContext())
                 .extracting(it -> it.getEnrichRequestStatus().getStatus())
                 .isEqualTo(Status.FAIL);
     }
 
     @Test
-    public void shouldReturnFailWhenTenantIsAbsentInAccountConfiguration() {
+    void callShouldReturnFailWhenTenantIsAbsentInAccountConfiguration() {
         // given
         configResolver = new ConfigResolver(
                 mapper,
                 jsonMerger,
                 givenOptableTargetingProperties("key", null, "origin", false));
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                optableTargeting,
-                userFpdActivityMask,
-                0.01);
+                configResolver, targetingRequestExecutor, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
         when(invocationContext.accountConfig())
                 .thenReturn(givenAccountConfig("key", null, null, true));
 
@@ -187,18 +407,17 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
         assertThat((ModuleContext) result.moduleContext())
                 .extracting(it -> it.getEnrichRequestStatus().getStatus())
                 .isEqualTo(Status.FAIL);
     }
 
     @Test
-    public void shouldReturnResultWithCleanedUpUserExtOptableTag() {
+    void callShouldReturnResultWithCleanedUpUserExtOptableTag() {
         // given
-        when(invocationContext.timeout()).thenReturn(timeout);
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
@@ -212,10 +431,10 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final ObjectNode optable = (ObjectNode) result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -226,7 +445,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     }
 
     @Test
-    public void shouldReturnResultWithUpdateWhenOptableTargetingDoesntReturnResult() {
+    void callShouldReturnResultWithUpdateWhenOptableTargetingDoesNotReturnResult() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), any())).thenReturn(Future.succeededFuture(null));
@@ -240,17 +459,54 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+    }
+
+    @Test
+    void callShouldReturnUpdateWhenTrafficSourceIsInvalid() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setShouldSkipEnrichment(true);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
     }
 
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {
         return givenAccountConfig("key", "tenant", "origin", cacheEnabled);
     }
 
-    private ObjectNode givenAccountConfig(String key, String tenant, String origin, boolean cacheEnabled) {
-        return mapper.valueToTree(givenOptableTargetingProperties(key, tenant, origin, cacheEnabled));
+    private ExecutionPlan givenExecutionPlan(boolean hasRawAuctionRequestHook, boolean hasBidderRequestHook) {
+        final HookId rawAuctionHook = HookId.of("optable-targeting", "optable-targeting-raw-auction-request-hook");
+        final HookId bidderRequestHook = HookId.of("optable-targeting", "optable-targeting-bidder-request-hook");
+
+        final StageExecutionPlan rawAuctionStage = StageExecutionPlan.of(List.of(
+                ExecutionGroup.of(null, hasRawAuctionRequestHook ? List.of(rawAuctionHook) : List.of())
+        ));
+        final StageExecutionPlan bidderRequestStage = StageExecutionPlan.of(List.of(
+                ExecutionGroup.of(null, hasBidderRequestHook ? List.of(bidderRequestHook) : List.of())
+        ));
+
+        final EndpointExecutionPlan endpointExecutionPlan = EndpointExecutionPlan.of(Map.of(
+                Stage.raw_auction_request, rawAuctionStage,
+                Stage.bidder_request, bidderRequestStage
+        ));
+
+        return ExecutionPlan.of(null, Map.of(HookHttpEndpoint.POST_AUCTION, endpointExecutionPlan));
     }
 }
