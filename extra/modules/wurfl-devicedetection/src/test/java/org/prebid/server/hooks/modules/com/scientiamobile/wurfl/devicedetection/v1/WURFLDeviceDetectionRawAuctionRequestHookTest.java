@@ -26,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.settings.model.Account;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +34,8 @@ import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 public class WURFLDeviceDetectionRawAuctionRequestHookTest {
+
+    private final JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
     @Mock
     private WURFLEngine wurflEngine;
@@ -55,8 +56,6 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
 
     @Mock(strictness = Mock.Strictness.LENIENT)
     private com.scientiamobile.wurfl.core.Device wurflDevice;
-
-    private JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
     private WURFLDeviceDetectionRawAuctionRequestHook target;
 
@@ -161,7 +160,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
 
         given(context.moduleContext()).willReturn(headersContext);
-        given(wurflEngine.getDeviceForRequest(any(Map.class))).willReturn(wurflDevice);
+        given(wurflEngine.getDeviceForRequest(any())).willReturn(wurflDevice);
         given(wurflDevice.getId()).willReturn("test_phone_ver1");
 
         // when
@@ -173,7 +172,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void callShouldUpdateDeviceWhenWurflDeviceIsDetected() throws Exception {
+    public void callShouldUpdateDeviceWhenWurflDeviceIsDetected() {
         // given
         final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
         final Device device = Device.builder().ua(ua).build();
@@ -186,7 +185,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
 
         given(context.moduleContext()).willReturn(headersContext);
-        given(wurflEngine.getDeviceForRequest(any(Map.class))).willReturn(wurflDevice);
+        given(wurflEngine.getDeviceForRequest(any())).willReturn(wurflDevice);
         given(wurflDevice.getId()).willReturn("apple_iphone_ver1");
         given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
         given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
@@ -200,7 +199,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldEnrichDeviceWhenAllowedPublisherIdsIsEmpty() throws Exception {
+    public void shouldEnrichDeviceWhenAllowedPublisherIdsIsEmpty() {
         // given
         final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
         final Device device = Device.builder().ua(ua).build();
@@ -213,7 +212,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
 
         given(context.moduleContext()).willReturn(headersContext);
-        given(wurflEngine.getDeviceForRequest(any(Map.class))).willReturn(wurflDevice);
+        given(wurflEngine.getDeviceForRequest(any())).willReturn(wurflDevice);
         given(wurflDevice.getId()).willReturn("apple_iphone_ver1");
         given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
         given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
@@ -231,7 +230,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldEnrichDeviceWhenAccountIsAllowed() throws Exception {
+    public void shouldEnrichDeviceWhenAccountIsAllowed() {
         // given
         final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
         final Device device = Device.builder().ua(ua).build();
@@ -244,7 +243,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
 
         given(context.moduleContext()).willReturn(headersContext);
-        given(wurflEngine.getDeviceForRequest(any(Map.class))).willReturn(wurflDevice);
+        given(wurflEngine.getDeviceForRequest(any())).willReturn(wurflDevice);
         given(wurflDevice.getId()).willReturn("apple_iphone_ver1");
         given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
         given(wurflDevice.getCapability("model_name")).willReturn("iPhone");

@@ -31,7 +31,7 @@ public class WURFLEngineUtilsTest {
     @Test
     public void extractWURFLFileNameShouldHandleSimpleFileName() {
         // given
-        final String url = "http://example.com/wurfl.zip";
+        final String url = "https://example.com/wurfl.zip";
 
         // when
         final String result = WURFLEngineUtils.extractWURFLFileName(url);

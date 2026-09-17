@@ -41,10 +41,10 @@ public class WURFLServiceTest {
     }
 
     @Test
-    public void setDataPathShouldReturnSucceededFutureWhenProcessingSucceeds() throws Exception {
+    public void setDataPathShouldReturnSucceededFutureWhenProcessingSucceeds() {
         // given
         final String dataFilePath = "test-data-path";
-        final String wurflSnapshotUrl = "http://example.com/wurfl-snapshot.zip";
+        final String wurflSnapshotUrl = "https://example.com/wurfl-snapshot.zip";
         final String wurflFileDirPath = System.getProperty("java.io.tmpdir");
 
         given(configProperties.getFileSnapshotUrl()).willReturn(wurflSnapshotUrl);

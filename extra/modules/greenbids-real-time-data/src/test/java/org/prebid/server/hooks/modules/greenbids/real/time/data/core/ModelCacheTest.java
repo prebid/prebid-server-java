@@ -55,13 +55,10 @@ public class ModelCacheTest {
     @Mock
     private ModelCache target;
 
-    private Vertx vertx;
-
     @BeforeEach
     public void setUp() {
-        vertx = Vertx.vertx();
         target = new ModelCache(
-                storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, vertx, onnxModelRunnerFactory);
+                storage, GCS_BUCKET_NAME, cache, MODEL_CACHE_KEY_PREFIX, Vertx.vertx(), onnxModelRunnerFactory);
     }
 
     @Test

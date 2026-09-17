@@ -86,14 +86,8 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     }
 
     private static <T> T tryUpdateField(T fromOrtbDevice, Supplier<T> fromWurflDeviceSupplier) {
-        if (fromOrtbDevice != null) {
-            return fromOrtbDevice;
-        }
+        return fromOrtbDevice != null ? fromOrtbDevice : fromWurflDeviceSupplier.get();
 
-        final T fromWurflDevice = fromWurflDeviceSupplier.get();
-        return fromWurflDevice != null
-                ? fromWurflDevice
-                : fromOrtbDevice;
     }
 
     private String getWurflMake() {

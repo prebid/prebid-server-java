@@ -157,7 +157,7 @@ public class BidsBlocker {
         return checkAttributeComplement(
                 cattax,
                 blockingConfig.getCattax(),
-                ObjectUtils.defaultIfNull(
+                ObjectUtils.getIfNull(
                         blockedAttributeValues(BlockedAttributes::getCattaxComplement),
                         DEFAULT_BLOCKED_CATTAX_COMPLEMENT));
     }
