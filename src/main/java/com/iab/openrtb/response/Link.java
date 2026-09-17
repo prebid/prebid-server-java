@@ -1,14 +1,19 @@
 package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 import java.util.List;
 
 /**
  * Used for ‘call to action’ assets, or other links from the Native ad.
  */
-@Value(staticConstructor = "of")
+@Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Link {
 
     /**
@@ -27,4 +32,8 @@ public class Link {
     String fallback;
 
     ObjectNode ext;
+
+    public static Link of(String url, List<String> clicktrackers, String fallback, ObjectNode ext) {
+        return new Link(url, clicktrackers, fallback, ext);
+    }
 }

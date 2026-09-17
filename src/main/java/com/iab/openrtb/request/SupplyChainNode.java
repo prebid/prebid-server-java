@@ -1,7 +1,10 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 /**
  * This object is associated with a SupplyChain object as an array of nodes.
@@ -9,7 +12,9 @@ import lombok.Value;
  * chain of a bid request. Detailed implementation examples can be found
  * <a href="https://github.com/InteractiveAdvertisingBureau/openrtb/blob/master/supplychainobject.md">here</a>.
  */
-@Value(staticConstructor = "of")
+@Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class SupplyChainNode {
 
     /**
@@ -72,4 +77,16 @@ public class SupplyChainNode {
      * Placeholder for advertising-system specific extensions to this object.
      */
     ObjectNode ext;
+
+    public static SupplyChainNode of(
+            String asi,
+            String sid,
+            String rid,
+            String name,
+            String domain,
+            Integer hp,
+            ObjectNode ext) {
+
+        return new SupplyChainNode(asi, sid, rid, name, domain, hp, ext);
+    }
 }

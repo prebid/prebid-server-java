@@ -1,7 +1,10 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 import java.util.List;
 
@@ -13,7 +16,9 @@ import java.util.List;
  * in the direct flow of payment for inventory. Detailed
  * implementation examples can be found <a href="https://github.com/InteractiveAdvertisingBureau/openrtb/blob/master/supplychainobject.md">here</a>.
  */
-@Value(staticConstructor = "of")
+@Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class SupplyChain {
 
     /**
@@ -45,4 +50,8 @@ public class SupplyChain {
      * Placeholder for advertising-system specific extensions to this object.
      */
     ObjectNode ext;
+
+    public static SupplyChain of(Integer complete, List<SupplyChainNode> nodes, String ver, ObjectNode ext) {
+        return new SupplyChain(complete, nodes, ver, ext);
+    }
 }

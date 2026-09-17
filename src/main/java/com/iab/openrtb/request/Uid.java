@@ -1,8 +1,11 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 /**
  * This object contains a single user identifier provided as part of
@@ -11,6 +14,8 @@ import lombok.Value;
  */
 @Value
 @Builder(toBuilder = true)
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Uid {
 
     /**

@@ -1,8 +1,11 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 /**
  * This object is associated with an impression as an array of metrics.
@@ -13,6 +16,8 @@ import lombok.Value;
  */
 @Builder(toBuilder = true)
 @Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Metric {
 
     /**

@@ -1,7 +1,10 @@
 package com.iab.openrtb.request;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import java.math.BigDecimal;
@@ -26,6 +29,8 @@ import java.math.BigDecimal;
  */
 @Builder(toBuilder = true)
 @Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Device {
 
     /**

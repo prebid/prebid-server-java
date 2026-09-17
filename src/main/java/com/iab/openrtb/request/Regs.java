@@ -1,7 +1,10 @@
 package com.iab.openrtb.request;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 
 import java.util.List;
@@ -13,6 +16,8 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Regs {
 
     /**

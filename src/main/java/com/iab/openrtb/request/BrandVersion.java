@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 import java.util.List;
 
@@ -12,6 +13,7 @@ import java.util.List;
  * platform or operating system.
  */
 @Value
+@NonFinal
 public class BrandVersion {
 
     /**

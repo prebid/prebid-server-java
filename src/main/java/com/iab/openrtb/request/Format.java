@@ -1,8 +1,11 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 
 /**
  * This object represents an allowed size (i.e., height and width combination)
@@ -13,6 +16,8 @@ import lombok.Value;
  */
 @Builder
 @Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Format {
 
     /**

@@ -1,7 +1,10 @@
 package com.iab.openrtb.request;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 
 /**
@@ -16,6 +19,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
  */
 @Builder(toBuilder = true)
 @Value
+@NonFinal
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Geo {
 
     public static final Geo EMPTY = Geo.builder().build();
