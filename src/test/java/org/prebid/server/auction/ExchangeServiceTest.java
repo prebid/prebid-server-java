@@ -3078,6 +3078,22 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldIncrementAccountRequestGotbidsMetricAtMostOncePerRequest() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(Map.of("firstBidder", 1, "secondBidder", 2)));
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verify(metrics, times(1)).updateAccountRequestGotbidsMetric("accountId");
+    }
+
+    @Test
     public void shouldValidateBidsWithExtRequestPrebidAlternateBidderCodes() {
         // given
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
