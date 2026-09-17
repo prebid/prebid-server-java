@@ -20,7 +20,7 @@ public final class SparteoUtil {
         String hostname = null;
         try {
             hostname = new URI(h).getHost();
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException _) {
         }
 
         if (StringUtils.isNotEmpty(hostname)) {

@@ -45,10 +45,6 @@ public class AnalyticsTagsEnricher {
 
         final List<ExtAnalyticsTags> extAnalyticsTags = HookDebugInfoEnricher.toExtAnalyticsTags(context);
 
-        if (extAnalyticsTags == null) {
-            return context;
-        }
-
         final BidResponse bidResponse = context.getBidResponse();
         final Optional<ExtBidResponse> ext = Optional.ofNullable(bidResponse.getExt());
         final Optional<ExtBidResponsePrebid> extPrebid = ext.map(ExtBidResponse::getPrebid);

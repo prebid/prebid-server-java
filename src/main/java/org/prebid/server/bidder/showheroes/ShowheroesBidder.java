@@ -211,7 +211,6 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
     private static BidType getBidType(Bid bid) {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
-            case 2 -> BidType.video;
             case null, default -> BidType.video;
         };
     }

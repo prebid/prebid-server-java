@@ -233,20 +233,20 @@ public class CookieSyncHandler implements ApplicationResource {
         final String body;
 
         switch (error) {
-            case InvalidCookieSyncRequestException invalidCookieSyncRequestException -> {
+            case InvalidCookieSyncRequestException _ -> {
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = "Invalid request format: " + message;
 
                 metrics.updateUserSyncBadRequestMetric();
                 badRequestLogger.info(message, logSamplingRate);
             }
-            case UnauthorizedUidsException unauthorizedUidsException -> {
+            case UnauthorizedUidsException _ -> {
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = "Unauthorized: " + message;
 
                 metrics.updateUserSyncOptoutMetric();
             }
-            case InvalidAccountConfigException invalidAccountConfigException -> {
+            case InvalidAccountConfigException _ -> {
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = "Invalid account configuration: " + message;
 

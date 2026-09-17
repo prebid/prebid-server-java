@@ -163,7 +163,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
 
             final BigDecimal price = bid.getPrice();
-            final Map<String, Price> originalPriceFloors = Optional.ofNullable(auctionParticipation.getBidderRequest())
+            final Map<String, Price> originalPriceFloors = Optional.of(auctionParticipation.getBidderRequest())
                     .map(BidderRequest::getOriginalPriceFloors)
                     .orElse(Collections.emptyMap());
 
