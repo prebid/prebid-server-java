@@ -461,6 +461,7 @@ class SecondaryBidderSpec extends BaseSpec {
             if (bidderNames.contains(ALIAS)) {
                 it.imp[0]?.ext?.prebid?.bidder?.alias = new Generic()
             }
+            it.tmax = 5_000
             enabledReturnAllBidStatus()
         }
     }
