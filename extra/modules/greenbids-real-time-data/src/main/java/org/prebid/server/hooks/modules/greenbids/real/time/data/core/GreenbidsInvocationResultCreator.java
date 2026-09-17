@@ -39,8 +39,8 @@ public class GreenbidsInvocationResultCreator {
         final InvocationAction invocationAction = isExploration
                 ? InvocationAction.no_action
                 : allRejected
-                    ? InvocationAction.reject
-                    : InvocationAction.update;
+                  ? InvocationAction.reject
+                  : InvocationAction.update;
 
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
                 bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);

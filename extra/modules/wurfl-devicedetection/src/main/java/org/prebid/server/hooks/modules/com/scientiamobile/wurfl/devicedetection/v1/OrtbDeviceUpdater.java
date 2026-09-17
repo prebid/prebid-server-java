@@ -1,17 +1,17 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import com.iab.openrtb.request.Device;
 import com.scientiamobile.wurfl.core.exc.CapabilityNotDefinedException;
 import com.scientiamobile.wurfl.core.exc.VirtualCapabilityNotDefinedException;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.hooks.v1.PayloadUpdate;
 
 import java.math.BigDecimal;
 import java.util.Objects;

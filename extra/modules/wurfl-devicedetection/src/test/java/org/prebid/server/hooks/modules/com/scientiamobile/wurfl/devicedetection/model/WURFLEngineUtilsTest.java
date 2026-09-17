@@ -6,9 +6,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 
-import static org.mockito.Mock.Strictness.LENIENT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class WURFLEngineUtilsTest {

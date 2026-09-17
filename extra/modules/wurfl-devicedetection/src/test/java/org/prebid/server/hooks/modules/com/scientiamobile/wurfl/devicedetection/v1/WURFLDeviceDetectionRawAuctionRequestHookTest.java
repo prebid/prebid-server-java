@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.scientiamobile.wurfl.core.WURFLEngine;
@@ -8,13 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
-import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.settings.model.Account;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -22,16 +17,21 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
+import org.prebid.server.settings.model.Account;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 public class WURFLDeviceDetectionRawAuctionRequestHookTest {

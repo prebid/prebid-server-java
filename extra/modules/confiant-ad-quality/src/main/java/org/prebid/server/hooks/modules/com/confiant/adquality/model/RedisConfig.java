@@ -5,9 +5,13 @@ import lombok.Data;
 @Data
 public class RedisConfig {
 
-    /** Redis replica with write access */
+    /**
+     * Redis replica with write access
+     */
     RedisConnectionConfig writeNode;
 
-    /** Redis replica with read only access */
+    /**
+     * Redis replica with read only access
+     */
     RedisConnectionConfig readNode;
 }
