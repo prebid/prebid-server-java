@@ -1,0 +1,23 @@
+{
+  "id": "c04f2011-87e9-4cde-9152-78fa2a63078a",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "b334cb75-41d8-4f61-801c-1e785a2fe38d",
+          "price": 2.5,
+          "adm": "test-ad-content",
+          "adid": "456",
+          "impid": "test-imp-123",
+          "crid": "1234",
+          "cid": "1234",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
