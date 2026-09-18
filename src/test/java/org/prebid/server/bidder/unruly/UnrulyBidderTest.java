@@ -296,15 +296,6 @@ public class UnrulyBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid("111").build(), banner, "USD"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
-                .build();
-    }
-
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         final ObjectNode impExt = mapper.valueToTree(
                 UnrulyExtPrebid.of(ExtImpUnruly.of(123), "gpid"));
