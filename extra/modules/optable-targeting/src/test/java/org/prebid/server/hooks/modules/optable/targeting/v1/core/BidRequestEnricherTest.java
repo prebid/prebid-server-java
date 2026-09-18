@@ -518,7 +518,6 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 .inserter(inserter)
                 .source(source)
                 .uids(uids)
-                .ext(null)
                 .build();
     }
 
@@ -526,7 +525,6 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         return Uid.builder()
                 .id(id)
                 .atype(atype)
-                .ext(null)
                 .build();
     }
 

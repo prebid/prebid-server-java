@@ -249,8 +249,7 @@ public class TpmnBidderTest extends VertxTest {
     }
 
     private Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(
-                Imp.builder().ext(givenImpExt())).build();
+        return impCustomizer.apply(Imp.builder().ext(givenImpExt())).build();
     }
 
     private ObjectNode givenImpExt() {
