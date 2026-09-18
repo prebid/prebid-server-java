@@ -14,7 +14,10 @@
       "description": "Placement Type (Sticky, Header, ...)"
     },
     "sample": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Sample"
     },
     "formats": {

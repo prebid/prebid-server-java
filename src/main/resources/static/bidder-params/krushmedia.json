@@ -9,5 +9,7 @@
       "description": "ssp key"
     }
   },
-  "required": ["key"]
+  "required": [
+    "key"
+  ]
 }

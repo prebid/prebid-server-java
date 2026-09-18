@@ -15,5 +15,7 @@
       "description": "Explicit placement override; omit to let Adswag discover the placement from GPID or the ad unit code"
     }
   },
-  "required": ["publisherId"]
+  "required": [
+    "publisherId"
+  ]
 }

@@ -4,7 +4,7 @@
   "description": "A schema which validates params accepted by the EMX Digital adapter",
   "type": "object",
   "properties": {
-    "tagid" : {
+    "tagid": {
       "type": "string",
       "description": "The id of an inventory target"
     },
@@ -13,5 +13,7 @@
       "description": "The minimum price acceptable for a bid"
     }
   },
-  "required": ["tagid"]
+  "required": [
+    "tagid"
+  ]
 }

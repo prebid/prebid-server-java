@@ -13,8 +13,7 @@ adapters:
     extra-info:
       # todo: to be removed or moved to test properties
       pkgNameConvert:
-        -
-          convertedPkgName: com.example.pkgname1
+        - convertedPkgName: com.example.pkgname1
           unconvertedPkgNames:
             - com.example.p1
             - com.example.p2
@@ -27,8 +26,7 @@ adapters:
           exceptionPkgNames:
             - com.example.p7
             - com.example.p8
-        -
-          convertedPkgName: com.example.pkgname2
+        - convertedPkgName: com.example.pkgname2
           unconvertedPkgNames:
             - com.example.p9
             - com.example.p10

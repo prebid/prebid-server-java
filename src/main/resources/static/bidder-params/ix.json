@@ -35,8 +35,20 @@
     }
   },
   "oneOf": [
-    {"required": ["siteid"]},
-    {"required": ["siteId"]},
-    {"required": ["siteID"]}
+    {
+      "required": [
+        "siteid"
+      ]
+    },
+    {
+      "required": [
+        "siteId"
+      ]
+    },
+    {
+      "required": [
+        "siteID"
+      ]
+    }
   ]
 }
