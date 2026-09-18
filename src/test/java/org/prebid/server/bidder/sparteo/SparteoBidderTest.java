@@ -275,9 +275,9 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 r -> r.site(Site.builder()
-                                .domain("dev.sparteo.com")
-                                .publisher(Publisher.builder().build())
-                                .build()),
+                        .domain("dev.sparteo.com")
+                        .publisher(Publisher.builder().build())
+                        .build()),
                 givenImp(i -> i.ext(impExt)));
 
         // when
@@ -299,10 +299,10 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 r -> r.site(Site.builder()
-                                .domain(null)
-                                .page("https://www.dev.sparteo.com:3000/p")
-                                .publisher(Publisher.builder().build())
-                                .build()),
+                        .domain(null)
+                        .page("https://www.dev.sparteo.com:3000/p")
+                        .publisher(Publisher.builder().build())
+                        .build()),
                 givenImp(i -> i.ext(impExt)));
 
         // when
@@ -323,9 +323,9 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 r -> r.site(Site.builder()
-                                .domain("dev.sparteo.com")
-                                .publisher(Publisher.builder().build())
-                                .build()),
+                        .domain("dev.sparteo.com")
+                        .publisher(Publisher.builder().build())
+                        .build()),
                 givenImp(i -> i.ext(impExt)));
 
         // when
@@ -346,9 +346,9 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 r -> r.site(Site.builder()
-                                .domain("site.sparteo.com")
-                                .publisher(Publisher.builder().domain("dev.sparteo.com").build())
-                                .build()),
+                        .domain("site.sparteo.com")
+                        .publisher(Publisher.builder().domain("dev.sparteo.com").build())
+                        .build()),
                 givenImp(i -> i.ext(impExt)));
 
         // when
@@ -577,11 +577,11 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 r -> r.site(null)
-                      .app(App.builder()
-                              .domain(null)
-                              .bundle("com.example.bundle")
-                              .publisher(Publisher.builder().build())
-                              .build()),
+                        .app(App.builder()
+                                .domain(null)
+                                .bundle("com.example.bundle")
+                                .publisher(Publisher.builder().build())
+                                .build()),
                 givenImp(i -> i.ext(impExt)));
 
         // when
@@ -743,10 +743,10 @@ public class SparteoBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorForUnsupportedMediaTypeAndProcessOthers() {
         // given
         final Bid audioBid = givenBid(builder ->
-                builder.impid("impAudio").price(BigDecimal.ONE),
+                        builder.impid("impAudio").price(BigDecimal.ONE),
                 BidType.audio.getName());
         final Bid bannerBid = givenBid(builder ->
-                builder.impid("impBanner").price(BigDecimal.valueOf(2.0)),
+                        builder.impid("impBanner").price(BigDecimal.valueOf(2.0)),
                 BidType.banner.getName());
         final BidResponse bidResponse = givenBidResponse(List.of(audioBid, bannerBid), "EUR");
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);

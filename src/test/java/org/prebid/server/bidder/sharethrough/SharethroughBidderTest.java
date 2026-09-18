@@ -450,8 +450,8 @@ public class SharethroughBidderTest extends VertxTest {
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+        return bidRequestCustomizer.apply(
+                        BidRequest.builder().imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -460,13 +460,14 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
-                        "pkey",
-                        singletonList("imp.ext.badv"),
-                        singletonList("imp.ext.bcat"))))))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("123")
+                                .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                                        "pkey",
+                                        singletonList("imp.ext.badv"),
+                                        singletonList("imp.ext.bcat"))))))
                 .build();
     }
 
@@ -490,8 +491,8 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static Bid givenBid(String impid, BidType bidType, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()
-                .impid(impid)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
+                        .impid(impid)
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(bidType).build(), null))))
                 .build();
     }
 

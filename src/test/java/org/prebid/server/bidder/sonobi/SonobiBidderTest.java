@@ -309,9 +309,10 @@ public class SonobiBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
 
-        return requestCustomizer.apply(BidRequest.builder()
-                .cur(singletonList("USD"))
-                .imp(singletonList(givenImp(impCustomizer))))
+        return requestCustomizer.apply(
+                        BidRequest.builder()
+                                .cur(singletonList("USD"))
+                                .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 

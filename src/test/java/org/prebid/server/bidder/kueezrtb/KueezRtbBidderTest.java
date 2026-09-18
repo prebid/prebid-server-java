@@ -205,9 +205,10 @@ class KueezRtbBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("impId")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, KueezRtbImpExt.of("cid")))))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("impId")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, KueezRtbImpExt.of("cid")))))
                 .build();
     }
 

@@ -348,7 +348,7 @@ public class BasicPriceFloorEnforcerTest {
                                 Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.TEN).build(), null, null)),
                         singletonList(BidderError.of(
                                 "Bid with id 'bidId1' was rejected by floor enforcement: "
-                                + "price 1 is below the floor 1.1",
+                                        + "price 1 is below the floor 1.1",
                                 BidderError.Type.rejected_ipf,
                                 singleton("impId1"))));
     }

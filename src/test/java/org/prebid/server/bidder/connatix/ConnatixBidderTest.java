@@ -106,7 +106,7 @@ public class ConnatixBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.app(App.builder().ext(ExtApp.of(
-                        ExtAppPrebid.of("source", "version"), null))
+                                ExtAppPrebid.of("source", "version"), null))
                         .build()),
                 givenImp(ExtImpConnatix.of("placementId", null)));
 
@@ -176,7 +176,7 @@ public class ConnatixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 UnaryOperator.identity(),
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(List.of(
-                        Format.builder().w(300).h(250).build(),
+                                Format.builder().w(300).h(250).build(),
                                 Format.builder().w(1).h(1).build())).build())
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(null, ExtImpConnatix.of("placementId", null))))));
@@ -440,9 +440,10 @@ public class ConnatixBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                               Imp... imps) {
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .device(Device.builder().ip("deviceIp").build())
-                .imp(asList(imps)))
+        return bidRequestCustomizer.apply(
+                        BidRequest.builder()
+                                .device(Device.builder().ip("deviceIp").build())
+                                .imp(asList(imps)))
                 .build();
     }
 

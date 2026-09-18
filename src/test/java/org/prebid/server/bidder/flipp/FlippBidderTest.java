@@ -1096,8 +1096,8 @@ public class FlippBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(Imp givenImp) {
         return BidRequest.builder()
-                        .device(Device.builder().ip("anyId").build())
-                        .imp(singletonList(givenImp))
+                .device(Device.builder().ip("anyId").build())
+                .imp(singletonList(givenImp))
                 .build();
     }
 
@@ -1111,10 +1111,11 @@ public class FlippBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpBuilder.apply(ExtImpFlipp.builder()
-                                .publisherNameIdentifier("publisherName")
-                                .creativeType("Any")
-                                .zoneIds(List.of(12)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpBuilder.apply(
+                                        ExtImpFlipp.builder()
+                                                .publisherNameIdentifier("publisherName")
+                                                .creativeType("Any")
+                                                .zoneIds(List.of(12)))
                                 .build()))))
                 .build();
     }

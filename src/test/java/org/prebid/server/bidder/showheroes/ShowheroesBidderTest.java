@@ -80,8 +80,8 @@ public class ShowheroesBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().page("https://test-example.com").build())
                 .imp(singletonList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
                 .build();
 
         // when
