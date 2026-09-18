@@ -725,8 +725,8 @@ public class Ortb2RequestFactory {
         return upperCasedRegion != null && !upperCasedRegion.equals(upperCasedRegionInRequest)
                 ? UpdateResult.updated(upperCasedRegion)
                 : Objects.equals(regionInRequest, upperCasedRegionInRequest)
-                ? UpdateResult.unaltered(regionInRequest)
-                : UpdateResult.updated(upperCasedRegionInRequest);
+                  ? UpdateResult.unaltered(regionInRequest)
+                  : UpdateResult.updated(upperCasedRegionInRequest);
     }
 
     private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {

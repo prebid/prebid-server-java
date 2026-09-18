@@ -68,14 +68,14 @@ public class SetuidGppService {
 
         return updatedGdpr.isUpdated() || updatedConsent.isUpdated()
                 ? setuidContext.toBuilder()
-                .privacyContext(PrivacyContext.of(
-                        privacy.toBuilder()
-                                .gdpr(updatedGdpr.getValue().toString())
-                                .consentString(updatedConsent.getValue())
-                                .build(),
-                        privacyContext.getTcfContext(),
-                        privacyContext.getIpAddress()))
-                .build()
+                  .privacyContext(PrivacyContext.of(
+                          privacy.toBuilder()
+                          .gdpr(updatedGdpr.getValue().toString())
+                          .consentString(updatedConsent.getValue())
+                          .build(),
+                          privacyContext.getTcfContext(),
+                          privacyContext.getIpAddress()))
+                  .build()
                 : setuidContext;
     }
 

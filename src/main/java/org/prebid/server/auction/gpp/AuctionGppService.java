@@ -99,9 +99,9 @@ public class AuctionGppService {
 
         return updatedUser.isUpdated() || updatedRegs.isUpdated()
                 ? bidRequest.toBuilder()
-                .user(updatedUser.getValue())
-                .regs(updatedRegs.getValue())
-                .build()
+                  .user(updatedUser.getValue())
+                  .regs(updatedRegs.getValue())
+                  .build()
                 : bidRequest;
     }
 
@@ -112,10 +112,10 @@ public class AuctionGppService {
 
                 ? UpdateResult.updated(
                 Optional.ofNullable(user)
-                        .map(User::toBuilder)
-                        .orElseGet(User::builder)
-                        .consent(updatedConsent.getValue())
-                        .build())
+                .map(User::toBuilder)
+                .orElseGet(User::builder)
+                .consent(updatedConsent.getValue())
+                .build())
 
                 : UpdateResult.unaltered(user);
     }
@@ -141,11 +141,11 @@ public class AuctionGppService {
 
                 ? UpdateResult.updated(
                 Optional.ofNullable(regs)
-                        .map(Regs::toBuilder)
-                        .orElseGet(Regs::builder)
-                        .gdpr(updatedGdpr.getValue())
-                        .usPrivacy(updatedUsPrivacy.getValue())
-                        .build())
+                .map(Regs::toBuilder)
+                .orElseGet(Regs::builder)
+                .gdpr(updatedGdpr.getValue())
+                .usPrivacy(updatedUsPrivacy.getValue())
+                .build())
 
                 : UpdateResult.unaltered(regs);
     }

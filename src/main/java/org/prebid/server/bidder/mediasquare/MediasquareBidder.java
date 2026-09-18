@@ -175,7 +175,7 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
         }
 
         if (banner != null) {
-            for (List<Integer> format: banner.getSizes()) {
+            for (List<Integer> format : banner.getSizes()) {
                 floors.put(SIZE_FORMAT.formatted(format.get(0), format.get(1)), floor);
             }
         }

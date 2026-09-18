@@ -26,8 +26,8 @@ public class OguryConfiguration {
 
     @Bean
     BidderDeps oguryBidderDeps(BidderConfigurationProperties oguryConfigurationProperties,
-                                  CurrencyConversionService currencyConversionService,
-                                  JacksonMapper mapper) {
+                               CurrencyConversionService currencyConversionService,
+                               JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(oguryConfigurationProperties)

@@ -284,13 +284,13 @@ public class AmpHandler implements ApplicationResource {
         final Map<String, JsonNode> targeting = new HashMap<>(seatBids == null
                 ? Collections.emptyMap()
                 : seatBids.stream()
-                .filter(Objects::nonNull)
-                .filter(seatBid -> seatBid.getBid() != null)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
+                  .filter(Objects::nonNull)
+                  .filter(seatBid -> seatBid.getBid() != null)
+                  .flatMap(seatBid -> seatBid.getBid().stream()
+                                      .filter(Objects::nonNull)
+                                      .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
+                  .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
+                  .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
 
         final Map<String, JsonNode> additionalTargeting = extractAdditionalTargeting(bidResponse);
         targeting.putAll(additionalTargeting);

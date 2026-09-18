@@ -57,11 +57,11 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 modifiedRegs)
 
                 ? bidRequest.toBuilder()
-                .imp(modifiedImps != null ? modifiedImps : imps)
-                .user(modifiedUser != null ? modifiedUser : user)
-                .source(modifiedSource != null ? modifiedSource : source)
-                .regs(modifiedRegs != null ? modifiedRegs : regs)
-                .build()
+                  .imp(modifiedImps != null ? modifiedImps : imps)
+                  .user(modifiedUser != null ? modifiedUser : user)
+                  .source(modifiedSource != null ? modifiedSource : source)
+                  .regs(modifiedRegs != null ? modifiedRegs : regs)
+                  .build()
 
                 : bidRequest;
     }

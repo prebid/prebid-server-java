@@ -185,8 +185,8 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         return impBanner == null
                 ? null
                 : impBanner.toBuilder()
-                .pos(isValidPosition(extPosition) ? extPosition : null)
-                .build();
+                  .pos(isValidPosition(extPosition) ? extPosition : null)
+                  .build();
     }
 
     private static Video modifyVideo(Video video, ExtImpEpsilon impExt) {

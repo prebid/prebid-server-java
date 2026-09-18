@@ -133,16 +133,16 @@ public class TealBidder implements Bidder<BidRequest> {
     private static Site modifySite(Site site, String account) {
         return site != null
                 ? site.toBuilder()
-                .publisher(modifyPublisher(site.getPublisher(), account))
-                .build()
+                  .publisher(modifyPublisher(site.getPublisher(), account))
+                  .build()
                 : null;
     }
 
     private static App modifyApp(App app, String account) {
         return app != null
                 ? app.toBuilder()
-                .publisher(modifyPublisher(app.getPublisher(), account))
-                .build()
+                  .publisher(modifyPublisher(app.getPublisher(), account))
+                  .build()
                 : null;
     }
 

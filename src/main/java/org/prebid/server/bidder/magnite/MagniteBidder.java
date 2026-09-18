@@ -339,8 +339,8 @@ public class MagniteBidder implements Bidder<BidRequest> {
         final List<MagniteTargeting> targetings = rp != null ? rp.getTargeting() : null;
         return targetings != null
                 ? targetings.stream()
-                .filter(targeting -> !CollectionUtils.isEmpty(targeting.getValues()))
-                .collect(Collectors.toMap(MagniteTargeting::getKey, targeting -> targeting.getValues().getFirst()))
+                  .filter(targeting -> !CollectionUtils.isEmpty(targeting.getValues()))
+                  .collect(Collectors.toMap(MagniteTargeting::getKey, targeting -> targeting.getValues().getFirst()))
                 : Collections.emptyMap();
     }
 
@@ -1295,11 +1295,13 @@ public class MagniteBidder implements Bidder<BidRequest> {
     }
 
     private Device makeDevice(Device device) {
-        return device == null ? null : device.toBuilder()
-                .ext(mapper.fillExtension(
-                        ExtDevice.empty(),
-                        MagniteDeviceExt.of(MagniteDeviceExtRp.of(device.getPxratio()))))
-                .build();
+        return device == null
+                ? null
+                : device.toBuilder()
+                  .ext(mapper.fillExtension(
+                          ExtDevice.empty(),
+                          MagniteDeviceExt.of(MagniteDeviceExtRp.of(device.getPxratio()))))
+                  .build();
     }
 
     private Site makeSite(Site site, String impLanguage, ExtImpMagnite magniteImpExt) {
@@ -1309,13 +1311,13 @@ public class MagniteBidder implements Bidder<BidRequest> {
 
         return site == null
                 ? Site.builder()
-                .content(makeSiteContent(null, impLanguage))
-                .build()
+                  .content(makeSiteContent(null, impLanguage))
+                  .build()
                 : site.toBuilder()
-                .publisher(makePublisher(magniteImpExt))
-                .content(makeSiteContent(site.getContent(), impLanguage))
-                .ext(makeSiteExt(site, magniteImpExt))
-                .build();
+                  .publisher(makePublisher(magniteImpExt))
+                  .content(makeSiteContent(site.getContent(), impLanguage))
+                  .ext(makeSiteExt(site, magniteImpExt))
+                  .build();
     }
 
     private static Content makeSiteContent(Content siteContent, String impLanguage) {
@@ -1328,11 +1330,11 @@ public class MagniteBidder implements Bidder<BidRequest> {
 
         return resolvedLanguage != null || hasDataToRemove
                 ? Optional.ofNullable(siteContent)
-                .map(Content::toBuilder)
-                .orElseGet(Content::builder)
-                .data(null)
-                .language(resolvedLanguage != null ? resolvedLanguage : contentLanguage)
-                .build()
+                  .map(Content::toBuilder)
+                  .orElseGet(Content::builder)
+                  .data(null)
+                  .language(resolvedLanguage != null ? resolvedLanguage : contentLanguage)
+                  .build()
                 : siteContent;
     }
 
@@ -1377,10 +1379,12 @@ public class MagniteBidder implements Bidder<BidRequest> {
     }
 
     private App makeApp(App app, ExtImpMagnite magniteImpExt) {
-        return app == null ? null : app.toBuilder()
-                .publisher(makePublisher(magniteImpExt))
-                .ext(makeAppExt(magniteImpExt))
-                .build();
+        return app == null
+                ? null
+                : app.toBuilder()
+                  .publisher(makePublisher(magniteImpExt))
+                  .ext(makeAppExt(magniteImpExt))
+                  .build();
     }
 
     private ExtApp makeAppExt(ExtImpMagnite magniteImpExt) {
@@ -1684,11 +1688,11 @@ public class MagniteBidder implements Bidder<BidRequest> {
     private String resolveBidId(Imp magniteImp, MagniteBid bid) {
         return generateBidId
                 ? Optional.ofNullable(magniteImp)
-                .map(Imp::getExt)
-                .map(ext -> ext.get("rp"))
-                .map(rp -> rp.get("pb_bid_id"))
-                .map(JsonNode::asText)
-                .orElse(bid.getId())
+                  .map(Imp::getExt)
+                  .map(ext -> ext.get("rp"))
+                  .map(rp -> rp.get("pb_bid_id"))
+                  .map(JsonNode::asText)
+                  .orElse(bid.getId())
                 : bid.getId();
     }
 

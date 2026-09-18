@@ -188,7 +188,7 @@ public class PostVtrackHandler implements ApplicationResource {
             final Integer accountTtl = accountVtrackTtl(account);
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             coreCacheService.cachePutObjects(
-                    vtrackPuts, isEventEnabled, allowedBidders, accountId, accountTtl, integration, timeout)
+                            vtrackPuts, isEventEnabled, allowedBidders, accountId, accountTtl, integration, timeout)
                     .onComplete(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
     }

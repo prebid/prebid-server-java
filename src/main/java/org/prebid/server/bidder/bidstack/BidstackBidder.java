@@ -94,9 +94,9 @@ public class BidstackBidder implements Bidder<BidRequest> {
 
         return resolvedBidFloor.isUpdated()
                 ? imp.toBuilder()
-                .bidfloorcur(BIDDER_CURRENCY)
-                .bidfloor(resolvedBidFloor.getValue())
-                .build()
+                  .bidfloorcur(BIDDER_CURRENCY)
+                  .bidfloor(resolvedBidFloor.getValue())
+                  .build()
                 : imp;
     }
 

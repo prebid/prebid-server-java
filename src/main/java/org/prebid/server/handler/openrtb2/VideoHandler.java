@@ -120,10 +120,9 @@ public class VideoHandler implements ApplicationResource {
                 .map(contextToErrors ->
                         addToEvent(contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
-                .compose(contextToErrors ->
-                        prepareSuccessfulResponse(contextToErrors, routingContext, videoEventBuilder)
+                .compose(podContext -> prepareSuccessfulResponse(podContext, routingContext, videoEventBuilder)
                         .compose(this::invokeExitpointHooks)
-                        .compose(context -> toVideoResponse(context.getAuctionContext(), contextToErrors.getPodErrors())
+                        .compose(context -> toVideoResponse(context.getAuctionContext(), podContext.getPodErrors())
                                 .map(videoResponse ->
                                         addToEvent(videoResponse, videoEventBuilder::bidResponse, context)))
                         .map(context ->

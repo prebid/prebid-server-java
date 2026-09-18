@@ -25,7 +25,7 @@ public class AutomatadBidderConfiguration {
 
     @Bean
     BidderDeps automatadBidderDeps(BidderConfigurationProperties automatadConfigurationProperties,
-                                 JacksonMapper mapper) {
+                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(automatadConfigurationProperties)

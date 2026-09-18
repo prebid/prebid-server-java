@@ -422,15 +422,15 @@ public class StoredResponseProcessor {
         final boolean nonNullBidderSeatBid = bidderSeatBid != null;
         final String bidCurrency = nonNullBidderSeatBid
                 ? bidderSeatBid.getBids().stream()
-                .map(BidderBid::getBidCurrency)
-                .filter(Objects::nonNull)
-                .findAny()
-                .orElse(DEFAULT_BID_CURRENCY)
+                  .map(BidderBid::getBidCurrency)
+                  .filter(Objects::nonNull)
+                  .findAny()
+                  .orElse(DEFAULT_BID_CURRENCY)
                 : DEFAULT_BID_CURRENCY;
         final List<BidderBid> bidderBids = seatBid != null
                 ? seatBid.getBid().stream()
-                .map(bid -> makeBidderBid(bid, bidCurrency, seatBid.getSeat(), impIdToBidType))
-                .collect(Collectors.toCollection(ArrayList::new))
+                  .map(bid -> makeBidderBid(bid, bidCurrency, seatBid.getSeat(), impIdToBidType))
+                  .collect(Collectors.toCollection(ArrayList::new))
                 : new ArrayList<>();
         if (nonNullBidderSeatBid) {
             bidderBids.addAll(bidderSeatBid.getBids());

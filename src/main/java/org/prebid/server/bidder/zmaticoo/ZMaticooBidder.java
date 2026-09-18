@@ -92,10 +92,10 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
         final UpdateResult<String> nativeRequest = resolveNativeRequest(xNative.getRequest());
         return nativeRequest.isUpdated()
                 ? imp.toBuilder()
-                .xNative(xNative.toBuilder()
-                        .request(nativeRequest.getValue())
-                        .build())
-                .build()
+                  .xNative(xNative.toBuilder()
+                           .request(nativeRequest.getValue())
+                           .build())
+                  .build()
                 : imp;
     }
 

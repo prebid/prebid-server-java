@@ -38,8 +38,8 @@ import java.util.Optional;
 public class PrecisoBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpPreciso>> PRECISO_EXT_TYPE_REFERENCE =
-                new TypeReference<>() {
-                };
+            new TypeReference<>() {
+            };
     private static final String BIDDER_CURRENCY = "USD";
 
     private final String endpointUrl;
@@ -130,28 +130,27 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                 ? brCur.getFirst()
                 : null;
         final Price impExtBidFloorPrice = Price.of(impExtCurrency, impExtBidFloor);
-        final Price resolvedPrice = initialBidFloorPrice.getValue() == null ? impExtBidFloorPrice
-                        : initialBidFloorPrice;
+        final Price resolvedPrice = initialBidFloorPrice.getValue() == null
+                ? impExtBidFloorPrice
+                : initialBidFloorPrice;
 
         return BidderUtil.isValidPrice(resolvedPrice)
-                        && !Strings.CI.equals(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
-                        ? convertBidFloor(resolvedPrice, imp.getId(), bidRequest)
-                        : resolvedPrice;
+                && !Strings.CI.equals(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
+                ? convertBidFloor(resolvedPrice, imp.getId(), bidRequest)
+                : resolvedPrice;
     }
 
     private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
         final String bidFloorCur = bidFloorPrice.getCurrency();
         try {
             final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloorPrice.getValue(),
-                    bidRequest, bidFloorCur, BIDDER_CURRENCY);
+                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
 
             return Price.of(BIDDER_CURRENCY, convertedPrice);
         } catch (PreBidException e) {
             throw new PreBidException(
-                    String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
-                    bidFloorCur, BIDDER_CURRENCY, impId));
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`"
+                            .formatted(bidFloorCur, BIDDER_CURRENCY, impId));
         }
     }
 
@@ -163,6 +162,6 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                 .map(BidType::fromString)
                 .orElseThrow(() -> new PreBidException(
                         "Missing ext.prebid.type in bid for impression : %s."
-                        .formatted(bid.getImpid())));
+                                .formatted(bid.getImpid())));
     }
 }

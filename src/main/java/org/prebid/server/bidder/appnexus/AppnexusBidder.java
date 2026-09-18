@@ -224,10 +224,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return position != null || replaceWithFirstFormat
                 ? banner.toBuilder()
-                .pos(position != null ? position : banner.getPos())
-                .w(replaceWithFirstFormat ? firstFormat.getW() : width)
-                .h(replaceWithFirstFormat ? firstFormat.getH() : height)
-                .build()
+                  .pos(position != null ? position : banner.getPos())
+                  .w(replaceWithFirstFormat ? firstFormat.getW() : width)
+                  .h(replaceWithFirstFormat ? firstFormat.getH() : height)
+                  .build()
                 : banner;
     }
 

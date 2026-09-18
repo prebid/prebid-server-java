@@ -84,7 +84,7 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         }
 
         throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
-                    + "req.imp[0].ext.Bidder.placementId");
+                + "req.imp[0].ext.Bidder.placementId");
     }
 
     private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {

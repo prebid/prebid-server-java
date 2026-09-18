@@ -40,7 +40,7 @@ public class ParametrizedQueryPostgresHelper implements ParametrizedQueryHelper 
         return paramsSize == 0
                 ? "NULL"
                 : IntStream.range(start, start + paramsSize)
-                .mapToObj(i -> "\\$" + (i + 1))
-                .collect(Collectors.joining(","));
+                  .mapToObj(i -> "\\$" + (i + 1))
+                  .collect(Collectors.joining(","));
     }
 }

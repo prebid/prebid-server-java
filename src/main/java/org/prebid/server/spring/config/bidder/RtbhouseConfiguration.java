@@ -31,9 +31,9 @@ public class RtbhouseConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(rtbhouseConfigurationProperties)
                 .bidderCreator(config -> new RtbhouseBidder(
-                    config.getEndpoint(),
-                    currencyConversionService,
-                    mapper))
+                        config.getEndpoint(),
+                        currencyConversionService,
+                        mapper))
                 .assemble();
     }
 }

@@ -109,8 +109,9 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections
-                .emptyList() : bidsFromResponse(bidResponse, bidRequest.getImp());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Collections.emptyList()
+                : bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {

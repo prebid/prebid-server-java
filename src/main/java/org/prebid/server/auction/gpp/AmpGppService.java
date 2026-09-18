@@ -65,9 +65,9 @@ public class AmpGppService {
 
         return updatedUser.isUpdated() || updatedRegs.isUpdated()
                 ? bidRequest.toBuilder()
-                .user(updatedUser.getValue())
-                .regs(updatedRegs.getValue())
-                .build()
+                  .user(updatedUser.getValue())
+                  .regs(updatedRegs.getValue())
+                  .build()
                 : bidRequest;
     }
 

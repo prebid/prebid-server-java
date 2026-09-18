@@ -954,9 +954,9 @@ public class ExchangeService {
 
         final App maskedApp = shouldCleanExtData || shouldCleanContentData
                 ? app.toBuilder()
-                .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
-                .content(shouldCleanContentData ? prepareContent(content) : content)
-                .build()
+                  .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
+                  .content(shouldCleanContentData ? prepareContent(content) : content)
+                  .build()
                 : app;
 
         return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
@@ -982,9 +982,9 @@ public class ExchangeService {
 
         final Site maskedSite = shouldCleanExtData || shouldCleanContentData
                 ? site.toBuilder()
-                .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
-                .content(shouldCleanContentData ? prepareContent(content) : content)
-                .build()
+                  .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
+                  .content(shouldCleanContentData ? prepareContent(content) : content)
+                  .build()
                 : site;
 
         return useFirstPartyData ? fpdResolver.resolveSite(maskedSite, fpdSite) : maskedSite;
@@ -1003,9 +1003,9 @@ public class ExchangeService {
 
         final Dooh maskedDooh = shouldCleanExtData || shouldCleanContentData
                 ? dooh.toBuilder()
-                .ext(shouldCleanExtData ? null : doohExt)
-                .content(shouldCleanContentData ? prepareContent(content) : content)
-                .build()
+                  .ext(shouldCleanExtData ? null : doohExt)
+                  .content(shouldCleanContentData ? prepareContent(content) : content)
+                  .build()
                 : dooh;
 
         return useFirstPartyData ? fpdResolver.resolveDooh(maskedDooh, fpdDooh) : maskedDooh;
@@ -1028,9 +1028,9 @@ public class ExchangeService {
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
-                .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
-                .tid(transmitTid ? receivedSource.getTid() : null)
-                .build();
+                  .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
+                  .tid(transmitTid ? receivedSource.getTid() : null)
+                  .build();
     }
 
     private ExtRequest prepareExt(String bidder,
@@ -1134,7 +1134,7 @@ public class ExchangeService {
         // and only merge this copy back if secondary bidder has completed in time
         final Map<String, BidRejectionTracker> copiedBidRejectionTrackers =
                 new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Map.Entry<String, BidRejectionTracker> entry: auctionContext.getBidRejectionTrackers().entrySet()) {
+        for (Map.Entry<String, BidRejectionTracker> entry : auctionContext.getBidRejectionTrackers().entrySet()) {
             copiedBidRejectionTrackers.put(entry.getKey(), BidRejectionTracker.copyOf(entry.getValue()));
         }
 
@@ -1317,8 +1317,8 @@ public class ExchangeService {
     private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
         return CollectionUtils.isNotEmpty(warnings)
                 ? seatBid.toBuilder()
-                .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
-                .build()
+                  .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
+                  .build()
                 : seatBid;
     }
 

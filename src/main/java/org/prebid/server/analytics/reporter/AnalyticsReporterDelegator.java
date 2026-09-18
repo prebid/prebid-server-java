@@ -277,8 +277,8 @@ public class AnalyticsReporterDelegator {
 
         return updatedBidRequest != null
                 ? context.toBuilder()
-                .bidRequest(updatedBidRequest)
-                .build()
+                  .bidRequest(updatedBidRequest)
+                  .build()
                 : null;
     }
 
@@ -305,10 +305,10 @@ public class AnalyticsReporterDelegator {
 
         return resolvedUser != null || resolvedDevice != null || updatedExtRequest != null
                 ? bidRequest.toBuilder()
-                .user(resolvedUser != null ? resolvedUser : user)
-                .device(resolvedDevice != null ? resolvedDevice : device)
-                .ext(updatedExtRequest != null ? updatedExtRequest : requestExt)
-                .build()
+                  .user(resolvedUser != null ? resolvedUser : user)
+                  .device(resolvedDevice != null ? resolvedDevice : device)
+                  .ext(updatedExtRequest != null ? updatedExtRequest : requestExt)
+                  .build()
                 : null;
     }
 
