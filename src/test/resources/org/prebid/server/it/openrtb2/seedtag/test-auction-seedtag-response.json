@@ -15,11 +15,11 @@
           "w": 300,
           "h": 250,
           "mtype": 1,
-          "ext":{
-            "origbidcpm":3.33,
-            "origbidcur":"USD",
+          "ext": {
+            "origbidcpm": 3.33,
+            "origbidcur": "USD",
             "prebid": {
-              "type":"banner",
+              "type": "banner",
               "meta": {
                 "adaptercode": "seedtag"
               }

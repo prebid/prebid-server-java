@@ -7,8 +7,8 @@
         "w": 300,
         "h": 250
       },
-      "tagid" : "tag-id-b",
-      "bidfloor" : 5,
+      "tagid": "tag-id-b",
+      "bidfloor": 5,
       "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
@@ -22,7 +22,7 @@
     }
   ],
   "site": {
-    "id" : "site-id-b",
+    "id": "site-id-b",
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {

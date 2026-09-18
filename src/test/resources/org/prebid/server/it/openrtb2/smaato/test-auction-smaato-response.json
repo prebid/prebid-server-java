@@ -20,7 +20,10 @@
             },
             "origbidcpm": 0.01,
             "format": "BANNER",
-            "curls": ["curl1", "curl2"]
+            "curls": [
+              "curl1",
+              "curl2"
+            ]
           }
         }
       ],

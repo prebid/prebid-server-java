@@ -355,7 +355,7 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // then
         assertThat(result).isEqualTo(ResourceUtil.readFromClasspath(
-                "org/prebid/server/validation/schema//valid/test-schemas.json"));
+                "org/prebid/server/validation/schema/valid/test-schemas.json"));
     }
 
     @Test

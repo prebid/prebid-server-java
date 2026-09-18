@@ -8,10 +8,10 @@
         "w": 320,
         "h": 250
       },
-      "ext" : {
-        "bidder" : {
-          "type" : "publisher",
-          "placementId" : "placementid"
+      "ext": {
+        "bidder": {
+          "type": "publisher",
+          "placementId": "placementid"
         }
       }
     }

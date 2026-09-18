@@ -13,7 +13,7 @@
           "w": 300,
           "h": 250,
           "ext": {
-            "mediatype":"banner",
+            "mediatype": "banner",
             "prebid": {
               "type": "banner",
               "meta": {

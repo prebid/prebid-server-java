@@ -36,7 +36,9 @@
   "user": {
     "id": "demo-user"
   },
-  "cur": ["EUR"],
+  "cur": [
+    "EUR"
+  ],
   "regs": {
     "ext": {
       "gdpr": 0
