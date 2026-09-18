@@ -25,7 +25,7 @@ public class SynapseHXBidderConfiguration {
 
     @Bean
     BidderDeps synapsehxBidderDeps(BidderConfigurationProperties synapsehxConfigurationProperties,
-                                 JacksonMapper mapper) {
+                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(synapsehxConfigurationProperties)

@@ -7,10 +7,10 @@
         "w": 320,
         "h": 250
       },
-      "tagid" : "placement_id",
+      "tagid": "placement_id",
       "bidfloorcur": "USD",
-      "secure" : 1,
-      "ext" : {
+      "secure": 1,
+      "ext": {
         "extraField": "extra_field"
       }
     }
@@ -35,6 +35,6 @@
     "tid": "${json-unit.any-string}"
   },
   "regs": {
-      "gdpr": 0
-    }
+    "gdpr": 0
+  }
 }

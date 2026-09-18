@@ -18,7 +18,7 @@ public enum ImpMediaType {
     public String toString() {
         return this == xNative ? "native"
                 : this == video_outstream ? "video-outstream"
-                : this == video_instream ? "video-instream"
-                : super.toString();
+                  : this == video_instream ? "video-instream"
+                    : super.toString();
     }
 }

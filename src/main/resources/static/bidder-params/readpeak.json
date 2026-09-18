@@ -21,5 +21,7 @@
       "description": "Ad placement identifier"
     }
   },
-  "required": ["publisherId"]
+  "required": [
+    "publisherId"
+  ]
 }

@@ -189,13 +189,13 @@ public final class HttpUtil {
     public static Map<String, List<String>> toDebugHeaders(MultiMap headers) {
         return headers != null
                 ? headers.entries().stream()
-                .filter(entry -> !isSensitiveHeader(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> StringUtils.isNotBlank(entry.getValue())
-                                ? Arrays.stream(entry.getValue().split(","))
-                                .map(String::trim)
-                                .toList()
-                                : Collections.singletonList(entry.getValue())))
+                  .filter(entry -> !isSensitiveHeader(entry.getKey()))
+                  .collect(Collectors.toMap(Map.Entry::getKey,
+                          entry -> StringUtils.isNotBlank(entry.getValue())
+                                   ? Arrays.stream(entry.getValue().split(","))
+                                     .map(String::trim)
+                                     .toList()
+                                   : Collections.singletonList(entry.getValue())))
                 : null;
     }
 

@@ -61,15 +61,15 @@ public class BidderConfigurationProperties {
 
     @PostConstruct
     private void init() {
-        enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
-        ortbVersion = ObjectUtils.defaultIfNull(ortbVersion, defaultProperties.getOrtbVersion());
-        pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
-        modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(
+        enabled = ObjectUtils.getIfNull(enabled, defaultProperties.getEnabled());
+        ortbVersion = ObjectUtils.getIfNull(ortbVersion, defaultProperties.getOrtbVersion());
+        pbsEnforcesCcpa = ObjectUtils.getIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
+        modifyingVastXmlAllowed = ObjectUtils.getIfNull(
                 modifyingVastXmlAllowed, defaultProperties.getModifyingVastXmlAllowed());
-        debug = ObjectUtils.defaultIfNull(debug, defaultProperties.getDebug());
-        aliases = ObjectUtils.defaultIfNull(aliases, defaultProperties.getAliases());
-        deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
-        endpointCompression = ObjectUtils.defaultIfNull(
+        debug = ObjectUtils.getIfNull(debug, defaultProperties.getDebug());
+        aliases = ObjectUtils.getIfNull(aliases, defaultProperties.getAliases());
+        deprecatedNames = ObjectUtils.getIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
+        endpointCompression = ObjectUtils.getIfNull(
                 endpointCompression, defaultProperties.getEndpointCompression());
         ortb = ortb != null && ortb.getMultiFormatSupported() != null
                 ? ortb

@@ -9,7 +9,7 @@
         "h": 250
       },
       "ext": {
-        "tid" : "${json-unit.any-string}",
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "property": "value"
         }
@@ -38,9 +38,9 @@
   "cur": [
     "USD"
   ],
-  "regs" : {
-    "ext" : {
-      "gdpr" : 0
+  "regs": {
+    "ext": {
+      "gdpr": 0
     }
   },
   "ext": {

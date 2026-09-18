@@ -3,7 +3,6 @@
   "title": "Kayzen Adapter Params",
   "description": "A schema which validates params accepted by the Kayzen adapter",
   "type": "object",
-
   "properties": {
     "zone": {
       "type": "string",
@@ -16,6 +15,9 @@
       "description": "Exchange/Publisher Name"
     }
   },
-  "required": ["zone", "exchange"]
+  "required": [
+    "zone",
+    "exchange"
+  ]
 }
 

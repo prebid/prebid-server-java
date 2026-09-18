@@ -440,13 +440,13 @@ public class AccountConfigReader {
                 || battr.hasValue()
 
                 ? BlockedAttributes.builder()
-                .badv(badv.getValue())
-                .bcat(bcat.getValue())
-                .cattaxComplement(cattaxComplement.getValue())
-                .bapp(bapp.getValue())
-                .btype(btype.getValue())
-                .battr(battr.getValue())
-                .build()
+                  .badv(badv.getValue())
+                  .bcat(bcat.getValue())
+                  .cattaxComplement(cattaxComplement.getValue())
+                  .bapp(bapp.getValue())
+                  .btype(btype.getValue())
+                  .battr(battr.getValue())
+                  .build()
 
                 : null;
     }

@@ -6,6 +6,7 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -698,7 +699,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 .extracting(Uids::getUids)
                 .extracting(Map::values)
                 .extracting(ArrayList::new)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .extracting(object -> (UidWithExpiry) object)
                 .extracting(UidWithExpiry::getExpires)
                 .allMatch(ZonedDateTime.now()::isBefore);

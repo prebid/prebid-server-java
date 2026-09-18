@@ -22,7 +22,7 @@
             "IAB0"
           ],
           "ext": {
-            "prebid":{
+            "prebid": {
               "type": "video"
             }
           }

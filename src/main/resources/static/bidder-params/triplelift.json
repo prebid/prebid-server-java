@@ -13,5 +13,7 @@
       "description": "the bid floor"
     }
   },
-      "required": ["inventoryCode"]
+  "required": [
+    "inventoryCode"
+  ]
 }

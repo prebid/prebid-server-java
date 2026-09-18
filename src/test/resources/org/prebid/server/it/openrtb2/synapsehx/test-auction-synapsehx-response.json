@@ -10,16 +10,16 @@
           "crid": "crid001",
           "w": 300,
           "h": 250,
-          "exp" : 300,
+          "exp": 300,
           "mtype": 1,
           "ext": {
             "prebid": {
               "type": "banner",
-              "meta" : {
-                "adaptercode" : "synapsehx"
+              "meta": {
+                "adaptercode": "synapsehx"
               }
             },
-            "origbidcpm" : 3.33
+            "origbidcpm": 3.33
           }
         }
       ],

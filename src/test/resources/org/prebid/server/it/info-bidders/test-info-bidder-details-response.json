@@ -1,5 +1,5 @@
 {
-  "status":"ACTIVE",
+  "status": "ACTIVE",
   "usesHttps": false,
   "maintainer": {
     "email": "header-bidding@magnite.com"

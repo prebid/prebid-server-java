@@ -12,8 +12,8 @@
         "tid": "${json-unit.any-string}",
         "bidder": {
           "tokenId": "testTokenId",
-          "seatId" : "testSeatId",
-          "sspId" : "testSspId"
+          "seatId": "testSeatId",
+          "sspId": "testSspId"
         }
       }
     }

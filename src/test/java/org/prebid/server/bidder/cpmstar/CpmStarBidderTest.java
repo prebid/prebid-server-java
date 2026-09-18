@@ -89,7 +89,7 @@ public class CpmStarBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPreserveExistingExtFieldsWhenFlatteningBidder() throws JsonProcessingException {
+    public void makeHttpRequestsShouldPreserveExistingExtFieldsWhenFlatteningBidder() {
         // given:
         final ObjectNode ext = mapper.createObjectNode();
         ext.set("bidder", mapper.valueToTree(ExtImpCpmStar.of(12, 123)));

@@ -246,7 +246,7 @@ public class RequestUpdaterTest {
         // when and then
         final BidRequest updatedRequest = updater.update(request);
         assertThat(updatedRequest.getImp()).hasSize(1);
-        assertThat(updatedRequest.getImp().get(0)).isSameAs(imp);
+        assertThat(updatedRequest.getImp().getFirst()).isSameAs(imp);
     }
 
     @Test
@@ -264,7 +264,7 @@ public class RequestUpdaterTest {
         // when and then
         final BidRequest updatedRequest = updater.update(request);
         assertThat(updatedRequest.getImp()).hasSize(1);
-        assertThat(updatedRequest.getImp().get(0)).isSameAs(imp);
+        assertThat(updatedRequest.getImp().getFirst()).isSameAs(imp);
     }
 
     @Test
@@ -282,7 +282,7 @@ public class RequestUpdaterTest {
         // when and then
         final BidRequest updatedRequest = updater.update(request);
         assertThat(updatedRequest.getImp()).hasSize(1);
-        assertThat(updatedRequest.getImp().get(0)).isSameAs(imp);
+        assertThat(updatedRequest.getImp().getFirst()).isSameAs(imp);
     }
 
     @Test

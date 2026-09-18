@@ -24,11 +24,11 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.request.scalibur.ExtImpScalibur;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.scalibur.ExtImpScalibur;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;

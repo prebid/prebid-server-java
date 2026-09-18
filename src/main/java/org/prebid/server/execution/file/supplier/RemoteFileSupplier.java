@@ -60,10 +60,10 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
                 .setFollowRedirects(true);
         headRequestOptions = checkRemoteFileSize
                 ? new RequestOptions()
-                .setMethod(HttpMethod.HEAD)
-                .setTimeout(timeout)
-                .setAbsoluteURI(downloadUrl)
-                .setFollowRedirects(true)
+                  .setMethod(HttpMethod.HEAD)
+                  .setTimeout(timeout)
+                  .setAbsoluteURI(downloadUrl)
+                  .setFollowRedirects(true)
                 : null;
     }
 
@@ -71,15 +71,15 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
     public Future<String> get() {
         return isDownloadRequired().compose(isDownloadRequired -> isDownloadRequired
                 ? Future.all(downloadFile(), createBackup())
-                .compose(ignored -> tmpToSave())
-                .map(savePath)
+                  .compose(ignored -> tmpToSave())
+                  .map(savePath)
                 : Future.succeededFuture());
     }
 
     private Future<Boolean> isDownloadRequired() {
         return headRequestOptions != null
                 ? fileSystem.exists(savePath)
-                .compose(exists -> exists ? isSizeChanged() : Future.succeededFuture(true))
+                  .compose(exists -> exists ? isSizeChanged() : Future.succeededFuture(true))
                 : Future.succeededFuture(true);
     }
 
@@ -145,7 +145,7 @@ public class RemoteFileSupplier implements Supplier<Future<String>> {
         return fileSystem.exists(backupPath)
                 .compose(exists -> exists
                         ? copyFile(backupPath, savePath)
-                        .onSuccess(ignored -> deleteFile(backupPath))
+                          .onSuccess(ignored -> deleteFile(backupPath))
                         : Future.succeededFuture());
     }
 

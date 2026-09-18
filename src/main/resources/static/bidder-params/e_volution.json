@@ -9,5 +9,7 @@
       "description": "network or placement key"
     }
   },
-  "required": ["key"]
+  "required": [
+    "key"
+  ]
 }

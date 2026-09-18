@@ -1,4 +1,3 @@
-
 package org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader;
 
 import com.iab.gpp.encoder.GppModel;

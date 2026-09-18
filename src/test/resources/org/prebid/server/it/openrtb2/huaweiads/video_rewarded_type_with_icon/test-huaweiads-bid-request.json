@@ -37,7 +37,7 @@
   },
   "network": {
     "type": 0,
-    "cellInfo" : [ ]
+    "cellInfo": []
   },
   "regs": {
   },

@@ -43,11 +43,13 @@
       "gdpr": 0
     }
   },
-  "at" : 1,
-  "tmax" : "${json-unit.any-number}",
-  "cur" : [ "USD" ],
-  "source" : {
-    "tid" : "${json-unit.any-string}"
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
   },
   "ext": {
     "prebid": {

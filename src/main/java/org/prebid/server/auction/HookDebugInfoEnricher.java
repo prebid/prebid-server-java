@@ -218,12 +218,12 @@ public class HookDebugInfoEnricher {
         final AppliedTo appliedTo = result.appliedTo();
         final ExtModulesTraceAnalyticsAppliedTo extAppliedTo = appliedTo != null
                 ? ExtModulesTraceAnalyticsAppliedTo.builder()
-                .impIds(appliedTo.impIds())
-                .bidders(appliedTo.bidders())
-                .request(appliedTo.request() ? Boolean.TRUE : null)
-                .response(appliedTo.response() ? Boolean.TRUE : null)
-                .bidIds(appliedTo.bidIds())
-                .build()
+                  .impIds(appliedTo.impIds())
+                  .bidders(appliedTo.bidders())
+                  .request(appliedTo.request() ? Boolean.TRUE : null)
+                  .response(appliedTo.response() ? Boolean.TRUE : null)
+                  .bidIds(appliedTo.bidIds())
+                  .build()
                 : null;
 
         return ExtModulesTraceAnalyticsResult.of(result.status(), result.values(), extAppliedTo);

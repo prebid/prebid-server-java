@@ -3,10 +3,10 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.iab.openrtb.request.BrandVersion;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
-import org.prebid.server.util.HttpUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.HashMap;

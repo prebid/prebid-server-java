@@ -112,8 +112,8 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static Banner updateBanner(Banner banner) {
         final Format firstFormat = banner.getFormat().getFirst();
         return banner.toBuilder()
-                .w(ObjectUtils.defaultIfNull(firstFormat.getW(), 0))
-                .h(ObjectUtils.defaultIfNull(firstFormat.getH(), 0))
+                .w(ObjectUtils.getIfNull(firstFormat.getW(), 0))
+                .h(ObjectUtils.getIfNull(firstFormat.getH(), 0))
                 .build();
     }
 
@@ -148,10 +148,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         final SeatBid firstSeatBid = seatbid.getFirst();
-        return firstSeatBid != null ? firstSeatBid.getBid().stream()
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
-                .toList()
+        return firstSeatBid != null
+                ? firstSeatBid.getBid().stream()
+                  .filter(Objects::nonNull)
+                  .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
+                  .toList()
                 : Collections.emptyList();
     }
 

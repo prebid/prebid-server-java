@@ -35,8 +35,7 @@ public class DefaultActionRuleTest {
         final Object context = new Object();
 
         final ObjectNode firstConfig = MAPPER.createObjectNode().set("config", TextNode.valueOf("test"));
-        final ResultFunction<Object, Object> firstFunction =
-                (ResultFunction<Object, Object>) mock(ResultFunction.class);
+        final ResultFunction<Object, Object> firstFunction = mock();
         given(firstFunction.apply(any())).willAnswer(invocationOnMock -> RuleResult.of(
                 ((ResultFunctionArguments<Object, Object>) invocationOnMock.getArgument(0)).getOperand(),
                 RuleAction.UPDATE,
@@ -44,8 +43,7 @@ public class DefaultActionRuleTest {
                 singletonList(SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))))));
 
         final ObjectNode secondConfig = MAPPER.createObjectNode().set("config", TextNode.valueOf("anotherTest"));
-        final ResultFunction<Object, Object> secondFunction =
-                (ResultFunction<Object, Object>) mock(ResultFunction.class);
+        final ResultFunction<Object, Object> secondFunction = mock();
         given(secondFunction.apply(any())).willAnswer(invocationOnMock -> RuleResult.of(
                 ((ResultFunctionArguments<Object, Object>) invocationOnMock.getArgument(0)).getOperand(),
                 RuleAction.UPDATE,

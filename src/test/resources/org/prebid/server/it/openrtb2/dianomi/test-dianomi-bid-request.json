@@ -4,7 +4,7 @@
     {
       "id": "imp_id_banner",
       "secure": 1,
-      "tagid" : "12345",
+      "tagid": "12345",
       "banner": {
         "format": [
           {

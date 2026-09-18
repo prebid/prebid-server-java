@@ -2,7 +2,7 @@ hooks:
   modules:
     fiftyone-devicedetection:
       account-filter:
-        allow-list: [] # list of strings
+        allow-list: [ ] # list of strings
       data-file:
         path: ~ # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash or Enterprise from https://51degrees.com/pricing
         make-temp-copy: ~ # boolean

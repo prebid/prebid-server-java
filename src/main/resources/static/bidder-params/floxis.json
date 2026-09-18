@@ -20,5 +20,7 @@
       "description": "The white-label partner (DNS label, interpolated into the bidding host); defaults to floxis when omitted"
     }
   },
-  "required": ["seat"]
+  "required": [
+    "seat"
+  ]
 }

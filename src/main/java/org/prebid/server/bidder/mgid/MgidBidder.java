@@ -104,7 +104,7 @@ public class MgidBidder implements Bidder<BidRequest> {
     }
 
     private static String getCur(ExtImpMgid impMgid) {
-        return ObjectUtils.defaultIfNull(
+        return ObjectUtils.getIfNull(
                 currencyValueOrNull(impMgid.getCurrency()), currencyValueOrNull(impMgid.getCur()));
     }
 
@@ -113,7 +113,7 @@ public class MgidBidder implements Bidder<BidRequest> {
     }
 
     private static BigDecimal getBidFloor(ExtImpMgid impMgid) {
-        return ObjectUtils.defaultIfNull(
+        return ObjectUtils.getIfNull(
                 validBidFloorOrNull(impMgid.getBidfloor()), validBidFloorOrNull(impMgid.getBidFloorSecond()));
     }
 

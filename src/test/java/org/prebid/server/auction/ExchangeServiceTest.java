@@ -2089,7 +2089,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequest extRequest = captureBidRequest().getExt();
         assertThat(extRequest)
                 .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getMultibid).asList()
+                .extracting(ExtRequestPrebid::getMultibid)
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix"));
     }
 
@@ -2109,7 +2110,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequest extRequest = captureBidRequest().getExt();
         assertThat(extRequest)
                 .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getMultibid).asList()
+                .extracting(ExtRequestPrebid::getMultibid)
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, null));
     }
 
@@ -4628,12 +4630,6 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester)
                 .requestBids(any(), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
         return bidRequestCaptor.getValue().getBidRequest();
-    }
-
-    private List<AuctionParticipation> captureAuctionParticipations() {
-        final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
-        verify(bidResponseCreator).create(contextArgumentCaptor.capture(), any(), any());
-        return contextArgumentCaptor.getValue().getAuctionParticipations();
     }
 
     private static BidRequest givenBidRequest(List<Imp> imp,

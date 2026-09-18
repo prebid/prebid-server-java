@@ -19,7 +19,7 @@ public class PercentFunction<T, C> implements SchemaFunction<T, C> {
 
     @Override
     public String extract(SchemaFunctionArguments<T, C> arguments) {
-        final int resolvedUpperBound = Math.min(Math.max(arguments.getConfig().get(PCT_FIELD).asInt(), 0), 100);
+        final int resolvedUpperBound = Math.clamp(arguments.getConfig().get(PCT_FIELD).asInt(), 0, 100);
         return Boolean.toString(random.nextInt(100) < resolvedUpperBound);
     }
 

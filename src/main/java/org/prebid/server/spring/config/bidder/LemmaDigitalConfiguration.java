@@ -25,7 +25,7 @@ public class LemmaDigitalConfiguration {
 
     @Bean
     BidderDeps lemmadigitalBidderDeps(BidderConfigurationProperties lemmaDigitalConfigurationProperties,
-                                  JacksonMapper mapper) {
+                                      JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(lemmaDigitalConfigurationProperties)

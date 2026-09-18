@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
@@ -75,7 +76,7 @@ public class UidUpdater {
 
     private String uidFromHostCookie(AuctionContext auctionContext, String bidder) {
         return bidderCatalog.cookieFamilyName(bidder)
-                .filter(cookieFamily -> StringUtils.equals(cookieFamily, hostCookieFamily))
+                .filter(cookieFamily -> Strings.CS.equals(cookieFamily, hostCookieFamily))
                 .map(cookieFamily -> uidsCookieService.parseHostCookie(auctionContext.getHttpRequest()))
                 .orElse(null);
     }

@@ -3,7 +3,6 @@ package org.prebid.server.execution.file.supplier;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.file.AsyncFile;
-import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
@@ -136,9 +135,9 @@ public class RemoteFileSupplierTest {
         final AsyncFile tmpFile = mock(AsyncFile.class);
         given(fileSystem.open(eq(TMP_PATH), any())).willReturn(Future.succeededFuture(tmpFile));
         given(fileSystem.exists(eq(SAVE_PATH))).willReturn(Future.succeededFuture(true));
-        given(fileSystem.move(eq(SAVE_PATH), eq(BACKUP_PATH), Mockito.<CopyOptions>any()))
+        given(fileSystem.move(eq(SAVE_PATH), eq(BACKUP_PATH), Mockito.any()))
                 .willReturn(Future.succeededFuture());
-        given(fileSystem.move(eq(TMP_PATH), eq(SAVE_PATH), Mockito.<CopyOptions>any()))
+        given(fileSystem.move(eq(TMP_PATH), eq(SAVE_PATH), Mockito.any()))
                 .willReturn(Future.succeededFuture());
 
         given(getResponse.statusCode()).willReturn(200);
@@ -166,9 +165,9 @@ public class RemoteFileSupplierTest {
 
         final AsyncFile tmpFile = mock(AsyncFile.class);
         given(fileSystem.open(eq(TMP_PATH), any())).willReturn(Future.succeededFuture(tmpFile));
-        given(fileSystem.move(eq(SAVE_PATH), eq(BACKUP_PATH), Mockito.<CopyOptions>any()))
+        given(fileSystem.move(eq(SAVE_PATH), eq(BACKUP_PATH), Mockito.any()))
                 .willReturn(Future.succeededFuture());
-        given(fileSystem.move(eq(TMP_PATH), eq(SAVE_PATH), Mockito.<CopyOptions>any()))
+        given(fileSystem.move(eq(TMP_PATH), eq(SAVE_PATH), Mockito.any()))
                 .willReturn(Future.succeededFuture());
 
         given(getResponse.statusCode()).willReturn(200);

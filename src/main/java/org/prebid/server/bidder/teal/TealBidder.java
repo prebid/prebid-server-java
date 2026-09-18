@@ -119,7 +119,7 @@ public class TealBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyBidRequest(BidRequest request, String account, List<Imp> modifiedImps) {
-        final ExtRequest ext = ObjectUtils.defaultIfNull(request.getExt(), ExtRequest.empty());
+        final ExtRequest ext = ObjectUtils.getIfNull(request.getExt(), ExtRequest.empty());
         ext.addProperty("bids", mapper.mapper().createObjectNode().put("pbs", 1));
 
         return request.toBuilder()
@@ -133,16 +133,16 @@ public class TealBidder implements Bidder<BidRequest> {
     private static Site modifySite(Site site, String account) {
         return site != null
                 ? site.toBuilder()
-                .publisher(modifyPublisher(site.getPublisher(), account))
-                .build()
+                  .publisher(modifyPublisher(site.getPublisher(), account))
+                  .build()
                 : null;
     }
 
     private static App modifyApp(App app, String account) {
         return app != null
                 ? app.toBuilder()
-                .publisher(modifyPublisher(app.getPublisher(), account))
-                .build()
+                  .publisher(modifyPublisher(app.getPublisher(), account))
+                  .build()
                 : null;
     }
 

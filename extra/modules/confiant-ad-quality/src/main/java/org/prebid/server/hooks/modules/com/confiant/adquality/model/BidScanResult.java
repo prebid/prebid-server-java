@@ -19,7 +19,9 @@ public class BidScanResult {
     @JsonProperty("tag_key")
     String tagKey;
 
-    /** Impression ID as retrieved in breq.imp.id */
+    /**
+     * Impression ID as retrieved in breq.imp.id
+     */
     @JsonProperty("imp_id")
     String impId;
 
@@ -30,6 +32,8 @@ public class BidScanResult {
     @JsonProperty("ro_skipped")
     boolean roSkipped;
 
-    /** An array of issue objects {@link Issue}. Only available if known_creative is true. */
+    /**
+     * An array of issue objects {@link Issue}. Only available if known_creative is true.
+     */
     List<Issue> issues;
 }

@@ -19,9 +19,9 @@ public class SparteoTest extends IntegrationTest {
                 .withQueryParam("network_id", equalTo("networkId"))
                 .withQueryParam("site_domain", equalTo("dev.sparteo.com"))
                 .withRequestBody(equalToJson(
-                    jsonFrom("openrtb2/sparteo/test-sparteo-bid-request.json")))
+                        jsonFrom("openrtb2/sparteo/test-sparteo-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                    jsonFrom("openrtb2/sparteo/test-sparteo-bid-response.json"))));
+                        jsonFrom("openrtb2/sparteo/test-sparteo-bid-response.json"))));
 
         final Response response = responseFor(
                 "openrtb2/sparteo/test-auction-sparteo-request.json",

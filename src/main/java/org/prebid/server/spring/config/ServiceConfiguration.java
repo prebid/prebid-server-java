@@ -772,7 +772,7 @@ public class ServiceConfiguration {
 
         return new CookieSyncService(
                 defaultLimit,
-                ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
+                ObjectUtils.getIfNull(maxLimit, Integer.MAX_VALUE),
                 bidderCatalog,
                 hostVendorTcfDefinerService,
                 ccpaEnforcement,

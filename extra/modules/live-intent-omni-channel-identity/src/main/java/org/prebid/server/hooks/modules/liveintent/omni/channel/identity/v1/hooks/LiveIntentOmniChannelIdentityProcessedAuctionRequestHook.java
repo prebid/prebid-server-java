@@ -87,9 +87,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
         return config.getTreatmentRate() > ThreadLocalRandom.current().nextFloat()
                 ? requestIdentities(auctionRequestPayload.bidRequest(), invocationContext.auctionContext())
-                .<InvocationResult<AuctionRequestPayload>>map(this::update)
-                .onFailure(throwable -> conditionalLogger.error(
-                        "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate))
+                  .<InvocationResult<AuctionRequestPayload>>map(this::update)
+                  .onFailure(throwable -> conditionalLogger.error(
+                          "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate))
                 : noAction();
     }
 
@@ -262,18 +262,18 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private List<ExtRequestPrebidDataEidPermissions> createEidPermissions(String matcher) {
         return List.of(ExtRequestPrebidDataEidPermissions.builder()
-                                .matcher(matcher)
-                                .inserter(INSERTER)
-                                .bidders(targetBidders.stream().toList())
-                                .build());
+                .matcher(matcher)
+                .inserter(INSERTER)
+                .bidders(targetBidders.stream().toList())
+                .build());
     }
 
     private List<ExtRequestPrebidDataEidPermissions> modifyEidPermissions(
             List<ExtRequestPrebidDataEidPermissions> eidPermissions, String matcher) {
         final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = eidPermissions.stream()
-                                .map(p -> updateEidPermission(p, matcher))
-                                .filter(Objects::nonNull)
-                                .toList();
+                .map(p -> updateEidPermission(p, matcher))
+                .filter(Objects::nonNull)
+                .toList();
         return ListUtils.union(modifiedEidPermissions, createEidPermissions(matcher));
     }
 

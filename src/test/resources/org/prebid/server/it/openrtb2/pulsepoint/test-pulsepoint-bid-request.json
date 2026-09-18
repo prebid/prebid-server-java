@@ -8,7 +8,7 @@
         "w": 300,
         "h": 600
       },
-      "tagid" : "456",
+      "tagid": "456",
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
@@ -41,8 +41,8 @@
   "cur": [
     "USD"
   ],
-  "regs" : {
-    "gdpr" : 0
+  "regs": {
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

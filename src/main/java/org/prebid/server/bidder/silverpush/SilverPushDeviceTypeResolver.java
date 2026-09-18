@@ -1,6 +1,6 @@
 package org.prebid.server.bidder.silverpush;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import java.util.regex.Pattern;
 
@@ -17,15 +17,15 @@ public class SilverPushDeviceTypeResolver {
                     Pattern.CASE_INSENSITIVE);
 
     public static String resolveOs(String userAgent) {
-        if (StringUtils.containsIgnoreCase(userAgent, "Windows")) {
+        if (Strings.CI.contains(userAgent, "Windows")) {
             return "Windows";
-        } else if (StringUtils.containsAnyIgnoreCase(userAgent, "iPhone", "iPod", "iPad")) {
+        } else if (Strings.CI.containsAny(userAgent, "iPhone", "iPod", "iPad")) {
             return "iOS";
-        } else if (StringUtils.containsIgnoreCase(userAgent, "Mac OS X")) {
+        } else if (Strings.CI.contains(userAgent, "Mac OS X")) {
             return "macOS";
-        } else if (StringUtils.containsIgnoreCase(userAgent, "Android")) {
+        } else if (Strings.CI.contains(userAgent, "Android")) {
             return "Android";
-        } else if (StringUtils.containsIgnoreCase(userAgent, "Linux")) {
+        } else if (Strings.CI.contains(userAgent, "Linux")) {
             return "Linux";
         }
 

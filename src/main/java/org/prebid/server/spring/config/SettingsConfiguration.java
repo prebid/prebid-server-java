@@ -468,7 +468,7 @@ public class SettingsConfiguration {
         ApplicationSettings applicationSettings(
                 @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
                 EnrichingApplicationSettings enrichingApplicationSettings) {
-            return ObjectUtils.defaultIfNull(cachingApplicationSettings, enrichingApplicationSettings);
+            return ObjectUtils.getIfNull(cachingApplicationSettings, enrichingApplicationSettings);
         }
     }
 

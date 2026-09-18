@@ -471,12 +471,12 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .put("fpdData", "data_value");
 
         final ObjectNode expectedOrtb = mapper.createObjectNode()
-                 .put("id", "ortb_id")
-                 .put("name", "name1")
-                 .put("domain", "ortb_domain1")
-                 .put("page", "ortb_page1")
-                 .put("ref", "ortb_ref1")
-                 .put("keywords", "ortb_keyword1,ortb_keyword2");
+                .put("id", "ortb_id")
+                .put("name", "name1")
+                .put("domain", "ortb_domain1")
+                .put("page", "ortb_page1")
+                .put("ref", "ortb_ref1")
+                .put("keywords", "ortb_keyword1,ortb_keyword2");
         expectedOrtb.set("ext", obj("data", expectedOrtbExtData));
 
         assertThat(ortb2.path("site")).isEqualTo(expectedOrtb);

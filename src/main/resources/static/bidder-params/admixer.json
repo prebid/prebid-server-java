@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Admixer Adapter Params",
   "description": "A schema which validates params accepted by the Admixer adapter",
-
   "type": "object",
   "properties": {
     "zone": {
@@ -20,6 +19,7 @@
       "description": "User-defined targeting key-value pairs."
     }
   },
-
-  "required": ["zone"]
+  "required": [
+    "zone"
+  ]
 }
