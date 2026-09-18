@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
@@ -31,8 +32,9 @@ class Content {
     String keywords
     List<String> kwarray
     Integer livestream
-    Integer realtime
-    Integer firstbroadcast
+    Realtime realtime
+    @JsonProperty("firstbroadcast")
+    FirstBroadcast firstBroadcast
     Integer sourcerelationship
     Integer len
     String language

@@ -6,14 +6,17 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
 import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.DoohExt
 import org.prebid.server.functional.model.request.auction.Eid
+import org.prebid.server.functional.model.request.auction.FirstBroadcast
 import org.prebid.server.functional.model.request.auction.Network
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Producer
 import org.prebid.server.functional.model.request.auction.Publisher
 import org.prebid.server.functional.model.request.auction.Qty
+import org.prebid.server.functional.model.request.auction.Realtime
 import org.prebid.server.functional.model.request.auction.RefSettings
 import org.prebid.server.functional.model.request.auction.RefType
 import org.prebid.server.functional.model.request.auction.Refresh
@@ -33,7 +36,6 @@ import spock.lang.Shared
 import static org.prebid.server.functional.model.request.auction.Content.Channel
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 class OrtbConverterSpec extends BaseSpec {
 
@@ -673,41 +675,74 @@ class OrtbConverterSpec extends BaseSpec {
         assert bidderRequest.imp[0].ssai == ssaiRandomNumber
     }
 
-    def "PBS should preserve content metadata for #distributionChannel when bidder supports ortb #ortbVersion"() {
-        given: "Content with genre taxonomy, broadcast flags and extended content identifiers"
+    def "PBS should preserve content metadata for #distributionChannel with ORTB 2.5"() {
+        given: "Content with genre taxonomy, broadcast flags, and extended content identifiers"
         def content = Content.defaultContent.tap {
-            gtax = 1
-            genres = ["genre-001", "genre-002"]
-            realtime = realtimeFlag
-            firstbroadcast = firstbroadcastFlag
-            data = [new Data(id: "provider-id", cids: ["content-001", "00042"])]
+            it.gtax = PBSUtils.getRandomNumber()
+            it.genres = [PBSUtils.randomString, PBSUtils.randomString]
+            it.realtime = PBSUtils.getRandomEnum(Realtime)
+            it.firstBroadcast = PBSUtils.getRandomEnum(FirstBroadcast)
+            it.data = [new Data(id: PBSUtils.randomString, cids: [PBSUtils.randomString, PBSUtils.randomString])]
         }
         def bidRequest = BidRequest.getDefaultBidRequest(distributionChannel).tap {
             it[distributionChannel.value].content = content
         }
-        def service = ortbVersion == "2.5" ? prebidServerServiceWithElderOrtb : prebidServerServiceWithNewOrtb
 
-        when: "Requesting a PBS auction"
-        service.sendAuctionRequest(bidRequest)
+        when: "Sending auction request to PBS"
+        def bidResponse = prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
-        then: "The bidder receives the content metadata unchanged"
-        def actualContent = bidder.getBidderRequest(bidRequest.id)[distributionChannel.value].content
+        then: "PBS responds without errors or warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        and: "PBS forwards the content metadata to the bidder unchanged"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def actualContent = (bidderRequest[distributionChannel.value].content as Content)
         verifyAll(actualContent) {
-            gtax == content.gtax
-            genres == content.genres
-            realtime == realtimeFlag
-            firstbroadcast == firstbroadcastFlag
-            data == content.data
+            it.gtax == content.gtax
+            it.genres == content.genres
+            it.realtime == content.realtime
+            it.firstBroadcast == content.firstBroadcast
+            it.data == content.data
         }
 
         where:
-        distributionChannel | ortbVersion | realtimeFlag | firstbroadcastFlag
-        SITE                | "2.5"       | 0            | 1
-        SITE                | "2.6"       | 1            | 0
-        APP                 | "2.5"       | 1            | 0
-        APP                 | "2.6"       | 0            | 1
-        DOOH                | "2.5"       | 0            | 1
-        DOOH                | "2.6"       | 1            | 0
+        distributionChannel << DistributionChannel.values()
+    }
+
+    def "PBS should preserve content metadata for #distributionChannel with ORTB 2.6"() {
+        given: "Content with genre taxonomy, broadcast flags, and extended content identifiers"
+        def content = Content.defaultContent.tap {
+            it.gtax = PBSUtils.getRandomNumber()
+            it.genres = [PBSUtils.randomString, PBSUtils.randomString]
+            it.realtime = PBSUtils.getRandomEnum(Realtime)
+            it.firstBroadcast = PBSUtils.getRandomEnum(FirstBroadcast)
+            it.data = [new Data(id: PBSUtils.randomString, cids: [PBSUtils.randomString, PBSUtils.randomString])]
+        }
+        def bidRequest = BidRequest.getDefaultBidRequest(distributionChannel).tap {
+            it[distributionChannel.value].content = content
+        }
+
+        when: "Sending auction request to PBS"
+        def bidResponse = prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "PBS responds without errors or warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        and: "PBS forwards the content metadata to the bidder unchanged"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def actualContent = (bidderRequest[distributionChannel.value].content as Content)
+        verifyAll(actualContent) {
+            it.gtax == content.gtax
+            it.genres == content.genres
+            it.realtime == content.realtime
+            it.firstBroadcast == content.firstBroadcast
+            it.data == content.data
+        }
+
+        where:
+        distributionChannel << DistributionChannel.values()
     }
 
     def "PBS shouldn't remove site.content.{channel, network} when bidder doesn't support ortb 2.6"() {
