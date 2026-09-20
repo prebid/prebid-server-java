@@ -40,7 +40,7 @@ public class AdplayxBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public AdplayxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUri = Uri.of(HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)));
+        this.endpointUri = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
