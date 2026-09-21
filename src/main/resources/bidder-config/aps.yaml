@@ -1,0 +1,13 @@
+adapters:
+  aps:
+    # {{Region}} comes from the aps.region imp param (default na).
+    endpoint: https://s2s.prebid.bid-{{Region}}.ads.aps.amazon-adsystem.com/e/pb/bid
+    geoscope:
+      - USA
+    meta-info:
+      maintainer-email: aps-prebid@amazon.com
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 793
