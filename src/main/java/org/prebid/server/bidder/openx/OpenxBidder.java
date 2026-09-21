@@ -66,19 +66,56 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final Map<Boolean, List<Imp>> partitionedImps = bidRequest.getImp().stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.partitioningBy(OpenxBidder::isSupportedImpType));
+        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
+        final ExtImpOpenx firstValidImpExt = processImps(bidRequest.getImp(), modifiedImps, errors);
 
-        final List<BidderError> processingErrors = new ArrayList<>();
-        final List<BidRequest> outgoingRequests = makeRequests(
-                bidRequest,
-                partitionedImps.get(Boolean.TRUE),
-                processingErrors);
+        if (modifiedImps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
 
-        final List<BidderError> errors = errors(partitionedImps.get(Boolean.FALSE), processingErrors);
+        final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, modifiedImps, firstValidImpExt);
+        return Result.of(Collections.singletonList(makeRequest(modifiedBidRequest)), errors);
+    }
 
-        return Result.of(createHttpRequests(outgoingRequests), errors);
+    private ExtImpOpenx processImps(List<Imp> imps, List<Imp> modifiedImps, List<BidderError> errors) {
+        ExtImpOpenx firstValidImpExt = null;
+        for (Imp imp : imps) {
+            if (!isSupportedImpType(imp)) {
+                errors.add(unsupportedImpTypeError(imp));
+                continue;
+            }
+
+            final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt;
+            try {
+                impExt = parseOpenxExt(imp);
+            } catch (PreBidException e) {
+                errors.add(invalidImpError(imp, e));
+                continue;
+            }
+
+            modifiedImps.add(makeImp(imp, impExt));
+            if (firstValidImpExt == null) {
+                firstValidImpExt = impExt.getBidder();
+            }
+        }
+        return firstValidImpExt;
+    }
+
+    private static BidderError unsupportedImpTypeError(Imp imp) {
+        return BidderError.badInput(
+                "OpenX only supports banner, video and native imps. Ignoring imp id=" + imp.getId());
+    }
+
+    private static BidderError invalidImpError(Imp imp, PreBidException e) {
+        return BidderError.badInput("imp id=%s: %s".formatted(imp.getId(), e.getMessage()));
+    }
+
+    private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, ExtImpOpenx firstValidImpExt) {
+        return bidRequest.toBuilder()
+                .imp(imps)
+                .ext(makeReqExt(firstValidImpExt))
+                .build();
     }
 
     @Override
@@ -95,18 +132,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
     }
 
-    private List<BidRequest> makeRequests(
-            BidRequest bidRequest,
-            List<Imp> imps,
-            List<BidderError> errors) {
-
-        final BidRequest request = createSingleRequest(imps, bidRequest, errors);
-        if (request != null) {
-            return Collections.singletonList(request);
-        }
-        return Collections.emptyList();
-    }
-
     private static BidType resolveBidType(Imp imp) {
         if (imp.getBanner() != null) {
             return BidType.banner;
@@ -120,57 +145,8 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return BidType.banner;
     }
 
-    private List<BidderError> errors(List<Imp> notSupportedImps, List<BidderError> processingErrors) {
-        final List<BidderError> errors = new ArrayList<>();
-        // add errors for imps with unsupported media types
-        if (CollectionUtils.isNotEmpty(notSupportedImps)) {
-            errors.addAll(
-                    notSupportedImps.stream()
-                            .map(imp ->
-                                    "OpenX only supports banner, video and native imps. Ignoring imp id=" + imp.getId())
-                            .map(BidderError::badInput)
-                            .toList());
-        }
-
-        // add errors detected during requests creation
-        errors.addAll(processingErrors);
-
-        return errors;
-    }
-
-    private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {
-        return bidRequests.stream()
-                .filter(Objects::nonNull)
-                .map(singleBidRequest -> BidderUtil.defaultRequest(singleBidRequest, endpointUrl, mapper))
-                .toList();
-    }
-
-    private BidRequest createSingleRequest(List<Imp> imps, BidRequest bidRequest, List<BidderError> errors) {
-        if (CollectionUtils.isEmpty(imps)) {
-            return null;
-        }
-
-        final List<Imp> processedImps = new ArrayList<>();
-        ExtRequest requestExt = null;
-        for (Imp imp : imps) {
-            try {
-                final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
-                processedImps.add(makeImp(imp, impExt));
-
-                if (requestExt == null) {
-                    requestExt = makeReqExt(impExt.getBidder());
-                }
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput("imp id=%s: %s".formatted(imp.getId(), e.getMessage())));
-            }
-        }
-
-        return CollectionUtils.isNotEmpty(processedImps)
-                ? bidRequest.toBuilder()
-                  .imp(processedImps)
-                  .ext(requestExt)
-                  .build()
-                : null;
+    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     private Imp makeImp(Imp imp, ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt) {
