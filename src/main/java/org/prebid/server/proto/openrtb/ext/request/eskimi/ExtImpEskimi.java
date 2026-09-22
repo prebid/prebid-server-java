@@ -12,7 +12,7 @@ public class ExtImpEskimi {
     @JsonProperty("placementId")
     Integer placementId;
 
-    @JsonProperty("bidfloor")
+    @JsonProperty("bidFloor")
     BigDecimal bidFloor;
 
     @JsonProperty("bidFloorCur")

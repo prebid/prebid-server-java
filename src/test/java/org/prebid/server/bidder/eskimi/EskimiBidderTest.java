@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +60,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfFirstImpExtIsInvalid() {
+    public void makeHttpRequestsShouldReturnErrorWhenFirstImpExtIsInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
@@ -138,7 +137,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotOverrideBattrIfAlreadyPresentInBannerOrVideo() {
+    public void makeHttpRequestsShouldNotOverrideBattrWhenAlreadyPresentInBannerOrVideo() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
@@ -161,7 +160,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSecureToOneIfNull() {
+    public void makeHttpRequestsShouldSetSecureToOneWhenNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.secure(null)),
@@ -177,11 +176,11 @@ public class EskimiBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getSecure)
-                .containsExactlyInAnyOrder(0, 1, 1);
+                .containsExactly(1, 0, 1);
     }
 
     @Test
-    public void makeHttpRequestsShouldUseImpBidfloorAndCurIfValid() {
+    public void makeHttpRequestsShouldUseImpBidfloorAndCurWhenValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
@@ -202,7 +201,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFallbackToExtBidfloorAndCurIfImpInvalid() {
+    public void makeHttpRequestsShouldFallbackToExtBidfloorAndCurWhenImpInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
@@ -223,7 +222,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFallbackToExtBidfloorButKeepImpCurIfExtCurIsBlank() {
+    public void makeHttpRequestsShouldFallbackToExtBidfloorButKeepImpCurWhenExtCurIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
@@ -262,7 +261,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotOverrideRequestParamsIfPresentInRequest() {
+    public void makeHttpRequestsShouldNotOverrideRequestParamsWhenPresentInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.ext(givenImpExt(
@@ -357,7 +356,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetPlacementIdInOriginalAppExt() {
+    public void makeHttpRequestsShouldPreserveOriginalAppExtAndSetPlacementId() {
         // given
         final ExtApp givenExtApp = ExtApp.of(null, mapper.createObjectNode().put("ANY", "ANY"));
         final BidRequest bidRequest = givenBidRequest(
@@ -383,7 +382,7 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(givenImp(identity())), "invalid");
 
@@ -391,8 +390,11 @@ public class EskimiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
+        assertThat(result.getErrors())
+                .singleElement()
+                .extracting(BidderError::getMessage)
+                .asString()
+                .startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -633,7 +635,6 @@ public class EskimiBidderTest extends VertxTest {
     }
 
     @SafeVarargs
-    @SneakyThrows
     private BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
