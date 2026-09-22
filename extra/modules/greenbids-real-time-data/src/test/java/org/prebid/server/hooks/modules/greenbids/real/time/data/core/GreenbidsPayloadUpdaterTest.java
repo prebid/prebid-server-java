@@ -10,8 +10,8 @@ import java.util.Map;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.getAppnexusNode;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.getPubmaticNode;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.getMagniteNode;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.getPubmaticNode;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
 

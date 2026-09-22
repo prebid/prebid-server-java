@@ -17,5 +17,9 @@
       "description": "Account id"
     }
   },
-  "required": ["host", "sourceid", "accountid"]
+  "required": [
+    "host",
+    "sourceid",
+    "accountid"
+  ]
 }

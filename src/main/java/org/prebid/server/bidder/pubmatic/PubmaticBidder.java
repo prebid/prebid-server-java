@@ -251,8 +251,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         return PubmaticWrapper.of(
-                ObjectUtils.defaultIfNull(stripToNull(left.getProfile()), right.getProfile()),
-                ObjectUtils.defaultIfNull(stripToNull(left.getVersion()), right.getVersion()));
+                ObjectUtils.getIfNull(stripToNull(left.getProfile()), right.getProfile()),
+                ObjectUtils.getIfNull(stripToNull(left.getVersion()), right.getVersion()));
     }
 
     private static boolean isWrapperValid(PubmaticWrapper wrapper) {

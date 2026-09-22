@@ -3,7 +3,6 @@
   "title": "Onetag Adapter Params",
   "description": "A schema which validates params accepted by the Onetag adapter",
   "type": "object",
-
   "properties": {
     "pubId": {
       "type": "string",
@@ -15,6 +14,7 @@
       "description": "A set of custom key-value pairs"
     }
   },
-
-  "required": ["pubId"]
+  "required": [
+    "pubId"
+  ]
 }

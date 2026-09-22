@@ -20,7 +20,9 @@
     "ext": {
       "gdpr": 0,
       "gpp": "gppstring",
-      "gpp_sid": [6]
+      "gpp_sid": [
+        6
+      ]
     }
   }
 }

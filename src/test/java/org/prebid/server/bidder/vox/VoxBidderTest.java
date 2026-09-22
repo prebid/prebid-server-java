@@ -275,8 +275,11 @@ public class VoxBidderTest extends VertxTest {
 
     @Value(staticConstructor = "of")
     private static class VoxImpExt {
+
         String placementId;
+
         String imageUrl;
+
         Set<String> displaySizes;
     }
 }

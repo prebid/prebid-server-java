@@ -10,7 +10,7 @@
         "h": 250
       },
       "tagid": "130563103",
-      "ext" : {
+      "ext": {
         "gpid": 1,
         "skadn": {
           "versions": [
@@ -43,11 +43,11 @@
   "source": {
     "tid": "${json-unit.any-string}"
   },
-  "site" : {
-    "domain" : "www.example.com",
-    "page" : "http://www.example.com",
-    "publisher" : {
-      "id" : "11000"
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "11000"
     }
   },
   "device": {

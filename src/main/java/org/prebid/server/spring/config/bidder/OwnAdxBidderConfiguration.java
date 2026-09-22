@@ -25,7 +25,7 @@ public class OwnAdxBidderConfiguration {
 
     @Bean
     BidderDeps ownAdxBidderDeps(BidderConfigurationProperties ownAdxConfigurationProperties,
-                                 JacksonMapper mapper) {
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(ownAdxConfigurationProperties)

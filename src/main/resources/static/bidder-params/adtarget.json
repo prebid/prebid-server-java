@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Adtarget Adapter Params",
   "description": "A schema which validates params accepted by the Adtarget adapter",
-
   "type": "object",
   "properties": {
     "placementId": {
@@ -22,5 +21,7 @@
       "description": "BidFloor, US Dollars"
     }
   },
-  "required": ["aid"]
+  "required": [
+    "aid"
+  ]
 }

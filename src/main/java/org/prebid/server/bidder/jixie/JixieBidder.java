@@ -8,7 +8,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -90,7 +90,7 @@ public class JixieBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String adm) {
-        return StringUtils.containsAny(adm, "<?xml", "<vast")
+        return Strings.CS.containsAny(adm, "<?xml", "<vast")
                 ? BidType.video
                 : BidType.banner;
     }

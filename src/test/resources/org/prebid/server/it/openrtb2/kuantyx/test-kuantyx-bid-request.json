@@ -10,8 +10,8 @@
       },
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder" : {
-          "zone" : 1
+        "bidder": {
+          "zone": 1
         }
       }
     }

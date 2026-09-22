@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Orbidder Adapter Params",
   "description": "A schema which validates params accepted by the Orbidder adapter",
-
   "type": "object",
   "properties": {
     "accountId": {
@@ -19,6 +18,8 @@
       "minimum": 0
     }
   },
-
-  "required": ["accountId", "placementId"]
+  "required": [
+    "accountId",
+    "placementId"
+  ]
 }

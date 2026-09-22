@@ -3,7 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.validation.ImpValidator;
@@ -77,7 +77,7 @@ public class ImpAdjuster {
         final Iterator<String> fieldNames = node.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
-            if (StringUtils.equalsIgnoreCase(fieldName, bidderName)) {
+            if (Strings.CI.equals(fieldName, bidderName)) {
                 return node.get(fieldName);
             }
         }

@@ -36,8 +36,8 @@ public class Attribute<T> {
 
         properties.computeIfAbsent("action-overrides", key -> actionOverrides != null
                 ? actionOverrides.toBuilder()
-                .field(field)
-                .build()
+                  .field(field)
+                  .build()
                 : null);
 
         return properties;

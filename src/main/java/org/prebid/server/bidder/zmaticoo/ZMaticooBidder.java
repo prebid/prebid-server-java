@@ -92,10 +92,10 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
         final UpdateResult<String> nativeRequest = resolveNativeRequest(xNative.getRequest());
         return nativeRequest.isUpdated()
                 ? imp.toBuilder()
-                .xNative(xNative.toBuilder()
-                        .request(nativeRequest.getValue())
-                        .build())
-                .build()
+                  .xNative(xNative.toBuilder()
+                           .request(nativeRequest.getValue())
+                           .build())
+                  .build()
                 : imp;
     }
 
@@ -169,7 +169,7 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidMediaType(Bid bid) {
-        final int markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
+        final int markupType = ObjectUtils.getIfNull(bid.getMtype(), 0);
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;

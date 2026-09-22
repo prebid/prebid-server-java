@@ -178,8 +178,8 @@ public class RtbhouseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("123")
-                                        .banner(null)
-                                        .xNative(Native.builder().build()));
+                        .banner(null)
+                        .xNative(Native.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -579,8 +579,8 @@ public class RtbhouseBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build();
+                .imp(singletonList(Imp.builder().id("123").build()))
+                .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
@@ -624,8 +624,8 @@ public class RtbhouseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("123")
-                                        .banner(null)
-                                        .xNative(Native.builder().build()));
+                        .banner(null)
+                        .xNative(Native.builder().build()));
         final ObjectNode admNode = mapper.createObjectNode();
         final ObjectNode nativeNode = mapper.createObjectNode();
         nativeNode.put("property1", "value1");

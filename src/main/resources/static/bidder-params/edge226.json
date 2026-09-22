@@ -3,7 +3,6 @@
   "title": "Edge226 Adapter Params",
   "description": "A schema which validates params accepted by the Edge226 adapter",
   "type": "object",
-
   "properties": {
     "placementId": {
       "type": "string",
@@ -17,7 +16,15 @@
     }
   },
   "oneOf": [
-    { "required": ["placementId"] },
-    { "required": ["endpointId"] }
+    {
+      "required": [
+        "placementId"
+      ]
+    },
+    {
+      "required": [
+        "endpointId"
+      ]
+    }
   ]
 }

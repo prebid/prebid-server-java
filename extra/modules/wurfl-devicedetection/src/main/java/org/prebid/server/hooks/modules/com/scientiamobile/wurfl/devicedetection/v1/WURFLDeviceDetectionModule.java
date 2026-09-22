@@ -1,8 +1,8 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
+import org.prebid.server.hooks.v1.Module;
 
 import java.util.Collection;
 import java.util.List;

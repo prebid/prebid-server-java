@@ -25,7 +25,6 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTreeFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedEntry;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
 
@@ -63,9 +62,6 @@ public class StageConfigParserTest {
 
     @Mock(strictness = LENIENT)
     private Rule<Object, Object> matchingRule;
-
-    @Mock(strictness = LENIENT)
-    private RuleTreeFactory ruleTreeFactory;
 
     @BeforeEach
     public void setUp() {
@@ -150,7 +146,7 @@ public class StageConfigParserTest {
         given(stageSpecification.schemaFunctionByName("function1")).willReturn(schemaFunction);
         given(stageSpecification.resultFunctionByName("function2")).willReturn(resultFunction);
 
-        final ResultFunction<Object, Object> secondResultFunction = mock(ResultFunction.class);
+        final ResultFunction<Object, Object> secondResultFunction = mock();
         given(stageSpecification.resultFunctionByName("function3")).willReturn(secondResultFunction);
 
         given(conditionalRuleFactory.create(any(), any(), any(), any())).willReturn(matchingRule);

@@ -206,7 +206,6 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         }
 
         return switch (mType) {
-            case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;

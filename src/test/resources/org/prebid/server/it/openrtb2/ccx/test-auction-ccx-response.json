@@ -20,7 +20,7 @@
             "type": "standard"
           },
           "adm": "some-test-ad-1",
-          "adomain":[
+          "adomain": [
             "somedomain.com"
           ],
           "w": 300,

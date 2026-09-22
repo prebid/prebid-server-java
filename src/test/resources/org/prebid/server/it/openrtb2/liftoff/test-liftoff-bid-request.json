@@ -3,7 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
-      "tagid" : "placement_reference_id",
+      "tagid": "placement_reference_id",
       "secure": 1,
       "video": {
         "mimes": [
@@ -13,14 +13,14 @@
         "h": 600
       },
       "ext": {
-        "bidder" : {
-          "bid_token" : "bid_token",
-          "app_store_id" : "app_store_id",
-          "placement_reference_id" : "placement_reference_id"
+        "bidder": {
+          "bid_token": "bid_token",
+          "app_store_id": "app_store_id",
+          "placement_reference_id": "placement_reference_id"
         },
-        "vungle" : {
-          "app_store_id" : "app_store_id",
-          "placement_reference_id" : "placement_reference_id"
+        "vungle": {
+          "app_store_id": "app_store_id",
+          "placement_reference_id": "placement_reference_id"
         }
       }
     }

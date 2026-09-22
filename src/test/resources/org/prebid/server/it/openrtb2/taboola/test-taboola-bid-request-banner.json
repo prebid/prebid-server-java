@@ -8,14 +8,14 @@
         "w": 300,
         "h": 250
       },
-      "tagid" : "tag-id",
+      "tagid": "tag-id",
       "bidfloor": 20,
       "ext": {
-        "tid" : "${json-unit.any-string}",
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "publisherId": "publisher-id",
           "tagid": "tag-id",
-          "bidfloor" : 20,
+          "bidfloor": 20,
           "publisherDomain": "http://domain.com"
         }
       }
@@ -25,12 +25,12 @@
     "tid": "${json-unit.any-string}"
   },
   "site": {
-    "id" : "publisher-id",
-    "name" : "publisher-id",
+    "id": "publisher-id",
+    "name": "publisher-id",
     "domain": "http://domain.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id" : "publisher-id"
+      "id": "publisher-id"
     },
     "ext": {
       "amp": 0

@@ -12,7 +12,10 @@
           "price": 0.01,
           "ext": {
             "format": "BANNER",
-            "curls": ["curl1", "curl2"]
+            "curls": [
+              "curl1",
+              "curl2"
+            ]
           }
         }
       ]

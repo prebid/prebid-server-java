@@ -17,6 +17,7 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
@@ -345,9 +346,9 @@ public class AmpRequestFactory {
 
     private static Integer gdprFromQueryStringParams(HttpRequestContext httpRequest) {
         final String gdprAppliesParam = httpRequest.getQueryParams().get(GDPR_APPLIES_PARAM);
-        if (StringUtils.equals(gdprAppliesParam, "true")) {
+        if (Strings.CS.equals(gdprAppliesParam, "true")) {
             return 1;
-        } else if (StringUtils.equals(gdprAppliesParam, "false")) {
+        } else if (Strings.CS.equals(gdprAppliesParam, "false")) {
             return 0;
         }
 

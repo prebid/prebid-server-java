@@ -86,7 +86,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
-        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
+        return ObjectUtils.getIfNull(modelGroup.getModelWeight(), 1);
     }
 
     @Override
@@ -356,7 +356,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final PriceFloorRules floors = ObjectUtils.defaultIfNull(
+        final PriceFloorRules floors = ObjectUtils.getIfNull(
                 effectiveFloors,
                 ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
 

@@ -39,8 +39,8 @@ public class GreenbidsInvocationResultCreator {
         final InvocationAction invocationAction = isExploration
                 ? InvocationAction.no_action
                 : allRejected
-                    ? InvocationAction.reject
-                    : InvocationAction.update;
+                  ? InvocationAction.reject
+                  : InvocationAction.update;
 
         final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExtForImps(
                 bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
@@ -49,7 +49,7 @@ public class GreenbidsInvocationResultCreator {
     }
 
     private static boolean isExploration(GreenbidsConfig greenbidsConfig, String greenbidsId) {
-        final double explorationRate = ObjectUtils.defaultIfNull(
+        final double explorationRate = ObjectUtils.getIfNull(
                 greenbidsConfig.getExplorationRate(),
                 DEFAULT_EXPLORATION_RATE);
         final int hashInt = Integer.parseInt(greenbidsId.substring(greenbidsId.length() - 4), 16);

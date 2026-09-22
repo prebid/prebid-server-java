@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -67,7 +68,7 @@ public class NativeryBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final String requestEndpointName = extractEndpointName(request);
-        final boolean isAmp = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
+        final boolean isAmp = Strings.CS.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
 
         final List<Imp> validImps = new ArrayList<>();
         String widgetId = null;

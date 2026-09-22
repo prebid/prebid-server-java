@@ -9,11 +9,12 @@ import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
-import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -161,7 +162,7 @@ public class ResponseBidValidator {
 
         final String seat = bid.getSeat();
         if (seat != null
-                && !StringUtils.equalsIgnoreCase(bidder, seat)
+                && !Strings.CI.equals(bidder, seat)
                 && !bidderAliases.isAllowedAlternateBidderCode(bidder, seat)) {
 
             final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
@@ -235,7 +236,7 @@ public class ResponseBidValidator {
         final BidValidationEnforcement accountBannerMaxSizeEnforcement =
                 validationConfig != null ? validationConfig.getBannerMaxSizeEnforcement() : null;
 
-        return ObjectUtils.defaultIfNull(accountBannerMaxSizeEnforcement, bannerMaxSizeEnforcement);
+        return ObjectUtils.getIfNull(accountBannerMaxSizeEnforcement, bannerMaxSizeEnforcement);
     }
 
     private static Format maxSizeForBanner(Imp imp) {
@@ -303,8 +304,8 @@ public class ResponseBidValidator {
     }
 
     private static boolean markupIsNotSecure(String adm) {
-        return StringUtils.containsAny(adm, INSECURE_MARKUP_MARKERS)
-                || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
+        return Strings.CS.containsAny(adm, INSECURE_MARKUP_MARKERS)
+                || !Strings.CS.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 
     private List<String> singleWarningOrValidationException(

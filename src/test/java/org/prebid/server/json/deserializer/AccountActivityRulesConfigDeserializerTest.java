@@ -48,7 +48,7 @@ public class AccountActivityRulesConfigDeserializerTest {
     public void deserializeShouldThrowExceptionOnWrongJsonToken() throws IOException {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_FALSE);
-        given(parser.getCurrentName()).willReturn("FIELD");
+        given(parser.currentName()).willReturn("FIELD");
         doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(

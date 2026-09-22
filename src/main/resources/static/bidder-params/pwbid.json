@@ -17,5 +17,7 @@
       "description": "A boolean to indicate 100% fill test placement request"
     }
   },
-  "required": ["siteId"]
+  "required": [
+    "siteId"
+  ]
 }

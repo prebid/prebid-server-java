@@ -459,7 +459,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 givenBidderResponse(
                         "magnite",
                         givenBidderBid(
-                                givenBid("1", null, "10", singletonList("cat1"), "videoCategory"),
+                                givenBid("1", "10", singletonList("cat1"), "videoCategory"),
                                 BidType.video,
                                 null,
                                 "videoCategory")));
@@ -474,7 +474,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(
-                Map.of(givenBid("1", null, "10", List.of("cat1"), "videoCategory"), "10.00_videoCategory_5s"));
+                Map.of(givenBid("1", "10", List.of("cat1"), "videoCategory"), "10.00_videoCategory_5s"));
     }
 
     @Test
@@ -484,7 +484,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 givenBidderResponse(
                         "magnite",
                         givenBidderBid(
-                                givenBid("1", null, "10", singletonList("cat1"), "videoCategory"),
+                                givenBid("1", "10", singletonList("cat1"), "videoCategory"),
                                 BidType.video,
                                 null,
                                 "videoCategory")));
@@ -499,7 +499,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(
-                Map.of(givenBid("1", null, "10", List.of("cat1"), "videoCategory"), "10.00_5s"));
+                Map.of(givenBid("1", "10", List.of("cat1"), "videoCategory"), "10.00_5s"));
     }
 
     @Test
@@ -1220,8 +1220,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
     }
 
-    private static Bid givenBid(String bidId, String impId, String price, List<String> cat, String videoCategory) {
-        return givenBid(bidId, impId, price, cat).toBuilder()
+    private static Bid givenBid(String bidId, String price, List<String> cat, String videoCategory) {
+        return givenBid(bidId, null, price, cat).toBuilder()
                 .ext(mapper.valueToTree(
                         ExtBidPrebid.builder()
                                 .video(ExtBidPrebidVideo.of(null, videoCategory))

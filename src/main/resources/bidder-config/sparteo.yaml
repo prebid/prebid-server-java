@@ -1,7 +1,7 @@
 adapters:
   sparteo:
     endpoint: https://bid.sparteo.com/s2s-auction
-    meta-info: 
+    meta-info:
       maintainer-email: prebid@sparteo.com
       app-media-types:
         - banner

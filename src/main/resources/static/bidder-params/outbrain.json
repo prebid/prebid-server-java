@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Outbrain Adapter Params",
   "description": "A schema which validates params accepted by the Outbrain adapter",
-
   "type": "object",
   "properties": {
     "publisher": {
@@ -18,7 +17,9 @@
           "type": "string"
         }
       },
-      "required": ["id"]
+      "required": [
+        "id"
+      ]
     },
     "tagid": {
       "type": "string"
@@ -36,5 +37,7 @@
       }
     }
   },
-  "required": ["publisher"]
+  "required": [
+    "publisher"
+  ]
 }

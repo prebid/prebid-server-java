@@ -45,15 +45,15 @@
       "sdk": {
         "renderers": [
           {
-            "name":"PrebidRenderer",
-            "version":"2.1.1",
+            "name": "PrebidRenderer",
+            "version": "2.1.1",
             "data": {
               "someData": "someData"
             }
           },
           {
-            "name":"SampleRenderer",
-            "version":"1.0.0",
+            "name": "SampleRenderer",
+            "version": "1.0.0",
             "url": "rendererUrl"
           }
         ]

@@ -6,9 +6,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 
-import static org.mockito.Mock.Strictness.LENIENT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class WURFLEngineUtilsTest {
@@ -31,7 +31,7 @@ public class WURFLEngineUtilsTest {
     @Test
     public void extractWURFLFileNameShouldHandleSimpleFileName() {
         // given
-        final String url = "http://example.com/wurfl.zip";
+        final String url = "https://example.com/wurfl.zip";
 
         // when
         final String result = WURFLEngineUtils.extractWURFLFileName(url);
