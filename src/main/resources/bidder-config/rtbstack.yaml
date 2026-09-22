@@ -1,6 +1,6 @@
 adapters:
   rtbstack:
-    endpoint: https://{{Region}}-adx-admixer.rtb-stack.com/pbs?ssp={{SspID}}&endpoint={{ZoneID}}&client={{PartnerId}}
+    endpoint: https://{Region}-adx-admixer.rtb-stack.com/pbs?ssp={SspID}&endpoint={ZoneID}&client={PartnerId}
     ortb-version: "2.6"
     modifying-vast-xml-allowed: false
     meta-info:

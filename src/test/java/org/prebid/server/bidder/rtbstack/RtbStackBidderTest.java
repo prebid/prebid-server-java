@@ -36,7 +36,7 @@ import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 public class RtbStackBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL =
-            "https://{{Region}}-test.endpoint.com/pbs?ssp={{SspID}}&endpoint={{ZoneID}}&client={{PartnerId}}";
+            "https://{Region}-test.endpoint.com/pbs?ssp={SspID}&endpoint={ZoneID}&client={PartnerId}";
     private static final String ROUTE_US =
             "https://testsite.us-adx-admixer.test-route.com/prebid?client=client-1&endpoint=309&ssp=145";
     private static final String RESOLVED_US = "https://us-test.endpoint.com/pbs?ssp=145&endpoint=309&client=client-1";
@@ -153,7 +153,7 @@ public class RtbStackBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://us-test.endpoint.com/pbs?ssp=145&endpoint=309&client=client+1");
+                .containsExactly("https://us-test.endpoint.com/pbs?ssp=145&endpoint=309&client=client%201");
     }
 
     @Test

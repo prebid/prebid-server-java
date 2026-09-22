@@ -8,11 +8,11 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -27,8 +27,9 @@ import org.prebid.server.proto.openrtb.ext.request.rtbstack.ExtImpRtbStack;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,19 +45,19 @@ public class RtbStackBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String REGION_MACRO = "{{Region}}";
-    private static final String SSP_ID_MACRO = "{{SspID}}";
-    private static final String ZONE_ID_MACRO = "{{ZoneID}}";
-    private static final String PARTNER_ID_MACRO = "{{PartnerId}}";
+    private static final String REGION_MACRO = "Region";
+    private static final String SSP_ID_MACRO = "SspID";
+    private static final String ZONE_ID_MACRO = "ZoneID";
+    private static final String PARTNER_ID_MACRO = "PartnerId";
     private static final String REGION_HOST_SUFFIX = "-adx-admixer";
     private static final Set<String> VALID_REGIONS = Set.of("us", "eu", "sg");
     private static final String CUSTOM_PARAMS_FIELD = "customParams";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public RtbStackBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -68,7 +69,7 @@ public class RtbStackBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpRtbStack extImp = parseImpExt(imp);
-                impsByRoute.computeIfAbsent(extImp.getRoute(), route -> new ArrayList<>())
+                impsByRoute.computeIfAbsent(extImp.getRoute(), _ -> new ArrayList<>())
                         .add(modifyImp(imp, extImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -129,15 +130,16 @@ public class RtbStackBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(String route) {
-        final URIBuilder routeUri;
+        final URI routeUri;
         try {
-            routeUri = new URIBuilder(route);
-        } catch (URISyntaxException e) {
+            routeUri = URI.create(route);
+        } catch (IllegalArgumentException e) {
             throw new PreBidException("invalid route URL: " + e.getMessage());
         }
 
         final String region = extractRegion(routeUri.getHost());
-        final List<NameValuePair> queryParams = routeUri.getQueryParams();
+        final Map<String, List<String>> queryParams = new QueryStringDecoder(route).parameters();
+
         final String client = firstQueryParam(queryParams, "client");
         final String endpoint = firstQueryParam(queryParams, "endpoint");
         final String ssp = firstQueryParam(queryParams, "ssp");
@@ -147,16 +149,17 @@ public class RtbStackBidder implements Bidder<BidRequest> {
         }
 
         return endpointUrl
-                .replace(REGION_MACRO, region)
-                .replace(SSP_ID_MACRO, HttpUtil.encodeUrl(ssp))
-                .replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(endpoint))
-                .replace(PARTNER_ID_MACRO, HttpUtil.encodeUrl(client));
+                .replaceMacro(REGION_MACRO, region)
+                .replaceMacro(SSP_ID_MACRO, ssp)
+                .replaceMacro(ZONE_ID_MACRO, endpoint)
+                .replaceMacro(PARTNER_ID_MACRO, client)
+                .expand();
     }
 
     private static String extractRegion(String hostname) {
         for (String hostPart : StringUtils.defaultString(hostname).split("\\.")) {
             if (hostPart.endsWith(REGION_HOST_SUFFIX)) {
-                final String region = StringUtils.removeEnd(hostPart, REGION_HOST_SUFFIX).toLowerCase();
+                final String region = Strings.CS.removeEnd(hostPart, REGION_HOST_SUFFIX).toLowerCase();
                 if (VALID_REGIONS.contains(region)) {
                     return region;
                 }
@@ -165,12 +168,9 @@ public class RtbStackBidder implements Bidder<BidRequest> {
         throw new PreBidException("unable to extract valid region from route URL hostname");
     }
 
-    private static String firstQueryParam(List<NameValuePair> queryParams, String name) {
-        return queryParams.stream()
-                .filter(param -> name.equals(param.getName()))
-                .map(NameValuePair::getValue)
-                .findFirst()
-                .orElse(null);
+    private static String firstQueryParam(Map<String, List<String>> queryParams, String name) {
+        final List<String> values = queryParams.get(name);
+        return !CollectionUtils.isEmpty(values) ? values.getFirst() : null;
     }
 
     @Override
