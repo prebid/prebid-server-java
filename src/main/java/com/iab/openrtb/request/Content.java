@@ -65,6 +65,16 @@ public class Content {
     String genre;
 
     /**
+     * Taxonomy used by genres. If omitted, Content Category Taxonomy 3.1 (9) is assumed.
+     */
+    Integer gtax;
+
+    /**
+     * Genre IDs from the taxonomy specified by gtax.
+     */
+    List<String> genres;
+
+    /**
      * Album to which the content belongs; typically for audio.
      */
     String album;
@@ -136,7 +146,7 @@ public class Content {
     List<String> kwarray;
 
     /**
-     * 0 = not live, 1 = content is live (e.g., stream, live blog).
+     * Indicates whether the broadcast is scheduled: 0 = on-demand, 1 = scheduled (linear viewing).
      */
     Integer livestream;
 
@@ -181,6 +191,16 @@ public class Content {
      * Details about the {@link Channel} (Section 3.2.24) the content is on.
      */
     Channel channel;
+
+    /**
+     * Indicates whether the event is happening in real time: 0 = replay, 1 = real time.
+     */
+    Integer realtime;
+
+    /**
+     * Indicates whether this is the first broadcast of the content: 0 = no, 1 = yes.
+     */
+    Integer firstbroadcast;
 
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.

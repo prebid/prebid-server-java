@@ -10,6 +10,7 @@ class Data {
 
     String id
     String name
+    List<String> cids
     List<Segment> segment
     ExtData ext
 

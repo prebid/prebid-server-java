@@ -81,7 +81,7 @@ public class Audio {
      * within a bid request share the same podid, this indicates that
      * those impression opportunities belong to the same audio ad pod.
      */
-    Integer podid;
+    String podid;
 
     /**
      * The sequence (position) of the audio ad pod within a
