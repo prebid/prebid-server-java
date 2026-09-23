@@ -95,66 +95,6 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnResultWithErrorWhenImpExtOmitted() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId1")
-                        .banner(Banner.builder().build())
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnResultWithErrorWhenImpExtMalformed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId1")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.createObjectNode())
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnResultWithErrorWhenImpExtOpenxEmpty() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId1")
-                        .video(Video.builder().build())
-                        .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, null)))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnResultWithErrorWhenImpExtOpenxMalformed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -375,10 +315,12 @@ public class OpenxBidderTest extends VertxTest {
                         Imp.builder()
                                 .id("badImp")
                                 .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                                 .build(),
                         Imp.builder()
                                 .id("anotherBadImp")
                                 .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                                 .build(),
                         Imp.builder()
                                 .id("goodImp")
@@ -396,10 +338,10 @@ public class OpenxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactly(
-                        BidderError.badInput("imp id=badImp: openx parameters section is missing"),
-                        BidderError.badInput("imp id=anotherBadImp: openx parameters section is missing"));
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp id=badImp: Cannot deserialize value of");
+        assertThat(result.getErrors().get(1).getMessage())
+                .startsWith("imp id=anotherBadImp: Cannot deserialize value of");
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
