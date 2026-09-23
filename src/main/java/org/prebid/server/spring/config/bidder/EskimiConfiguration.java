@@ -25,7 +25,7 @@ public class EskimiConfiguration {
 
     @Bean
     BidderDeps eskimiBidderDeps(BidderConfigurationProperties eskimiConfigurationProperties,
-                                  JacksonMapper mapper) {
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(eskimiConfigurationProperties)

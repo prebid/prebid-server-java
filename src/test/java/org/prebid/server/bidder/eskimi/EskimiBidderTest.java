@@ -99,8 +99,7 @@ public class EskimiBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(identity()),
-                givenImp(imp -> imp.id("456").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))))
-        );
+                givenImp(imp -> imp.id("456").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);

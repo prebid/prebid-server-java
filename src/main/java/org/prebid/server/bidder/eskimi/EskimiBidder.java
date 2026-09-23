@@ -2,11 +2,16 @@ package org.prebid.server.bidder.eskimi;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -14,29 +19,33 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.eskimi.ExtImpEskimi;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class EskimiBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpEskimi>> ESKIMI_EXT_TYPE_REFERENCE = new TypeReference<>() {
-    };
+    private static final TypeReference<ExtPrebid<?, ExtImpEskimi>> ESKIMI_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,8 +59,8 @@ public class EskimiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpEskimi firstExt;
         try {
-            firstExt = parseImpExt(request.getImp().getFirst());
             validateRequest(request);
+            firstExt = parseImpExt(request.getImp().getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -73,6 +82,12 @@ public class EskimiBidder implements Bidder<BidRequest> {
                 Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)), errors);
     }
 
+    private static void validateRequest(BidRequest request) {
+        if (request.getSite() == null && request.getApp() == null) {
+            throw new PreBidException("request must contain either site or app");
+        }
+    }
+
     private ExtImpEskimi parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ESKIMI_EXT_TYPE_REFERENCE).getBidder();
@@ -81,59 +96,80 @@ public class EskimiBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void validateRequest(BidRequest request) {
-        if (ObjectUtils.allNull(request.getSite(), request.getApp())) {
-            throw new PreBidException("request must contain either site or app");
-        }
-    }
-
     private Imp modifyImp(Imp imp) {
         final ExtImpEskimi extImp = parseImpExt(imp);
-        final List<Integer> battr = extImp.getBattr();
-        final Imp.ImpBuilder builder = imp.toBuilder();
+        final List<Integer> bAttr = extImp.getBattr();
+        final Price price = resolvePrice(imp, extImp);
 
-        if (!CollectionUtils.isEmpty(battr)) {
-            if (Objects.nonNull(imp.getBanner()) && CollectionUtils.isEmpty(imp.getBanner().getBattr())) {
-                builder.banner(imp.getBanner().toBuilder().battr(battr).build());
-            }
-            if (Objects.nonNull(imp.getVideo()) && CollectionUtils.isEmpty(imp.getVideo().getBattr())) {
-                builder.video(imp.getVideo().toBuilder().battr(battr).build());
-            }
-        }
-        if (!BidderUtil.isValidPrice(imp.getBidfloor()) && BidderUtil.isValidPrice(extImp.getBidFloor())) {
-            builder.bidfloor(extImp.getBidFloor());
-            if (StringUtils.isNotBlank(extImp.getBidFloorCur())) {
-                builder.bidfloorcur(extImp.getBidFloorCur());
-            }
-        }
-        return builder
+        return imp.toBuilder()
+                .banner(imp.getBanner() != null ? modifyBanner(imp.getBanner(), bAttr) : null)
+                .video(imp.getVideo() != null ? modifyVideo(imp.getVideo(), bAttr) : null)
+                .bidfloor(price.getValue())
+                .bidfloorcur(price.getCurrency())
                 .secure(ObjectUtils.getIfNull(imp.getSecure(), 1))
                 .build();
     }
 
-    private BidRequest modifyBidRequest(BidRequest request, List<Imp> validImps, ExtImpEskimi ext) {
-        final BidRequest.BidRequestBuilder builder = request.toBuilder();
+    private static Banner modifyBanner(Banner banner, List<Integer> bAttr) {
+        return CollectionUtils.isNotEmpty(bAttr) && CollectionUtils.isEmpty(banner.getBattr())
+                ? banner.toBuilder().battr(bAttr).build()
+                : banner;
+    }
 
-        if (Objects.nonNull(request.getSite())) {
-            final ExtSite siteExt = ObjectUtils.getIfNull(request.getSite().getExt(), ExtSite.of(null, null));
-            siteExt.addProperty("placementId", IntNode.valueOf(ext.getPlacementId()));
-            builder.site(request.getSite().toBuilder().ext(siteExt).build());
-        } else {
-            final ExtApp appExt = ObjectUtils.getIfNull(request.getApp().getExt(), ExtApp.of(null, null));
-            appExt.addProperty("placementId", IntNode.valueOf(ext.getPlacementId()));
-            builder.app(request.getApp().toBuilder().ext(appExt).build());
-        }
+    private static Video modifyVideo(Video video, List<Integer> bAttr) {
+        return CollectionUtils.isNotEmpty(bAttr) && CollectionUtils.isEmpty(video.getBattr())
+                ? video.toBuilder().battr(bAttr).build()
+                : video;
+    }
 
-        return builder
+    private static Price resolvePrice(Imp imp, ExtImpEskimi extImp) {
+        final BigDecimal originalPrice = imp.getBidfloor();
+        final String originalCurrency = imp.getBidfloorcur();
+
+        final BigDecimal newPrice = extImp.getBidFloor();
+
+        return !BidderUtil.isValidPrice(originalPrice) && BidderUtil.isValidPrice(newPrice)
+                ? Price.of(StringUtils.defaultIfBlank(extImp.getBidFloorCur(), originalCurrency), newPrice)
+                : Price.of(originalCurrency, originalPrice);
+    }
+
+    private static BidRequest modifyBidRequest(BidRequest request, List<Imp> validImps, ExtImpEskimi ext) {
+        final Site modifiedSite = request.getSite() != null
+                ? modifySite(request.getSite(), ext.getPlacementId())
+                : null;
+        final App modifiedApp = modifiedSite == null
+                ? modifyApp(request.getApp(), ext.getPlacementId())
+                : request.getApp();
+
+        return request.toBuilder()
                 .imp(validImps)
+                .site(modifiedSite)
+                .app(modifiedApp)
                 .bcat(CollectionUtils.isEmpty(request.getBcat()) ? ext.getBcat() : request.getBcat())
                 .badv(CollectionUtils.isEmpty(request.getBadv()) ? ext.getBadv() : request.getBadv())
                 .bapp(CollectionUtils.isEmpty(request.getBapp()) ? ext.getBapp() : request.getBapp())
                 .build();
     }
 
+    private static Site modifySite(Site site, Integer placementId) {
+        return site.toBuilder()
+                .ext(addPlacementId(ObjectUtils.getIfNull(site.getExt(), () -> ExtSite.of(null, null)), placementId))
+                .build();
+    }
+
+    private static App modifyApp(App app, Integer placementId) {
+        return app.toBuilder()
+                .ext(addPlacementId(ObjectUtils.getIfNull(app.getExt(), () -> ExtApp.of(null, null)), placementId))
+                .build();
+    }
+
+    private static <T extends FlexibleExtension> T addPlacementId(T ext, Integer placementId) {
+        ext.addProperty("placementId", IntNode.valueOf(placementId));
+        return ext;
+    }
+
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
@@ -150,12 +186,6 @@ public class EskimiBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse, errors);
-    }
-
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest,
-                                                    BidResponse bidResponse,
-                                                    List<BidderError> errors) {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -163,19 +193,18 @@ public class EskimiBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> createBidderBid(bid, bidRequest, bidResponse.getCur(), errors))
+                .map(bid -> createBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
     private static BidderBid createBidderBid(Bid bid,
-                                             BidRequest bidRequest,
+                                             List<Imp> imps,
                                              String currency,
                                              List<BidderError> errors) {
 
         try {
-            final BidType bidType = getBidType(bid, bidRequest.getImp());
-            return BidderBid.of(bid, bidType, currency);
+            return BidderBid.of(bid, getBidType(bid, imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -183,41 +212,47 @@ public class EskimiBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
-        if (!BidderUtil.isNullOrZero(bid.getMtype())) {
-            return switch (bid.getMtype()) {
-                case 1 -> BidType.banner;
-                case 2 -> BidType.video;
-                default ->
-                        throw new PreBidException("unsupported bid.mtype %d for impression %s (banner and video only)"
-                                .formatted(bid.getMtype(), bid.getImpid()));
-            };
-        }
-
-        final Imp imp = imps.stream()
-                .filter(i -> i.getId().equals(bid.getImpid()))
-                .findFirst()
-                .orElseThrow(() -> new PreBidException(
-                        "unable to resolve media type for impression %s".formatted(bid.getImpid())));
-
-        return resolveBidTypeFromImp(imp);
+        return Optional.ofNullable(bidTypeFromMtype(bid))
+                .orElseGet(() -> bidTypeFromImp(bid.getImpid(), imps));
     }
 
-    private static BidType resolveBidTypeFromImp(Imp imp) {
-        final boolean hasBanner = Objects.nonNull(imp.getBanner());
-        final boolean hasVideo = Objects.nonNull(imp.getVideo());
+    private static BidType bidTypeFromMtype(Bid bid) {
+        return switch (bid.getMtype()) {
+            case null -> null;
+            case 0 -> null;
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            default -> throw new PreBidException(
+                    "unsupported bid.mtype %d for impression %s (banner and video only)"
+                            .formatted(bid.getMtype(), bid.getImpid()));
+        };
+    }
 
-        if (hasBanner && hasVideo) {
+    private static BidType bidTypeFromImp(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (!imp.getId().equals(impId)) {
+                continue;
+            }
+
+            final boolean hasBanner = imp.getBanner() != null;
+            final boolean hasVideo = imp.getVideo() != null;
+
+            if (hasBanner && hasVideo) {
+                throw new PreBidException(
+                        "bid for multi-format imp %s requires bid.mtype to disambiguate".formatted(impId));
+            }
+            if (hasBanner) {
+                return BidType.banner;
+            }
+            if (hasVideo) {
+                return BidType.video;
+            }
+
             throw new PreBidException(
-                    "bid for multi-format imp %s requires bid.mtype to disambiguate".formatted(imp.getId()));
-        }
-        if (hasBanner) {
-            return BidType.banner;
-        }
-        if (hasVideo) {
-            return BidType.video;
+                    "unsupported media type for impression %s (banner and video only)".formatted(impId));
         }
 
         throw new PreBidException(
-                "unsupported media type for impression %s (banner and video only)".formatted(imp.getId()));
+                "unable to resolve media type for impression %s".formatted(impId));
     }
 }
