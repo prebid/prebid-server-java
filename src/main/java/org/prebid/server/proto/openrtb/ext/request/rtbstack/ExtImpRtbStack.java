@@ -8,7 +8,6 @@ import java.util.Map;
 @Value(staticConstructor = "of")
 public class ExtImpRtbStack {
 
-    @JsonProperty("route")
     String route;
 
     @JsonProperty("tagId")
