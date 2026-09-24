@@ -1,0 +1,40 @@
+package org.prebid.server.hooks.modules.id5.userid.v1.config;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.DecimalMax;
+
+@Data
+@NoArgsConstructor
+@ConfigurationProperties(prefix = "hooks." + Id5IdModule.CODE)
+@Validated
+public class Id5IdModuleProperties {
+
+    @Min(1)
+    private Long partner;
+
+    @NotBlank
+    private String providerName;
+
+    private String inserterName;
+
+    @NotBlank
+    private String fetchEndpoint;
+
+    @PositiveOrZero
+    @DecimalMax(value = "1.0")
+    private double fetchSamplingRate;
+
+    private ValuesFilter<String> bidderFilter;
+
+    private ValuesFilter<String> accountFilter;
+
+    private ValuesFilter<String> countryFilter;
+}
