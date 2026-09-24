@@ -178,7 +178,7 @@ public class OpenxBidderTest extends VertxTest {
                         "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
 
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .containsExactly(
                         BidRequest.builder()
                                 .id("bidRequestId")
@@ -274,7 +274,7 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .containsExactly(
                         BidRequest.builder()
                                 .id("bidRequestId")
@@ -344,7 +344,7 @@ public class OpenxBidderTest extends VertxTest {
                 .startsWith("imp id=anotherBadImp: Cannot deserialize value of");
 
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .containsExactly(
                         BidRequest.builder()
                                 .id("bidRequestId")
@@ -383,7 +383,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .containsExactly(Imp.builder()
                         .id("impId1")
@@ -415,7 +415,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .containsExactly(Imp.builder()
                         .id("impId1")
