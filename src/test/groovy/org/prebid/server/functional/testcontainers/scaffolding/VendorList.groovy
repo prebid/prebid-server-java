@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED
+import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 import static org.apache.http.HttpStatus.SC_OK
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V2
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
@@ -82,5 +83,17 @@ class VendorList extends NetworkScaffolding {
                             .willReturn(response)
             )
         }
+    }
+
+    void setErrorResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
+                          Integer status = SC_INTERNAL_SERVER_ERROR) {
+
+        def preparedEndpoint = endpoint.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString())
+
+        wireMockClient.register(any(urlMatching(preparedEndpoint))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse()
+                        .withStatus(status))
+        )
     }
 }

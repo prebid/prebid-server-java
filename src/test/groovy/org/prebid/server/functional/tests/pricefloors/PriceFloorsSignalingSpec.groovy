@@ -1148,6 +1148,6 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     }
 
     private static BigDecimal getAdjustedValue(BigDecimal floorValue, BigDecimal bidAdjustment) {
-        floorValue.divide(bidAdjustment, FLOOR_VALUE_PRECISION, RoundingMode.HALF_UP)
+        floorValue.divide(bidAdjustment, FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
     }
 }
