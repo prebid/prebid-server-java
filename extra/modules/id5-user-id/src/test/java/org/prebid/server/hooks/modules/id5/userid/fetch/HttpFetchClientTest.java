@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Publisher;
@@ -15,9 +14,6 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.prebid.server.activity.Activity;
@@ -58,8 +54,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,7 +65,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class HttpFetchClientTest {
+public class HttpFetchClientTest {
 
     private static final String URL = "http://example.test/fetch";
 
@@ -84,7 +78,7 @@ class HttpFetchClientTest {
     private ActivityInfrastructure activityInfrastructure;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         mapper = new JacksonMapper(new ObjectMapper());
         httpClient = Mockito.mock(HttpClient.class);
         versionInfo = Mockito.mock(VersionInfo.class);
@@ -102,7 +96,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldReturnEmptyOnNon200Response() {
+    public void shouldReturnEmptyOnNon200Response() {
         // given
         final long partnerId = 123L;
         final String expectedUrl = URL + "/" + partnerId + ".json";
@@ -126,7 +120,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldReturnEmptyOnException() {
+    public void shouldReturnEmptyOnException() {
         // given
         final long partnerId = 123L;
         final String expectedUrl = URL + "/" + partnerId + ".json";
@@ -151,7 +145,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldParseSuccessfulResponse() {
+    public void shouldParseSuccessfulResponse() {
         // given
         final Eid eid = Eid.builder()
                 .source("id5-sync.com")
@@ -181,7 +175,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldBuildRequestWithExpectedFieldsAndUseTimeout() {
+    public void shouldBuildRequestWithExpectedFieldsAndUseTimeout() {
         // given
         final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
@@ -264,7 +258,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldSetTraceWhenDebugEnabled() {
+    public void shouldSetTraceWhenDebugEnabled() {
         // given
         final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         final Timeout timeout = mock(Timeout.class);
@@ -289,7 +283,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldHandleEmptyGppSidList() {
+    public void shouldHandleEmptyGppSidList() {
         // given
         final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         when(httpClient.post(anyString(), any(MultiMap.class), bodyCaptor.capture(), anyLong()))
@@ -321,65 +315,37 @@ class HttpFetchClientTest {
         assertThat(json.get("gpp_sid")).isNull();
     }
 
-    public static Stream<Arguments> publisherSources() {
-
-        return Stream.of(
-                Arguments.of("site",
-                        (BiConsumer<BidRequestBuilder, Publisher>) (rq, p) ->
-                                rq.site(Site.builder()
-                                        .publisher(p)
-                                        .build())),
-                Arguments.of("app",
-                        (BiConsumer<BidRequestBuilder, Publisher>) (rq1, p1) ->
-                                rq1.app(App.builder()
-                                        .publisher(p1)
-                                        .build()))
-        );
-    }
-
-    @MethodSource("publisherSources")
-    @ParameterizedTest(name = "from {0}")
-    @SuppressWarnings("unchecked")
-    void shouldIncludePublisher(String ignore, BiConsumer<BidRequestBuilder, Publisher> publisherSetter) {
+    @Test
+    public void shouldIncludePublisherFromSite() {
         // given
-        final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
-        when(httpClient.post(anyString(), any(MultiMap.class), bodyCaptor.capture(), anyLong()))
-                .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
-                        MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
-
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
-                fixedClock, versionInfo, props, userFpdActivityMask);
-
-        final BidRequestBuilder bidRequestBuilder = BidRequest.builder();
-        publisherSetter.accept(bidRequestBuilder, Publisher.builder()
-                .id("pub-123")
-                .domain("pub.domain")
-                .name("Test Publisher")
-                .build());
-        final BidRequest bidRequest = bidRequestBuilder.build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-
-        final AuctionInvocationContext invocation = auctionInvocationContext(
-                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext("acc-1"), false);
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(testPublisher()).build())
+                .build();
 
         // when
-        client.fetch(999L, payload, invocation).result();
+        final Map<String, Object> json = fetchAndCaptureBody(bidRequest);
 
         // then
-        final Map<String, Object> json = mapper.decodeValue(bodyCaptor.getValue(), new TypeReference<>() {
-        });
-        final Map<String, Object> metadata = (Map<String, Object>) json.get("providerMetadata");
+        assertPublisherIncluded(json);
+    }
 
-        assertThat(metadata.get("publisher")).isNotNull();
-        final Map<String, Object> publisher = (Map<String, Object>) metadata.get("publisher");
-        assertThat(publisher.get("id")).isEqualTo("pub-123");
-        assertThat(publisher.get("name")).isEqualTo("Test Publisher");
-        assertThat(publisher.get("domain")).isEqualTo("pub.domain");
+    @Test
+    public void shouldIncludePublisherFromApp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().publisher(testPublisher()).build())
+                .build();
+
+        // when
+        final Map<String, Object> json = fetchAndCaptureBody(bidRequest);
+
+        // then
+        assertPublisherIncluded(json);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void shouldIncludeAllProviderMetadataFieldsWhenAllPresent() {
+    public void shouldIncludeAllProviderMetadataFieldsWhenAllPresent() {
         // given
         final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         when(httpClient.post(anyString(), any(MultiMap.class), bodyCaptor.capture(), anyLong()))
@@ -437,7 +403,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldUseMaskedPersonalDataWhenDisallowed() {
+    public void shouldUseMaskedPersonalDataWhenDisallowed() {
         // given
         final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         when(httpClient.post(anyString(), any(MultiMap.class), bodyCaptor.capture(), anyLong()))
@@ -488,7 +454,7 @@ class HttpFetchClientTest {
     }
 
     @Test
-    void shouldMaskUserAccordingToActivityInfra() {
+    public void shouldMaskUserAccordingToActivityInfra() {
         // given
         when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
@@ -533,6 +499,41 @@ class HttpFetchClientTest {
                 InvocationContextImpl.of(timeout, null,
                         org.prebid.server.model.Endpoint.openrtb2_auction),
                 contextWithActivity, debugEnabled, null, null);
+    }
+
+    private Map<String, Object> fetchAndCaptureBody(BidRequest bidRequest) {
+        final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        when(httpClient.post(anyString(), any(MultiMap.class), bodyCaptor.capture(), anyLong()))
+                .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
+                        MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
+
+        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
+                fixedClock, versionInfo, props, userFpdActivityMask);
+        final AuctionInvocationContext invocation = auctionInvocationContext(
+                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext("acc-1"), false);
+
+        client.fetch(999L, AuctionRequestPayloadImpl.of(bidRequest), invocation).result();
+
+        return mapper.decodeValue(bodyCaptor.getValue(), new TypeReference<>() {
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertPublisherIncluded(Map<String, Object> json) {
+        final Map<String, Object> metadata = (Map<String, Object>) json.get("providerMetadata");
+        assertThat(metadata.get("publisher")).isNotNull();
+        final Map<String, Object> publisher = (Map<String, Object>) metadata.get("publisher");
+        assertThat(publisher.get("id")).isEqualTo("pub-123");
+        assertThat(publisher.get("name")).isEqualTo("Test Publisher");
+        assertThat(publisher.get("domain")).isEqualTo("pub.domain");
+    }
+
+    private static Publisher testPublisher() {
+        return Publisher.builder()
+                .id("pub-123")
+                .domain("pub.domain")
+                .name("Test Publisher")
+                .build();
     }
 
 }

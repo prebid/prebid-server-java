@@ -23,10 +23,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
-class CountryFetchFilterTest {
+public class CountryFetchFilterTest {
 
     @Test
-    void shouldUseDeviceGeoCountry() {
+    public void shouldUseDeviceGeoCountry() {
         final ValuesFilter<String> vf = Mockito.mock(ValuesFilter.class);
         when(vf.isValueAllowed("US")).thenReturn(true);
         final CountryFetchFilter filter = new CountryFetchFilter(vf);
@@ -52,7 +52,7 @@ class CountryFetchFilterTest {
     }
 
     @Test
-    void shouldRejectWhenCountryMissing() {
+    public void shouldRejectWhenCountryMissing() {
         final ValuesFilter<String> vf = Mockito.mock(ValuesFilter.class);
         final CountryFetchFilter filter = new CountryFetchFilter(vf);
 
@@ -76,7 +76,7 @@ class CountryFetchFilterTest {
     }
 
     @Test
-    void shouldRejectWhenCountryNotAllowed() {
+    public void shouldRejectWhenCountryNotAllowed() {
         final ValuesFilter<String> vf = Mockito.mock(ValuesFilter.class);
         when(vf.isValueAllowed("US")).thenReturn(false);
         final CountryFetchFilter filter = new CountryFetchFilter(vf);

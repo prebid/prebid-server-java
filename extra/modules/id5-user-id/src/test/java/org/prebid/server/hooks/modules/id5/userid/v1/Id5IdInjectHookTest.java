@@ -6,9 +6,6 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.execution.timeout.Timeout;
@@ -31,27 +28,14 @@ import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
-class Id5IdInjectHookTest {
-
-    private BidderInvocationContextImpl bidderCtxWithEmptyIds() {
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                // provide module context with empty Ids future to ensure fetch path would continue if not filtered
-                new Id5IdModuleContext(Future.succeededFuture(Id5UserId.empty())));
-        return BidderInvocationContextImpl.of(auctionCtx, "appnexus");
-    }
+public class Id5IdInjectHookTest {
 
     @Test
-    void shouldSkipWhenId5EidAlreadyPresent() {
+    public void shouldSkipWhenId5EidAlreadyPresent() {
         // given
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
@@ -63,19 +47,13 @@ class Id5IdInjectHookTest {
                 .build();
         final BidRequest bidRequest = BidRequest.builder().user(userWithId5).build();
 
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final Id5IdModuleContext expectedContext = new Id5IdModuleContext(Future.succeededFuture(Id5UserId.empty()));
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                expectedContext);
-        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "appnexus");
+        final BidderInvocationContext bidderCtx = bidderCtx(expectedContext);
 
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                bidderCtx).result();
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx)
+                .result();
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
@@ -84,25 +62,19 @@ class Id5IdInjectHookTest {
     }
 
     @Test
-    void shouldSkipWhenFetcherReturnsEmpty() {
+    public void shouldSkipWhenFetcherReturnsEmpty() {
         // given
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().build()).build();
 
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final Id5IdModuleContext expectedContext = new Id5IdModuleContext(Future.succeededFuture(Id5UserId.empty()));
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                expectedContext);
-        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "appnexus");
+        final BidderInvocationContext bidderCtx = bidderCtx(expectedContext);
 
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                bidderCtx).result();
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx)
+                .result();
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
@@ -111,32 +83,19 @@ class Id5IdInjectHookTest {
     }
 
     @Test
-    void shouldInjectEidsWhenFetcherReturnsIds() {
+    public void shouldInjectEidsWhenFetcherReturnsIds() {
         // given
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().eids(List.of()).build()).build();
 
-        final Id5UserId id5 = new Id5UserId(List.of(
-                Eid.builder()
-                        .source("id5-sync.com")
-                        .uids(List.of(Uid.builder().id("id5-123").build()))
-                        .build()));
-
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final Id5IdModuleContext expectedContext = new Id5IdModuleContext(Future.succeededFuture(id5));
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                expectedContext);
-        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "appnexus");
+        final Id5IdModuleContext expectedContext = new Id5IdModuleContext(Future.succeededFuture(singleId5()));
+        final BidderInvocationContext bidderCtx = bidderCtx(expectedContext);
 
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                        bidderCtx)
-                .toCompletionStage().toCompletableFuture().join();
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx)
+                .result();
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
@@ -150,89 +109,63 @@ class Id5IdInjectHookTest {
         assertThat(eid.getInserter()).isEqualTo("inserterX");
     }
 
-    static Stream<Arguments> mergeEidsScenarios() {
-        final Eid existingEid = Eid.builder()
-                .source("other-sync.com")
-                .uids(List.of(Uid.builder().id("other-123").build()))
-                .build();
-        return Stream.of(
-                Arguments.of("null user",
-                        null,
-                        List.of("id5-sync.com")),
-                Arguments.of("null user eids",
-                        User.builder().build(),
-                        List.of("id5-sync.com")),
-                Arguments.of("existing non-id5 eids",
-                        User.builder().eids(List.of(existingEid)).build(),
-                        List.of("other-sync.com", "id5-sync.com"))
-        );
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("mergeEidsScenarios")
-    void shouldInjectAndMergeEids(String ignore, User user, List<String> expectedSources) {
-        // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook(null, List.of());
-
-        final BidRequest bidRequest = BidRequest.builder().user(user).build();
-
-        final Id5UserId id5 = new Id5UserId(List.of(
-                Eid.builder()
-                        .source("id5-sync.com")
-                        .uids(List.of(Uid.builder().id("id5-123").build()))
-                        .build()));
-
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                new Id5IdModuleContext(Future.succeededFuture(id5)));
-        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "bidder");
-
+    @Test
+    public void shouldInjectEidsWhenUserIsNull() {
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                        bidderCtx)
-                .toCompletionStage().toCompletableFuture().join();
+        final List<String> sources = injectedEidSources(null);
 
         // then
-        final BidderRequestPayload updated = result.payloadUpdate().apply(BidderRequestPayloadImpl.of(bidRequest));
-        assertThat(updated.bidRequest().getUser().getEids())
-                .extracting(Eid::getSource)
-                .containsExactlyInAnyOrderElementsOf(expectedSources);
+        assertThat(sources).containsExactlyInAnyOrder("id5-sync.com");
     }
 
     @Test
-    void shouldReturnNoActionWhenNoModuleContextPresent() {
+    public void shouldInjectEidsWhenUserEidsAreNull() {
+        // when
+        final List<String> sources = injectedEidSources(User.builder().build());
+
+        // then
+        assertThat(sources).containsExactlyInAnyOrder("id5-sync.com");
+    }
+
+    @Test
+    public void shouldMergeEidsWithExistingNonId5Eids() {
+        // given
+        final User user = User.builder()
+                .eids(List.of(Eid.builder()
+                        .source("other-sync.com")
+                        .uids(List.of(Uid.builder().id("other-123").build()))
+                        .build()))
+                .build();
+
+        // when
+        final List<String> sources = injectedEidSources(user);
+
+        // then
+        assertThat(sources).containsExactlyInAnyOrder("other-sync.com", "id5-sync.com");
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenNoModuleContextPresent() {
         // given
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().build()).build();
-
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                null // no Id5IdModuleContext provided
-        );
-        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "appnexus");
+        final BidderInvocationContext bidderCtx = bidderCtx(null);
 
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                bidderCtx).result();
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx)
+                .result();
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(result.payloadUpdate()).isNull();
-        assertThat(result.moduleContext()).isNull(); // nothing to propagate
+        assertThat(result.moduleContext()).isNull();
     }
 
     @Test
-    void shouldReturnNoInvocationWhenInjectFilterRejectsSingleFilter() {
+    public void shouldReturnNoInvocationWhenInjectFilterRejectsSingleFilter() {
         // given
         final InjectFilter filter = Mockito.mock(InjectFilter.class);
         Mockito.when(filter.shouldInvoke(any(), any())).thenReturn(FilterResult.rejected("reject-by-filter"));
@@ -240,24 +173,25 @@ class Id5IdInjectHookTest {
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of(filter));
 
         final BidRequest bidRequest = BidRequest.builder().build();
-        final BidderInvocationContext bidderCtx = bidderCtxWithEmptyIds();
+        final BidderInvocationContext bidderCtx = bidderCtx(new Id5IdModuleContext(
+                Future.succeededFuture(Id5UserId.empty())));
 
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                bidderCtx).result();
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx)
+                .result();
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_invocation);
         assertThat(result.payloadUpdate()).isNull();
         assertThat(result.debugMessages()).anyMatch(m -> m.contains("reject-by-filter"));
-        assertThat(result.moduleContext()).isNotNull();
         assertThat(result.moduleContext()).isInstanceOf(Id5IdModuleContext.class);
         assertThat(result.moduleContext()).isEqualTo(bidderCtx.moduleContext());
     }
 
     @Test
-    void shouldReturnNoInvocationWhenAnyInjectFilterRejectsMultipleFilters() {
+    public void shouldReturnNoInvocationWhenAnyInjectFilterRejectsMultipleFilters() {
         // given
         final InjectFilter accept1 = Mockito.mock(InjectFilter.class);
         final InjectFilter reject = Mockito.mock(InjectFilter.class);
@@ -269,19 +203,51 @@ class Id5IdInjectHookTest {
         final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of(accept1, reject, accept2));
 
         final BidRequest bidRequest = BidRequest.builder().build();
-        final BidderInvocationContext bidderCtx = bidderCtxWithEmptyIds();
+        final BidderInvocationContext bidderCtx = bidderCtx(new Id5IdModuleContext(
+                Future.succeededFuture(Id5UserId.empty())));
 
         // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                bidderCtx).result();
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx)
+                .result();
 
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_invocation);
         assertThat(result.payloadUpdate()).isNull();
         assertThat(result.debugMessages()).anyMatch(m -> m.contains("block-by-second"));
-        assertThat(result.moduleContext()).isNotNull();
         assertThat(result.moduleContext()).isInstanceOf(Id5IdModuleContext.class);
         assertThat(result.moduleContext()).isEqualTo(bidderCtx.moduleContext());
+    }
+
+    private static List<String> injectedEidSources(User user) {
+        final Id5IdInjectHook hook = new Id5IdInjectHook(null, List.of());
+        final BidRequest bidRequest = BidRequest.builder().user(user).build();
+
+        final InvocationResult<BidderRequestPayload> result = hook
+                .call(BidderRequestPayloadImpl.of(bidRequest), bidderCtx(
+                        new Id5IdModuleContext(Future.succeededFuture(singleId5()))))
+                .result();
+
+        final BidderRequestPayload updated = result.payloadUpdate().apply(BidderRequestPayloadImpl.of(bidRequest));
+        return updated.bidRequest().getUser().getEids().stream().map(Eid::getSource).toList();
+    }
+
+    private static Id5UserId singleId5() {
+        return new Id5UserId(List.of(Eid.builder()
+                .source("id5-sync.com")
+                .uids(List.of(Uid.builder().id("id5-123").build()))
+                .build()));
+    }
+
+    private static BidderInvocationContext bidderCtx(Id5IdModuleContext moduleContext) {
+        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
+        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
+                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
+                false,
+                null,
+                moduleContext);
+        return BidderInvocationContextImpl.of(auctionCtx, "bidder");
     }
 }

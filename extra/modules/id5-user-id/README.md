@@ -346,60 +346,6 @@ logging:
 
 Debug logs will show when IDs are fetched, injected, or skipped (due to filters, existing IDs, or timeouts).
 
-## Local End-to-End Testing
-
-The repository includes complete sample configurations for local testing with WireMock mocks. This allows you to test the full ID5 module flow without connecting to the real ID5 API.
-
-### Prerequisites
-
-- Java 17+
-- Maven 3.8+
-- Docker Desktop (for WireMock)
-
-### Quick Start
-
-1. **Start WireMock**:
-   ```bash
-   cd sample/wiremock
-   docker compose -f docker-compose.wiremock.yml up -d
-   ```
-
-2. **Build and run PBS with ID5 module**:
-   From the project root directory:
-   ```bash
-   cd extra
-   mvn clean package -pl bundle -am -DskipTests
-   cd ..
-   java -jar extra/bundle/target/prebid-server-bundle.jar --spring.config.additional-location=sample/configs/prebid-config-with-id5.yaml
-   ```
-
-3. **Send test request**:
-   ```bash
-   curl -X POST http://localhost:8080/openrtb2/auction \
-     -H "Content-Type: application/json" \
-     -d @sample/requests/localdev-test-request.http
-   ```
-
-4. **Verify**: Check logs for `id5-user-id-fetch: id5id fetched` and `id5-user-id-inject: updated user with id5 eids`
-
-### Configuration Files Reference
-
-| File | Purpose |
-|------|---------|
-| `sample/configs/prebid-config-with-id5.yaml` | Main PBS config with ID5 module enabled |
-| `sample/configs/sample-app-settings-id5.yaml` | Account settings with hooks execution plan |
-| `sample/wiremock/mappings/id5-fetch.json` | WireMock mapping for ID5 API |
-| `sample/wiremock/__files/id5-fetch-response.json` | Mock ID5 API response |
-| `sample/requests/localdev-test-request.http` | Sample auction request |
-
-### Testing Different Scenarios
-
-Test various behaviors by modifying the configuration or WireMock mappings:
-- **Control test**: Change account ID to one without hooks configured - verify no EIDs added
-- **Timeout behavior**: Add `fixedDelayMilliseconds` to WireMock response
-- **Error handling**: Change WireMock to return HTTP 503
-- **Filter testing**: Add bidder/account/country filters to configuration
-
 ## Running Tests
 
 All commands below are intended to be executed from the **project root** (`prebid-server-java/`).

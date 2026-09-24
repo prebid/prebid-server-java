@@ -13,13 +13,4 @@
 
     <name>id5-user-id</name>
     <description>ID5 User ID</description>
-
-    <dependencies>
-        <!--   TEST  -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 </project>

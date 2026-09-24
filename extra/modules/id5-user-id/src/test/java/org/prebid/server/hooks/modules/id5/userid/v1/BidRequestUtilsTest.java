@@ -10,10 +10,10 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class BidRequestUtilsTest {
+public class BidRequestUtilsTest {
 
     @Test
-    void shouldReturnFalseWhenUserIsNull() {
+    public void shouldReturnFalseWhenUserIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -22,7 +22,7 @@ class BidRequestUtilsTest {
     }
 
     @Test
-    void shouldReturnFalseWhenEidsIsNull() {
+    public void shouldReturnFalseWhenEidsIsNull() {
         // given
         final User user = User.builder().build(); // eids null
         final BidRequest bidRequest = BidRequest.builder().user(user).build();
@@ -32,7 +32,7 @@ class BidRequestUtilsTest {
     }
 
     @Test
-    void shouldReturnFalseWhenOnlyOtherSourcesPresent() {
+    public void shouldReturnFalseWhenOnlyOtherSourcesPresent() {
         // given
         final User user = User.builder()
                 .eids(List.of(
@@ -45,7 +45,7 @@ class BidRequestUtilsTest {
     }
 
     @Test
-    void shouldReturnTrueWhenId5SourcePresentAmongOthers() {
+    public void shouldReturnTrueWhenId5SourcePresentAmongOthers() {
         // given
         final User user = User.builder()
                 .eids(List.of(
@@ -60,7 +60,7 @@ class BidRequestUtilsTest {
     }
 
     @Test
-    void shouldReturnFalseWhenEidSourceIsNull() {
+    public void shouldReturnFalseWhenEidSourceIsNull() {
         // given
         final User user = User.builder()
                 .eids(List.of(Eid.builder().source(null).uids(List.of(Uid.builder().id("x").build())).build()))

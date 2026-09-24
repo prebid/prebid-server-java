@@ -21,21 +21,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
-class SelectedBidderFilterTest {
-
-    private BidderInvocationContextImpl bidderCtx(String bidder) {
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false,
-                null,
-                null);
-        return BidderInvocationContextImpl.of(auctionCtx, bidder);
-    }
+public class SelectedBidderFilterTest {
 
     @Test
-    void shouldAcceptWhenBidderAllowed() {
+    public void shouldAcceptWhenBidderAllowed() {
         final ValuesFilter<String> vf = Mockito.mock(ValuesFilter.class);
         when(vf.isValueAllowed(any())).thenReturn(true);
         final SelectedBidderFilter filter = new SelectedBidderFilter(vf);
@@ -45,7 +34,7 @@ class SelectedBidderFilterTest {
     }
 
     @Test
-    void shouldRejectWhenBidderNotAllowed() {
+    public void shouldRejectWhenBidderNotAllowed() {
         final ValuesFilter<String> vf = Mockito.mock(ValuesFilter.class);
         when(vf.isValueAllowed(any())).thenReturn(false);
         final SelectedBidderFilter filter = new SelectedBidderFilter(vf);
@@ -56,12 +45,23 @@ class SelectedBidderFilterTest {
     }
 
     @Test
-    void shouldDelegateDecisionToValuesFilter() {
+    public void shouldDelegateDecisionToValuesFilter() {
         final ValuesFilter<String> vf = Mockito.mock(ValuesFilter.class);
         when(vf.isValueAllowed("anything")).thenReturn(true);
         final SelectedBidderFilter filter = new SelectedBidderFilter(vf);
 
         final FilterResult result = filter.shouldInvoke(BidderRequestPayloadImpl.of(null), bidderCtx("anything"));
         assertThat(result.isAccepted()).isTrue();
+    }
+
+    private static BidderInvocationContextImpl bidderCtx(String bidder) {
+        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
+        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
+                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
+                false,
+                null,
+                null);
+        return BidderInvocationContextImpl.of(auctionCtx, bidder);
     }
 }

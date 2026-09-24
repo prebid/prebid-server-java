@@ -6,10 +6,10 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ValuesFilterTest {
+public class ValuesFilterTest {
 
     @Test
-    void shouldAllowAllWhenValuesNull() {
+    public void shouldAllowAllWhenValuesNull() {
         // given
         final ValuesFilter<String> filter = new ValuesFilter<>();
         filter.setValues(null);
@@ -21,7 +21,7 @@ class ValuesFilterTest {
     }
 
     @Test
-    void shouldAllowAllWhenValuesEmpty() {
+    public void shouldAllowAllWhenValuesEmpty() {
         // given
         final ValuesFilter<String> filter = new ValuesFilter<>();
         filter.setValues(Set.of());
@@ -33,7 +33,7 @@ class ValuesFilterTest {
     }
 
     @Test
-    void shouldWhitelistAllowOnlyListedWhenExcludeFalse() {
+    public void shouldWhitelistAllowOnlyListedWhenExcludeFalse() {
         // given
         final ValuesFilter<String> filter = new ValuesFilter<>();
         filter.setExclude(false); // allowlist semantics
@@ -47,7 +47,7 @@ class ValuesFilterTest {
     }
 
     @Test
-    void shouldBlacklistRejectListedWhenExcludeTrue() {
+    public void shouldBlacklistRejectListedWhenExcludeTrue() {
         // given
         final ValuesFilter<String> filter = new ValuesFilter<>();
         filter.setExclude(true); // blocklist semantics

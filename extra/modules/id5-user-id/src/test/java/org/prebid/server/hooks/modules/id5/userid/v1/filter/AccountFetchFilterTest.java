@@ -21,10 +21,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
-class AccountFetchFilterTest {
+public class AccountFetchFilterTest {
 
     @Test
-    void shouldAcceptWhenAccountAllowed() {
+    public void shouldAcceptWhenAccountAllowed() {
         final ValuesFilter<String> valuesFilter = Mockito.mock(ValuesFilter.class);
         when(valuesFilter.isValueAllowed(eq("acc-2"))).thenReturn(true);
         final AccountFetchFilter filter = new AccountFetchFilter(valuesFilter);
@@ -43,7 +43,7 @@ class AccountFetchFilterTest {
     }
 
     @Test
-    void shouldRejectWhenAccountNotAllowed() {
+    public void shouldRejectWhenAccountNotAllowed() {
         final ValuesFilter<String> valuesFilter = Mockito.mock(ValuesFilter.class);
         when(valuesFilter.isValueAllowed(eq("acc-3"))).thenReturn(false);
         final AccountFetchFilter filter = new AccountFetchFilter(valuesFilter);

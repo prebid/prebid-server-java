@@ -17,10 +17,10 @@ import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SamplingFetchFilterTest {
+public class SamplingFetchFilterTest {
 
     @Test
-    void shouldAcceptWhenRandomBelowRate() {
+    public void shouldAcceptWhenRandomBelowRate() {
         // given
         final Supplier<Double> random = () -> 0.1d;
         final SamplingFetchFilter filter = new SamplingFetchFilter(random, 0.25d);
@@ -42,7 +42,7 @@ class SamplingFetchFilterTest {
     }
 
     @Test
-    void shouldRejectWhenRandomAboveRate() {
+    public void shouldRejectWhenRandomAboveRate() {
         // given
         final Supplier<Double> random = () -> 0.9d;
         final SamplingFetchFilter filter = new SamplingFetchFilter(random, 0.5d);

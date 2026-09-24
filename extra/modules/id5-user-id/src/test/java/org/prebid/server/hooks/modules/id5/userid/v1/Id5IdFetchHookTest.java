@@ -35,10 +35,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
-class Id5IdFetchHookTest {
+public class Id5IdFetchHookTest {
 
     @Test
-    void shouldReturnNoInvocationAndSetModuleContextWithFutureWhenSampled() {
+    public void shouldReturnNoInvocationAndSetModuleContextWithFutureWhenSampled() {
         // given
         final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final FetchFilter filter = Mockito.mock(FetchFilter.class);
@@ -68,7 +68,7 @@ class Id5IdFetchHookTest {
     }
 
     @Test
-    void shouldReturnNoInvocationWhenId5IdAlreadyPresent() {
+    public void shouldReturnNoInvocationWhenId5IdAlreadyPresent() {
         // given
         final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
@@ -95,7 +95,7 @@ class Id5IdFetchHookTest {
     }
 
     @Test
-    void shouldReturnNoInvocationWhenSamplerRejects() {
+    public void shouldReturnNoInvocationWhenSamplerRejects() {
         // given
         final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final FetchFilter filter = Mockito.mock(FetchFilter.class);
@@ -120,7 +120,7 @@ class Id5IdFetchHookTest {
     }
 
     @Test
-    void shouldReturnNoInvocationWhenAnyFetchFilterRejectsMultipleFilters() {
+    public void shouldReturnNoInvocationWhenAnyFetchFilterRejectsMultipleFilters() {
         // given
         final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
@@ -157,7 +157,7 @@ class Id5IdFetchHookTest {
     }
 
     @Test
-    void shouldReturnNoInvocationWhenPartnerIdNotConfigured() {
+    public void shouldReturnNoInvocationWhenPartnerIdNotConfigured() {
         // given
         final HttpFetchClient fetchClient = Mockito.mock(HttpFetchClient.class);
         final FetchFilter filter = Mockito.mock(FetchFilter.class);

@@ -16,10 +16,10 @@ import java.time.Clock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Id5IdModuleContextTest {
+public class Id5IdModuleContextTest {
 
     @Test
-    void shouldReturnProvidedModuleContextWhenPresent() {
+    public void shouldReturnProvidedModuleContextWhenPresent() {
         // given
         final Future<Id5UserId> future = Future.succeededFuture();
         final Id5IdModuleContext moduleContext = new Id5IdModuleContext(future);
@@ -41,7 +41,7 @@ class Id5IdModuleContextTest {
     }
 
     @Test
-    void shouldReturnEmptyModuleContextWhenAbsent() {
+    public void shouldReturnEmptyModuleContextWhenAbsent() {
         // given
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
