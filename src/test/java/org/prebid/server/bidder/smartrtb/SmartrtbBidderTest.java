@@ -121,7 +121,7 @@ public class SmartrtbBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "false");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -135,7 +135,6 @@ public class SmartrtbBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenBidExtIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -151,7 +150,6 @@ public class SmartrtbBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("BANNER"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -167,7 +165,6 @@ public class SmartrtbBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("wrong type"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -207,9 +204,9 @@ public class SmartrtbBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

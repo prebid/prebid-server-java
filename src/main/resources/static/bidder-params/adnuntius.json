@@ -25,7 +25,6 @@
       "description": "Allows you to specify Net or Gross bids."
     }
   },
-
   "required": [
     "auId"
   ]

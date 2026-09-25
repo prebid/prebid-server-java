@@ -26,5 +26,7 @@
       "description": "Parameters used for debugging purposes"
     }
   },
-  "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }

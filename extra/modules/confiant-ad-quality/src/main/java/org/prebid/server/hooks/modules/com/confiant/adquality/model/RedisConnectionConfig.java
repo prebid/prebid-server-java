@@ -5,12 +5,18 @@ import lombok.Data;
 @Data
 public class RedisConnectionConfig {
 
-    /** Host value of the Redis server */
+    /**
+     * Host value of the Redis server
+     */
     String host;
 
-    /** Port value of the Redis server */
+    /**
+     * Port value of the Redis server
+     */
     int port;
 
-    /** User password value of the Redis server */
+    /**
+     * User password value of the Redis server
+     */
     String password;
 }

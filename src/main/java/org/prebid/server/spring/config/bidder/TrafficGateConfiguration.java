@@ -25,7 +25,7 @@ public class TrafficGateConfiguration {
 
     @Bean
     BidderDeps trafficGateBidderDeps(BidderConfigurationProperties trafficGateConfigurationProperties,
-                                 JacksonMapper mapper) {
+                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(trafficGateConfigurationProperties)

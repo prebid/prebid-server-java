@@ -42,4 +42,8 @@ public abstract class FlexibleExtension {
     public void addProperties(Map<String, JsonNode> properties) {
         this.properties.putAll(properties);
     }
+
+    public void removeProperty(String key) {
+        properties.remove(key);
+    }
 }

@@ -25,7 +25,7 @@ public class PwbidConfiguration {
 
     @Bean
     BidderDeps pwbidBidderDeps(BidderConfigurationProperties pwbidConfigurationProperties,
-                                  JacksonMapper mapper) {
+                               JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(pwbidConfigurationProperties)

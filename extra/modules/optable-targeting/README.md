@@ -1,4 +1,5 @@
 ## Overview
+
 Optable module operates using a DCN backend API. Please contact your account manager to get started.
 
 The optable-targeting module enriches an incoming OpenRTB request by adding to the `user.eids` and `user.data`
@@ -194,7 +195,6 @@ would result in this nesting in the JSON configuration:
 }
 ```
 
-
 | Param Name                     | Required | Type    | Default value | Description                                                                                                                                                                                                                                                                                                                                                                                                                |
 |:-------------------------------|:---------|:--------|:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | api-endpoint                   | yes      | string  | none          | Optable Targeting Edge API endpoint URL, required                                                                                                                                                                                                                                                                                                                                                                          |
@@ -219,7 +219,6 @@ value when sending it to the Targeting API in the form `id=prefix:value`.
 See [Optable documentation](https://docs.optable.co/optable-documentation/dmp/reference/identifier-types#type-prefixes)
 on identifier types. Targeting API accepts multiple id parameters - and their order may affect the results, thus
 `id-prefix-order` specifies the order of the ids.
-
 
 | Identifier Type                                                                | OpenRTB field                                                         | ID Type Prefix                           |
 |--------------------------------------------------------------------------------|-----------------------------------------------------------------------|------------------------------------------|
@@ -317,7 +316,7 @@ The following 2 analytics tags are written by the module:
 * `optable-enrich-request`
 * `optable-enrich-response`
 
-The `status` is either `success` or `failure`.  Where it is `failure` a `results[0].value.reason` is provided.  
+The `status` is either `success` or `failure`. Where it is `failure` a `results[0].value.reason` is provided.  
 For the `optable-enrich-request` activity the `execution-time` value is logged.
 Example:
 

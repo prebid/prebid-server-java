@@ -15,15 +15,23 @@ import lombok.Value;
 @Value
 public class Segment {
 
-    /** ID of the data segment specific to the data provider. */
+    /**
+     * ID of the data segment specific to the data provider.
+     */
     String id;
 
-    /** Name of the data segment specific to the data provider. */
+    /**
+     * Name of the data segment specific to the data provider.
+     */
     String name;
 
-    /** String representation of the data segment value. */
+    /**
+     * String representation of the data segment value.
+     */
     String value;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

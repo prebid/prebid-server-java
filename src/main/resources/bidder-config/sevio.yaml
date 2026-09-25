@@ -1,0 +1,13 @@
+adapters:
+  sevio:
+    endpoint: https://req.adx.ws/rtb
+    meta-info:
+      maintainer-email: technical@sevio.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 1393

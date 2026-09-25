@@ -49,7 +49,7 @@ public class AccountConfigParserTest {
     @Test
     public void parseShouldParseRuleForEachSupportedStage() {
         // given
-        final Rule<BidRequest, RequestRuleContext> rule = (Rule<BidRequest, RequestRuleContext>) mock(Rule.class);
+        final Rule<BidRequest, RequestRuleContext> rule = mock();
         given(processedAuctionRequestStageParser.parse(any())).willReturn(rule);
 
         // when and then

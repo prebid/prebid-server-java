@@ -206,8 +206,6 @@ public class YieldmoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
-        final var convertedBidFloor = new BigDecimal("1.5");
-
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenThrow(
                 new PreBidException("currency could not be converted"));
 

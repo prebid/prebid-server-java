@@ -20,7 +20,10 @@
         },
         "gpid": "some_slot",
         "skadn": {
-          "versions": [ "2.0", "2.1" ],
+          "versions": [
+            "2.0",
+            "2.1"
+          ],
           "sourceapp": "880047117"
         }
       }

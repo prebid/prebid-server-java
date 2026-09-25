@@ -25,7 +25,7 @@ public class YearxeroConfiguration {
 
     @Bean
     BidderDeps yearxeroBidderDeps(BidderConfigurationProperties yearxeroConfigurationProperties,
-                                 JacksonMapper mapper) {
+                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(yearxeroConfigurationProperties)

@@ -5,9 +5,9 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.Rejection;
-import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
@@ -157,7 +157,7 @@ public class BidsBlocker {
         return checkAttributeComplement(
                 cattax,
                 blockingConfig.getCattax(),
-                ObjectUtils.defaultIfNull(
+                ObjectUtils.getIfNull(
                         blockedAttributeValues(BlockedAttributes::getCattaxComplement),
                         DEFAULT_BLOCKED_CATTAX_COMPLEMENT));
     }

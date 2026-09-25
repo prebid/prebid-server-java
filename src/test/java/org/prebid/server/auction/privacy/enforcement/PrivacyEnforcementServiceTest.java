@@ -4,6 +4,8 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -11,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class PrivacyEnforcementServiceTest {
         assertThat(result)
                 .isSucceeded()
                 .unwrap()
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactlyInAnyOrder(expectedResult);
     }
 }

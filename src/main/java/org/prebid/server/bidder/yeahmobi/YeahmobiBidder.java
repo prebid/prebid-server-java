@@ -92,8 +92,8 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
 
         return resolvedNativeRequest != null
                 ? imp.toBuilder()
-                .xNative(impNative.toBuilder().request(resolvedNativeRequest).build())
-                .build()
+                  .xNative(impNative.toBuilder().request(resolvedNativeRequest).build())
+                  .build()
                 : imp;
     }
 

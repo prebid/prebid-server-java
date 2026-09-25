@@ -35,6 +35,7 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -430,6 +431,21 @@ public class TheTradeDeskBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder.mtype(3).impid("123")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").mtype(3).build(), audio, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -483,7 +499,7 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(Arrays.asList(
                                         Bid.builder().mtype(1).impid("valid1").build(),  // valid banner
-                                        Bid.builder().mtype(3).impid("invalid1").build(), // invalid mtype
+                                        Bid.builder().mtype(5).impid("invalid1").build(), // invalid mtype
                                         Bid.builder().mtype(2).impid("valid2").build(),  // valid video
                                         Bid.builder().mtype(null).impid("invalid2").build() // null mtype
                                 ))

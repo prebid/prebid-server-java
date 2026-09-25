@@ -22,6 +22,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -294,7 +295,7 @@ public class ExchangeService {
                 ? prebid.getAlternateBidderCodes()
                 : null;
 
-        final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.defaultIfNull(
+        final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.getIfNull(
                 alternateBidderCodes,
                 account.getAlternateBidderCodes());
 
@@ -322,16 +323,16 @@ public class ExchangeService {
             final boolean shouldCacheVideoBids = cache.getVastxml() != null;
             final boolean shouldCacheWinningBidsOnly = !targeting.getIncludebidderkeys()
                     // ext.prebid.targeting.includebidderkeys takes precedence
-                    && ObjectUtils.defaultIfNull(cache.getWinningonly(), false);
+                    && ObjectUtils.getIfNull(cache.getWinningonly(), false);
 
             if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
                 final boolean returnCreativeBid = shouldCacheBids
-                        ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
+                        ? ObjectUtils.getIfNull(cache.getBids().getReturnCreative(), true)
                         : false;
                 final boolean returnCreativeVideoBid = shouldCacheVideoBids
-                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
+                        ? ObjectUtils.getIfNull(cache.getVastxml().getReturnCreative(), true)
                         : false;
 
                 return BidRequestCacheInfo.builder()
@@ -593,10 +594,10 @@ public class ExchangeService {
 
         final Map<String, Pair<User, Device>> bidderToUserAndDevice = new HashMap<>();
         for (String bidder : bidders) {
-            final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
+            final ExtBidderConfigOrtb fpdConfig = ObjectUtils.getIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
-                    .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
+                    .anyMatch(fpdBidder -> Strings.CI.equals(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissionResolver);
             final Device preparedDevice = prepareDevice(
@@ -791,9 +792,9 @@ public class ExchangeService {
         final boolean transmitTid = transmitTransactionId(bidder, context);
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
-                .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
+                .anyMatch(fpdBidder -> Strings.CI.equals(fpdBidder, bidder));
 
-        final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(
+        final ExtBidderConfigOrtb fpdConfig = ObjectUtils.getIfNull(
                 biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
@@ -953,9 +954,9 @@ public class ExchangeService {
 
         final App maskedApp = shouldCleanExtData || shouldCleanContentData
                 ? app.toBuilder()
-                .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
-                .content(shouldCleanContentData ? prepareContent(content) : content)
-                .build()
+                  .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
+                  .content(shouldCleanContentData ? prepareContent(content) : content)
+                  .build()
                 : app;
 
         return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
@@ -981,9 +982,9 @@ public class ExchangeService {
 
         final Site maskedSite = shouldCleanExtData || shouldCleanContentData
                 ? site.toBuilder()
-                .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
-                .content(shouldCleanContentData ? prepareContent(content) : content)
-                .build()
+                  .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
+                  .content(shouldCleanContentData ? prepareContent(content) : content)
+                  .build()
                 : site;
 
         return useFirstPartyData ? fpdResolver.resolveSite(maskedSite, fpdSite) : maskedSite;
@@ -1002,9 +1003,9 @@ public class ExchangeService {
 
         final Dooh maskedDooh = shouldCleanExtData || shouldCleanContentData
                 ? dooh.toBuilder()
-                .ext(shouldCleanExtData ? null : doohExt)
-                .content(shouldCleanContentData ? prepareContent(content) : content)
-                .build()
+                  .ext(shouldCleanExtData ? null : doohExt)
+                  .content(shouldCleanContentData ? prepareContent(content) : content)
+                  .build()
                 : dooh;
 
         return useFirstPartyData ? fpdResolver.resolveDooh(maskedDooh, fpdDooh) : maskedDooh;
@@ -1027,9 +1028,9 @@ public class ExchangeService {
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
-                .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
-                .tid(transmitTid ? receivedSource.getTid() : null)
-                .build();
+                  .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
+                  .tid(transmitTid ? receivedSource.getTid() : null)
+                  .build();
     }
 
     private ExtRequest prepareExt(String bidder,
@@ -1133,7 +1134,7 @@ public class ExchangeService {
         // and only merge this copy back if secondary bidder has completed in time
         final Map<String, BidRejectionTracker> copiedBidRejectionTrackers =
                 new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Map.Entry<String, BidRejectionTracker> entry: auctionContext.getBidRejectionTrackers().entrySet()) {
+        for (Map.Entry<String, BidRejectionTracker> entry : auctionContext.getBidRejectionTrackers().entrySet()) {
             copiedBidRejectionTrackers.put(entry.getKey(), BidRejectionTracker.copyOf(entry.getValue()));
         }
 
@@ -1155,7 +1156,7 @@ public class ExchangeService {
 
             return Future.succeededFuture(bidderToFutureResponse.entrySet().stream()
                     .filter(entry -> !entry.getValue().failed())
-                    .map(MapUtil.mapEntryValueMapper((bidder, futureResponse) -> ObjectUtils.defaultIfNull(
+                    .map(MapUtil.mapEntryValueMapper((bidder, futureResponse) -> ObjectUtils.getIfNull(
                             futureResponse.result(), responseForUncompletedSecondaryBidder(bidder))))
                     .map(MapUtil.mapEntryMapper((bidder, bidderResponse) ->
                             bidderToAuctionParticipation.get(bidder).with(bidderResponse)))
@@ -1273,7 +1274,7 @@ public class ExchangeService {
     private BidderSeatBid populateBidderCode(BidderSeatBid seatBid, String bidderName, String resolvedBidderName) {
         return seatBid.with(seatBid.getBids().stream()
                 .map(bidderBid -> bidderBid.toBuilder()
-                        .seat(ObjectUtils.defaultIfNull(bidderBid.getSeat(), bidderName))
+                        .seat(ObjectUtils.getIfNull(bidderBid.getSeat(), bidderName))
                         .bid(bidderBid.getBid().toBuilder()
                                 .ext(prepareBidExt(
                                         bidderBid.getBid().getExt(),
@@ -1316,8 +1317,8 @@ public class ExchangeService {
     private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
         return CollectionUtils.isNotEmpty(warnings)
                 ? seatBid.toBuilder()
-                .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
-                .build()
+                  .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
+                  .build()
                 : seatBid;
     }
 
@@ -1464,6 +1465,7 @@ public class ExchangeService {
                 .map(AuctionParticipation::getBidderResponse)
                 .toList();
 
+        boolean hasBids = false;
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
 
@@ -1473,6 +1475,7 @@ public class ExchangeService {
             if (CollectionUtils.isEmpty(bidderBids)) {
                 metrics.updateAdapterRequestNobidMetrics(bidder, account);
             } else {
+                hasBids = true;
                 metrics.updateAdapterRequestGotbidsMetrics(bidder, account);
 
                 for (final BidderBid bidderBid : bidderBids) {
@@ -1491,6 +1494,10 @@ public class ExchangeService {
                         .map(ExchangeService::bidderErrorTypeToMetric)
                         .forEach(errorMetric -> metrics.updateAdapterRequestErrorMetric(bidder, errorMetric));
             }
+        }
+
+        if (hasBids) {
+            metrics.updateAccountRequestGotbidsMetric(account.getId());
         }
 
         return auctionParticipations;

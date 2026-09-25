@@ -81,10 +81,10 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
 
         final List<PrivacyModule> innerPrivacyModules = jsonLogicConfig != null
                 ? SetUtils.emptyIfNull(scope.getSectionsIds()).stream()
-                .filter(sectionId -> shouldApplyPrivacy(sectionId, moduleConfig))
-                .map(sectionId -> forConfig(sectionId, normalizeSection, scope.getGppModel(), jsonLogicConfig))
-                .filter(Objects::nonNull)
-                .toList()
+                  .filter(sectionId -> shouldApplyPrivacy(sectionId, moduleConfig))
+                  .map(sectionId -> forConfig(sectionId, normalizeSection, scope.getGppModel(), jsonLogicConfig))
+                  .filter(Objects::nonNull)
+                  .toList()
                 : Collections.emptyList();
 
         return new AndPrivacyModules(innerPrivacyModules);

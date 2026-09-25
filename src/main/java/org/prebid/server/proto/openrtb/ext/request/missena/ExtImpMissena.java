@@ -18,8 +18,7 @@ public class ExtImpMissena {
 
     String placement;
 
-    @JsonProperty("test")
-    String testMode;
+    String sample;
 
     ObjectNode settings;
 }

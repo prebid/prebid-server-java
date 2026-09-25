@@ -54,7 +54,7 @@ public class NativoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload()).isEqualTo(bidRequest);
+        assertThat(result.getValue().getFirst().getPayload()).isEqualTo(bidRequest);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        final ObjectNode resultExt = result.getValue().getFirst().getBid().getExt();
         assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("1.2.3");
     }
 
@@ -212,7 +212,7 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        final ObjectNode resultExt = result.getValue().getFirst().getBid().getExt();
         assertThat(resultExt.get("prebid").get("meta").get("adaptercode").textValue()).isEqualTo("nativo");
         assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("2.0.0");
     }
@@ -234,7 +234,7 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        final ObjectNode resultExt = result.getValue().getFirst().getBid().getExt();
         assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("3.0.0");
     }
 
@@ -261,7 +261,7 @@ public class NativoBidderTest extends VertxTest {
                     assertThat(error.getMessage()).contains("Invalid ext passed in bid with id: bid1");
                 });
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getBid().getExt()).isEqualTo(invalidExt);
+        assertThat(result.getValue().getFirst().getBid().getExt()).isEqualTo(invalidExt);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

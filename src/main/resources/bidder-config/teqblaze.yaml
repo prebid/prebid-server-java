@@ -115,6 +115,12 @@ adapters:
         meta-info:
           maintainer-email: prebid@adsmovil.com
           vendor-id: 0
+      appMonstaMedia:
+        enabled: false
+        endpoint: https://ssp-us.appmonsta.ai/pserver
+        meta-info:
+          maintainer-email: media.support@appmonsta.ai
+          vendor-id: 1283
     meta-info:
       maintainer-email: github@teqblaze.com
       app-media-types:

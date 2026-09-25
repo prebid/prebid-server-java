@@ -15,7 +15,7 @@
     "usi": "user_d"
   },
   "context": "some_page",
-  "kv" : {
-    "any" : "any"
+  "kv": {
+    "any": "any"
   }
 }

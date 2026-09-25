@@ -3,7 +3,6 @@
   "title": "Vox Adapter Params",
   "description": "A schema which validates params accepted by the Vox adapter",
   "type": "object",
-
   "properties": {
     "placementId": {
       "type": "string",
@@ -22,6 +21,7 @@
       "description": "Display banner sizes which could be shown on top of image."
     }
   },
-
-  "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }

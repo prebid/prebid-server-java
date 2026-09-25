@@ -47,6 +47,6 @@ public class AccountActivityRulesConfigDeserializer extends StdDeserializer<List
         context.reportWrongTokenException(
                 JsonToken.class,
                 JsonToken.START_ARRAY,
-                "Failed to parse field %s to array with a reason: Expected array.".formatted(parser.getCurrentName()));
+                "Failed to parse field %s to array with a reason: Expected array.".formatted(parser.currentName()));
     }
 }

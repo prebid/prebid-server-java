@@ -254,20 +254,10 @@ public abstract class BaseOptableTest {
     }
 
     protected String givenBodyFromFile(String fileName) {
-        InputStream inputStream = null;
-        try {
-            inputStream = Files.newInputStream(Paths.get("src/test/resources/" + fileName));
+        try (InputStream inputStream = Files.newInputStream(Paths.get("src/test/resources/" + fileName))) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
         } catch (IOException e) {
             return null;
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
         }
     }
 

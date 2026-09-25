@@ -399,10 +399,11 @@ public class SovrnXspBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("imp_id")
-                .banner(Banner.builder().build())
-                .ext(givenImpExt(identity())))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("imp_id")
+                                .banner(Banner.builder().build())
+                                .ext(givenImpExt(identity())))
                 .build();
     }
 

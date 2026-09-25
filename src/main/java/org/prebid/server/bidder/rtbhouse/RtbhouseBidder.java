@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -13,6 +14,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -88,6 +90,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .site(modifySite(bidRequest.getSite(), publisherId))
+                .app(modifyApp(bidRequest.getApp(), publisherId))
                 .imp(modifiedImps)
                 .build();
 
@@ -114,7 +117,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 ? impExtBidFloorPrice : initialBidFloorPrice;
 
         return BidderUtil.isValidPrice(resolvedPrice)
-                && !StringUtils.equalsIgnoreCase(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
+                && !Strings.CI.equals(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
                 ? convertBidFloor(resolvedPrice, imp.getId(), bidRequest)
                 : resolvedPrice;
     }
@@ -178,23 +181,32 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private Site modifySite(Site site, String publisherId) {
+        return Optional.ofNullable(site)
+                .map(Site::toBuilder)
+                .map(builder -> builder.publisher(modifyPublisher(site.getPublisher(), publisherId)))
+                .map(Site.SiteBuilder::build)
+                .orElse(site);
+    }
+
+    private App modifyApp(App app, String publisherId) {
+        return Optional.ofNullable(app)
+                .map(App::toBuilder)
+                .map(builder -> builder.publisher(modifyPublisher(app.getPublisher(), publisherId)))
+                .map(App.AppBuilder::build)
+                .orElse(app);
+    }
+
+    private Publisher modifyPublisher(Publisher publisher, String publisherId) {
         final ObjectNode prebidNode = mapper.mapper().createObjectNode();
         prebidNode.put("publisherId", publisherId);
 
         final ExtPublisher extPublisher = ExtPublisher.empty();
         extPublisher.addProperty("prebid", prebidNode);
 
-        final Publisher publisher = Optional.ofNullable(site)
-                .map(Site::getPublisher)
+        return Optional.ofNullable(publisher)
                 .map(Publisher::toBuilder)
                 .orElseGet(Publisher::builder)
                 .ext(extPublisher)
-                .build();
-
-        return Optional.ofNullable(site)
-                .map(Site::toBuilder)
-                .orElseGet(Site::builder)
-                .publisher(publisher)
                 .build();
     }
 
@@ -285,8 +297,8 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         final String priceAsString = price != null ? price.toPlainString() : "0";
 
         return bid.toBuilder()
-                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
-                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .nurl(Strings.CS.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(Strings.CS.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
                 .build();
     }
 }

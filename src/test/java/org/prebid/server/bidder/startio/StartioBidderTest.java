@@ -203,7 +203,7 @@ public class StartioBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -220,7 +220,7 @@ public class StartioBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -233,7 +233,7 @@ public class StartioBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -247,7 +247,7 @@ public class StartioBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReportErrorAndSkipBidIfCannotParseBidType() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(
                         givenBid("001", BidType.banner),
                         givenBid("002", BidType.video),
@@ -289,16 +289,16 @@ public class StartioBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder().id("345").banner(Banner.builder().build())).build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
 
-    private BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, BidResponse bidResponse)
+    private BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse)
             throws JsonProcessingException {
-        return givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+        return givenHttpCall(mapper.writeValueAsString(bidResponse));
     }
 
     private static BidResponse givenBidResponse(Bid... bids) {

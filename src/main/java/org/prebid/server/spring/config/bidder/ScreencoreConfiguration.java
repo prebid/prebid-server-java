@@ -25,7 +25,7 @@ public class ScreencoreConfiguration {
 
     @Bean
     BidderDeps screencoreBidderDeps(BidderConfigurationProperties screencoreConfigurationProperties,
-                                   JacksonMapper mapper) {
+                                    JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(screencoreConfigurationProperties)

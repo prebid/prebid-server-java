@@ -93,7 +93,7 @@ adapters:
             url: https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
             uid-macro: '$UID'
           iframe:
-            url:  https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
+            url: https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
             uid-macro: '$UID'
     meta-info:
       maintainer-email: maintainer@example.com

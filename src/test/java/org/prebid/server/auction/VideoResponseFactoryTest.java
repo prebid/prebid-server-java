@@ -71,7 +71,7 @@ public class VideoResponseFactoryTest extends VertxTest {
         assertThat(result.getAdPods()).hasSize(1)
                 .extracting(ExtAdPod::getTargeting)
                 .hasSize(1)
-                .extracting(extResponseVideoTargetings -> extResponseVideoTargetings.getFirst())
+                .extracting(List::getFirst)
                 .extracting(ExtResponseVideoTargeting::getHbCacheID)
                 .containsOnly("generatedId");
         assertThat(cachedDebugLog.hasBids()).isFalse();

@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.yahooads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -16,11 +18,8 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
-import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -43,10 +42,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mock.Strictness.LENIENT;
-import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -55,22 +50,16 @@ public class YahooAdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    @Mock(strictness = LENIENT)
-    private BidRequestOrtbVersionConversionManager conversionManager;
-
     private YahooAdsBidder target;
 
     @BeforeEach
     public void setUp() {
-        when(conversionManager.convertFromAuctionSupportedVersion(any(BidRequest.class), eq(OrtbVersion.ORTB_2_5)))
-                .thenAnswer(answer -> answer.getArgument(0));
-        target = new YahooAdsBidder(ENDPOINT_URL, conversionManager, jacksonMapper);
+        target = new YahooAdsBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YahooAdsBidder("invalid_url",
-                conversionManager, jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YahooAdsBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -282,7 +271,7 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("User-Agent", "UA"),
-                        tuple("x-openrtb-version", "2.5"),
+                        tuple("x-openrtb-version", "2.6"),
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"));
     }
@@ -402,57 +391,542 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldRemoveTheOpenRTB26Regs() {
+    public void makeHttpRequestsShouldPreserveTopLevel26RegsAndExtTypedFields() {
         // given
         final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                requestBuilder -> requestBuilder.regs(Regs.builder()
-                        .gdpr(1)
-                        .usPrivacy("1YNN")
-                        .gpp("gppconsent")
-                        .gppSid(List.of(6))
-                        .ext(ExtRegs.of(null, null, "1", dsa))
-                        .build()).device(Device.builder().ua("UA").build()));
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder()
+                                .gdpr(1)
+                                .usPrivacy("1YNN")
+                                .gpp("gppconsent")
+                                .gppSid(List.of(6))
+                                .ext(ExtRegs.of(null, null, "1", dsa))
+                                .build())
+                        .device(Device.builder().ua("UA").build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        assertThat(regs.getGdpr()).isNull();
-        assertThat(regs.getUsPrivacy()).isNull();
-        assertThat(regs.getGpp()).isNull();
-        assertThat(regs.getGppSid()).isNull();
-        assertThat(regs.getExt()).isNotNull();
-        assertThat(regs.getExt().getGdpr()).isEqualTo(1);
-        assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
-        assertThat(regs.getExt().getGpc()).isEqualTo("1");
-        assertThat(regs.getExt().getDsa()).isEqualTo(dsa);
-        assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
-        assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGdpr()).isEqualTo(1);
+                    assertThat(regs.getUsPrivacy()).isEqualTo("1YNN");
+                    assertThat(regs.getGpp()).isEqualTo("gppconsent");
+                    assertThat(regs.getGppSid()).containsExactly(6);
+                    assertThat(regs.getExt()).isEqualTo(ExtRegs.of(null, null, "1", dsa));
+                });
     }
 
     @Test
-    public void makeBidsShouldOverwriteRegsExtValues() {
+    public void makeHttpRequestsShouldPromoteLegacyExtGppAndGppSidToTopLevel() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                requestBuilder -> requestBuilder.regs(Regs.builder()
-                        .gdpr(1)
-                        .ext(ExtRegs.of(0, "1YNN", null, null))
-                        .build()).device(Device.builder().ua("UA").build()));
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("legacy_gpp_value"));
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(6, 8)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        assertThat(regs.getGdpr()).isNull();
-        assertThat(regs.getUsPrivacy()).isNull();
-        assertThat(regs.getExt().getGdpr()).isEqualTo(1);
-        assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
-        assertThat(regs.getExt().getDsa()).isNull();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("legacy_gpp_value");
+                    assertThat(regs.getGppSid()).containsExactly(6, 8);
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPromoteOnlyGppFromExtAndStripIt() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("only_gpp"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("only_gpp");
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveTopLevelGdprWhilePromotingGppFromExt() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("mixed_gpp"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gdpr(1).ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGdpr()).isEqualTo(1);
+                    assertThat(regs.getGpp()).isEqualTo("mixed_gpp");
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldKeepGpcAndUnrelatedExtPropertyAfterPromotion() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, "1", null);
+        extRegs.addProperty("gpp", TextNode.valueOf("with_gpc"));
+        extRegs.addProperty("unrelated", TextNode.valueOf("keep_me"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, "1", null);
+        expectedExt.addProperty("unrelated", TextNode.valueOf("keep_me"));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("with_gpc");
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteWhenExtPropertyHasWrongType() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", IntNode.valueOf(99));
+        extRegs.addProperty("gpp_sid", TextNode.valueOf("not_array"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("gpp", IntNode.valueOf(99));
+        expectedExt.addProperty("gpp_sid", TextNode.valueOf("not_array"));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isNull();
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldLeaveMalformedExtValueInExtWhenSiblingFieldIsPromoted() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(6)));
+        extRegs.addProperty("gpp", IntNode.valueOf(99));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("gpp", IntNode.valueOf(99));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).containsExactly(6);
+                    assertThat(regs.getGpp()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteGppSidWhenArrayHasNonIntegerElement() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(7, "foo", 8)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("gpp_sid", mapper.valueToTree(List.of(7, "foo", 8)));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteExtValuesThatDoNotFitInInt() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(7, 3_000_000_000L)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("gpp_sid", mapper.valueToTree(List.of(7, 3_000_000_000L)));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteEmptyExtGppSidArray() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.createArrayNode());
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("gpp_sid", mapper.createArrayNode());
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteGppSidWhenArrayHasFractionalElement() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(6.5)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("gpp_sid", mapper.valueToTree(List.of(6.5)));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPromoteExtGppSidOverEmptyTopLevelArray() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(6)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gppSid(emptyList()).ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).containsExactly(6);
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPromoteGppSidWhileTopLevelGppSupersedesItsExtCopy() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("stale-ext-gpp"));
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(6)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gpp("top-level-gpp").ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("top-level-gpp");
+                    assertThat(regs.getGppSid()).containsExactly(6);
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRegsUnchangedWhenExtHasOnlyUnrelatedProperties() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("customKey", TextNode.valueOf("keep_me"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRegs expectedExt = ExtRegs.of(null, null, null, null);
+        expectedExt.addProperty("customKey", TextNode.valueOf("keep_me"));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isNull();
+                    assertThat(regs.getGppSid()).isNull();
+                    assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldDropExtGppWhenTopLevelGppAlreadySet() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("ext-gpp"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gpp("top-level-gpp").ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("top-level-gpp");
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTreatEmptyTopLevelGppAsSet() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("ext-gpp"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gpp("").ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEmpty();
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldDropExtGppSidWhenTopLevelGppSidAlreadySet() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp_sid", mapper.valueToTree(List.of(6)));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gppSid(List.of(99)).ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGppSid()).containsExactly(99);
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldApplyTheSamePromotedRegsToEveryImp() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("shared-gpp"));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("123").build())
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.id("imp1")),
+                        givenImp(impBuilder -> impBuilder.id("imp2"))))
+                .regs(Regs.builder().ext(extRegs).build())
+                .device(Device.builder().ua("UA").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("shared-gpp");
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldShortCircuitWhenRegsHasNoExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().gdpr(0).gpp("already_top").build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGdpr()).isEqualTo(0);
+                    assertThat(regs.getGpp()).isEqualTo("already_top");
+                    assertThat(regs.getExt()).isNull();
+                });
     }
 
     private static BidRequest givenBidRequest(

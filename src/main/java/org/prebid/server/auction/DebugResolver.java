@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
@@ -55,7 +56,7 @@ public class DebugResolver {
 
     private boolean isDebugOverridden(HttpRequestContext httpRequest) {
         return StringUtils.isNotEmpty(debugOverrideToken)
-                && StringUtils.equals(httpRequest.getHeaders().get(DEBUG_OVERRIDE_HEADER), debugOverrideToken);
+                && Strings.CS.equals(httpRequest.getHeaders().get(DEBUG_OVERRIDE_HEADER), debugOverrideToken);
     }
 
     private boolean isDebugEnabledForRequest(BidRequest bidRequest) {
@@ -67,7 +68,7 @@ public class DebugResolver {
     private boolean isDebugAllowedByAccount(Account account) {
         final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
         final Boolean debugAllowed = ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getDebugAllow);
-        return ObjectUtils.defaultIfNull(debugAllowed, DEFAULT_DEBUG_ALLOWED_BY_ACCOUNT);
+        return ObjectUtils.getIfNull(debugAllowed, DEFAULT_DEBUG_ALLOWED_BY_ACCOUNT);
     }
 
     private static boolean shouldReturnAllBidStatus(BidRequest bidRequest) {

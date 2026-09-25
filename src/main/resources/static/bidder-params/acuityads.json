@@ -15,5 +15,8 @@
       "minLength": 1
     }
   },
-  "required": ["host", "accountid"]
+  "required": [
+    "host",
+    "accountid"
+  ]
 }
