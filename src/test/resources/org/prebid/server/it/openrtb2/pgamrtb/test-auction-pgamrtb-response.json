@@ -27,7 +27,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "pgamrtb": "{{ performist.response_time_ms }}"
+      "pgamrtb": "{{ pgamrtb.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
