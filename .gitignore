@@ -5,8 +5,18 @@
 *.classpath
 
 .vscode/
+.vscode_old/
 *.project
 *.factorypath
+
+# AI assistant / editor local configuration
+.cursorrules
+.cursor/
+.gemini/
+GEMINI.md
+CLAUDE.md
+AGENTS.md
+.claude/
 
 .vertx/
 target/
