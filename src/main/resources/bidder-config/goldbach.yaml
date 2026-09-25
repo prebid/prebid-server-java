@@ -1,0 +1,16 @@
+adapters:
+  goldbach:
+    endpoint: https://goldlayer-api.prod.gbads.net/openrtb/2.5/auction
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: engineering@goldbach.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 580
