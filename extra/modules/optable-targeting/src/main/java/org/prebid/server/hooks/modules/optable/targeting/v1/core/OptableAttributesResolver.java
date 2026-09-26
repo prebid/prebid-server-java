@@ -11,6 +11,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.App;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.ExtUserOptable;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
@@ -20,6 +21,9 @@ import java.util.Optional;
 
 public class OptableAttributesResolver {
 
+    private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
+    private static final String X_FORWARDED_FOR_HEADER_DELIMITER = ",";
+
     private OptableAttributesResolver() {
     }
 
@@ -27,7 +31,9 @@ public class OptableAttributesResolver {
                                                       Long timeout,
                                                       double logSamplingRate) {
 
-        final GppContext.Scope gppScope = auctionContext.getGppContext().scope();
+        final GppContext.Scope gppScope = Optional.ofNullable(auctionContext.getGppContext())
+                .map(GppContext::scope)
+                .orElse(null);
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Optional<Regs> regs = Optional.ofNullable(bidRequest.getRegs());
@@ -92,7 +98,11 @@ public class OptableAttributesResolver {
         deviceOpt.map(Device::getIpv6).ifPresent(result::add);
 
         if (result.isEmpty()) {
-            Optional.ofNullable(auctionContext.getPrivacyContext().getIpAddress())
+            Optional.ofNullable(auctionContext.getHttpRequest())
+                    .map(HttpRequestContext::getHeaders)
+                    .map(it -> it.get(X_FORWARDED_FOR_HEADER))
+                    .map(it -> it.split(X_FORWARDED_FOR_HEADER_DELIMITER))
+                    .map(it -> it[0])
                     .ifPresent(result::add);
         }
 

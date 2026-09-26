@@ -20,6 +20,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.gpp.model.GppContext;
@@ -38,6 +39,8 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -106,6 +109,7 @@ public abstract class BaseOptableTest {
                 GppContext.Regions.builder().build());
 
         return AuctionContext.builder()
+                .httpRequest(givenHttpRequestContext())
                 .bidRequest(givenBidRequest())
                 .account(account)
                 .activityInfrastructure(activityInfrastructure)
@@ -117,6 +121,29 @@ public abstract class BaseOptableTest {
 
     protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
         return givenAuctionContext(activityInfrastructure, timeout, null);
+    }
+
+    protected HttpRequestContext givenHttpRequestContext() {
+        return givenHttpRequestContext(null);
+    }
+
+    protected HttpRequestContext givenHttpRequestContext(Map<String, String> headers) {
+        return HttpRequestContext.builder()
+                .headers(givenHeaders(headers))
+                .build();
+    }
+
+    protected CaseInsensitiveMultiMap givenHeaders(Map<String, String> headers) {
+        if (MapUtils.isEmpty(headers)) {
+            return CaseInsensitiveMultiMap.empty();
+        }
+
+        final CaseInsensitiveMultiMap.Builder builder = CaseInsensitiveMultiMap.builder();
+        for (Map.Entry<String, String> entry: headers.entrySet()) {
+            builder.add(entry.getKey(), entry.getValue());
+        }
+
+        return builder.build();
     }
 
     protected BidRequest givenBidRequest() {
