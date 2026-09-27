@@ -70,7 +70,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     }
 
     @Test
-    public void sampleShouldReturnEmptySetWhenImpExtHasNoPrebidBidderNode() {
+    public void sampleShouldReturnEmptySetWhenImpExtHasNoBidderNodes() {
         // given
         final ObjectNode ext = mapper.createObjectNode();
         final BidRequest bidRequest = givenBidRequest(
@@ -87,7 +87,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     public void sampleShouldReturnEmptySetWhenBidderNodeIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt())))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt())))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
@@ -103,7 +103,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(randomSupplier.getAsInt()).willReturn(99);
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
@@ -118,7 +118,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Collections.emptyMap()));
@@ -134,7 +134,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(randomSupplier.getAsInt()).willReturn(50);
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
@@ -150,7 +150,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(randomSupplier.getAsInt()).willReturn(49);
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
@@ -166,7 +166,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(randomSupplier.getAsInt()).willReturn(51);
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
@@ -181,7 +181,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(0, Collections.emptyMap()));
@@ -197,7 +197,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(randomSupplier.getAsInt()).willReturn(99);
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("bidderA", 100)));
@@ -214,7 +214,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(randomSupplier.getAsInt()).willReturn(99);
 
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("aliasB", 100)));
@@ -229,10 +229,79 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(0);
 
-        final ObjectNode ext = givenBidderExt("bidderA");
+        final ObjectNode ext = givenPrebidBidderExt("bidderA");
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(ext)),
                 givenImp(imp -> imp.ext(ext)))));
+
+        // when
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+
+        // then
+        assertThat(result).containsExactly("bidderA");
+    }
+
+    @Test
+    public void sampleShouldReturnBiddersFromOrtbBidderNodeWhenPrebidBidderNodeIsAbsent() {
+        // given
+        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(randomSupplier.getAsInt()).willReturn(99);
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenOrtbBidderExt("bidderA", "bidderB"))))));
+
+        // when
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+
+        // then
+        assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+    }
+
+    @Test
+    public void sampleShouldPreferPrebidBidderNodeOverOrtbBidderNodeWhenBothArePresent() {
+        // given
+        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(randomSupplier.getAsInt()).willReturn(99);
+
+        final ObjectNode ext = givenPrebidBidderExt("bidderA");
+        ext.set("bidder", givenBidderNode("bidderB"));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(ext)))));
+
+        // when
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+
+        // then
+        assertThat(result).containsExactly("bidderA");
+    }
+
+    @Test
+    public void sampleShouldFallBackToOrtbBidderNodeWhenPrebidBidderNodeIsEmpty() {
+        // given
+        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(randomSupplier.getAsInt()).willReturn(99);
+
+        final ObjectNode ext = givenPrebidBidderExt();
+        ext.set("bidder", givenBidderNode("bidderB"));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(ext)))));
+
+        // when
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+
+        // then
+        assertThat(result).containsExactly("bidderB");
+    }
+
+    @Test
+    public void sampleShouldIgnoreOrtbBidderNodeWhenPrebidBidderNodeIsPresentInAnyImp() {
+        // given
+        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(randomSupplier.getAsInt()).willReturn(99);
+
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
+                givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))),
+                givenImp(imp -> imp.ext(givenOrtbBidderExt("bidderB"))))));
 
         // when
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
@@ -248,16 +317,26 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         return props;
     }
 
-    private ObjectNode givenBidderExt(String... bidders) {
+    private ObjectNode givenPrebidBidderExt(String... bidders) {
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        prebidNode.set("bidder", givenBidderNode(bidders));
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("prebid", prebidNode);
+        return ext;
+    }
+
+    private ObjectNode givenOrtbBidderExt(String... bidders) {
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("bidder", givenBidderNode(bidders));
+        return ext;
+    }
+
+    private ObjectNode givenBidderNode(String... bidders) {
         final ObjectNode bidderNode = mapper.createObjectNode();
         for (String bidder : bidders) {
             bidderNode.put(bidder, "value");
         }
-        final ObjectNode prebidNode = mapper.createObjectNode();
-        prebidNode.set("bidder", bidderNode);
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("prebid", prebidNode);
-        return ext;
+        return bidderNode;
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

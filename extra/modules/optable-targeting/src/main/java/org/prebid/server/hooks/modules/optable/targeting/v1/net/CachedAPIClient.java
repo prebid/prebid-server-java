@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
