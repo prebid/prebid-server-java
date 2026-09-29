@@ -29,7 +29,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -130,21 +129,19 @@ public class RtbStackBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(String route) {
-        final URI routeUri;
-        try {
-            routeUri = URI.create(route);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("invalid route URL: " + e.getMessage());
+        final String host = HttpUtil.getHostFromUrl(route);
+        if (host == null) {
+            throw new PreBidException("invalid route URL: " + route);
         }
 
-        final String region = extractRegion(routeUri.getHost());
+        final String region = extractRegion(host);
         final Map<String, List<String>> queryParams = new QueryStringDecoder(route).parameters();
 
         final String client = firstQueryParam(queryParams, "client");
         final String endpoint = firstQueryParam(queryParams, "endpoint");
         final String ssp = firstQueryParam(queryParams, "ssp");
 
-        if (StringUtils.isEmpty(client) || StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(ssp)) {
+        if (StringUtils.isAnyEmpty(client, endpoint, ssp)) {
             throw new PreBidException("route URL must contain client, endpoint, and ssp query parameters");
         }
 
