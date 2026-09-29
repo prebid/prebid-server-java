@@ -18,6 +18,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmen
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
@@ -107,35 +108,45 @@ public class OptableTargetingConfig {
 
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
-                                                  TargetingRequestExecutor targetingRequestExecutor,
                                                   JsonMerger jsonMerger,
-                                                  BidderCatalog bidderCatalog,
-                                                  JacksonMapper mapper,
-                                                  @Value("${hooks.host-execution-plan:}")
-                                                  String executionPlan,
+                                                  OptableTargetingFlowResolver earlyOptableCallResolver,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+
+        return new OptableTargetingModule(List.of(
+                new OptableRawAuctionRequestHook(
+                        configResolver,
+                        earlyOptableCallResolver,
+                        logSamplingRate),
+                new OptableTargetingProcessedAuctionRequestHook(
+                        configResolver,
+                        earlyOptableCallResolver),
+                new OptableBidderRequestHook(),
+                new OptableTargetingAuctionResponseHook(
+                        configResolver,
+                        ObjectMapperProvider.mapper(),
+                        jsonMerger)));
+    }
+
+    @Bean
+    BidderEnrichmentSampler bidderEnrichmentSampler(BidderCatalog bidderCatalog) {
+        return BidderEnrichmentSampler.of(AliasesResolver.of(bidderCatalog));
+    }
+
+    @Bean
+    OptableTargetingFlowResolver earlyOptableCallResolver(
+            BidderEnrichmentSampler bidderEnrichmentSampler,
+            TargetingRequestExecutor targetingRequestExecutor,
+            @Value("${hooks.host-execution-plan:}")
+            String executionPlan,
+            JacksonMapper mapper,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         final CompositeHookExecutionPlan hooksExecutionPlan = CompositeHookExecutionPlan.of(
                 StringUtils.isNoneEmpty(executionPlan)
                         ? mapper.decodeValue(executionPlan, ExecutionPlan.class)
                         : null);
 
-        return new OptableTargetingModule(List.of(
-                new OptableRawAuctionRequestHook(
-                        configResolver,
-                        targetingRequestExecutor,
-                        BidderEnrichmentSampler.of(AliasesResolver.of(bidderCatalog)),
-                        hooksExecutionPlan,
-                        logSamplingRate),
-                new OptableTargetingProcessedAuctionRequestHook(
-                        configResolver,
-                        targetingRequestExecutor,
-                        hooksExecutionPlan,
-                        logSamplingRate),
-                new OptableBidderRequestHook(),
-                new OptableTargetingAuctionResponseHook(
-                        configResolver,
-                        ObjectMapperProvider.mapper(),
-                        jsonMerger)));
+        return new OptableTargetingFlowResolver(
+                bidderEnrichmentSampler, targetingRequestExecutor, hooksExecutionPlan, logSamplingRate);
     }
 }

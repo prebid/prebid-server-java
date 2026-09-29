@@ -35,6 +35,8 @@ public class ModuleContext {
 
     private boolean shouldSkipEnrichment;
 
+    private boolean isEarlyCallInitializationCompleted = true;
+
     private String id5Signature;
 
     public static ModuleContext of(AuctionInvocationContext invocationContext) {

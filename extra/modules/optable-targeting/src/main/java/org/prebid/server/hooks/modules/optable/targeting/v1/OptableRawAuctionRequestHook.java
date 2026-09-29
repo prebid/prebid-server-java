@@ -2,16 +2,12 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -22,10 +18,8 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
-import org.prebid.server.settings.model.Account;
 
 import java.util.Objects;
-import java.util.Set;
 
 public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
@@ -35,21 +29,15 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
     public static final String CODE = "optable-targeting-raw-auction-request-hook";
 
     private final ConfigResolver configResolver;
-    private final TargetingRequestExecutor targetingRequestExecutor;
-    private final BidderEnrichmentSampler bidderEnrichmentSampler;
-    private final CompositeHookExecutionPlan hooksExecutionPlan;
+    private final OptableTargetingFlowResolver earlyOptableCallResolver;
     private final double logSamplingRate;
 
     public OptableRawAuctionRequestHook(ConfigResolver configResolver,
-                                        TargetingRequestExecutor targetingRequestExecutor,
-                                        BidderEnrichmentSampler bidderEnrichmentSampler,
-                                        CompositeHookExecutionPlan hooksExecutionPlan,
+                                        OptableTargetingFlowResolver earlyOptableCallResolver,
                                         double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.targetingRequestExecutor = Objects.requireNonNull(targetingRequestExecutor);
-        this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
-        this.hooksExecutionPlan = hooksExecutionPlan;
+        this.earlyOptableCallResolver = earlyOptableCallResolver;
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -76,28 +64,12 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
         if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
             moduleContext.setShouldSkipEnrichment(true);
+            moduleContext.setEarlyCallInitializationCompleted(false);
             return update(BidRequestCleaner.instance(), moduleContext);
         }
 
-        final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
-        if (CollectionUtils.isEmpty(biddersToEnrich)) {
-            return update(BidRequestCleaner.instance(), moduleContext);
-        }
-
-        moduleContext.setBiddersToEnrich(biddersToEnrich);
-        final Account account = invocationContext.auctionContext().getAccount();
-        final long crossHookFutureTimeout =
-                hooksExecutionPlan.getOptableTargetingBidderRequestTimeout(account);
-
-        final Future<TargetingResult> optableTargetingCall = targetingRequestExecutor.makeRequest(
-                payload,
-                invocationContext,
-                properties,
-                crossHookFutureTimeout);
-
-        moduleContext.setOptableTargetingCall(optableTargetingCall);
-
-        return update(BidRequestCleaner.instance(), moduleContext);
+        return earlyOptableCallResolver.resolveAsyncOptableTargetingFlow(
+                moduleContext, payload, invocationContext, properties);
     }
 
     public static Future<InvocationResult<AuctionRequestPayload>> update(
