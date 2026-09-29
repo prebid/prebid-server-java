@@ -125,7 +125,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private Account defaultAccount;
     private BidRequest defaultBidRequest;
-    private AuctionContext defaultActionContext;
+    private AuctionContext defaultAuctionContext;
 
     @BeforeEach
     public void setUp() {
@@ -140,7 +140,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .coppa(0)
                         .build(),
                 TcfContext.empty());
-        defaultActionContext = AuctionContext.builder()
+        defaultAuctionContext = AuctionContext.builder()
                 .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(defaultBidRequest)
                 .account(defaultAccount)
@@ -167,7 +167,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
 
-        given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
+        given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultAuctionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
@@ -341,7 +341,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        final Future<AuctionContext> result = target.enrichAuctionContext(defaultActionContext);
+        final Future<AuctionContext> result = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         verify(debugResolver).debugContextFrom(any());
@@ -364,7 +364,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .executeRawAuctionRequestHooks(any());
 
         // when
-        target.enrichAuctionContext(defaultActionContext);
+        target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
@@ -391,7 +391,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .restoreResultFromRejection(eq(exception));
 
         // when
-        final Future<AuctionContext> future = target.enrichAuctionContext(defaultActionContext);
+        final Future<AuctionContext> future = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         assertThat(future).succeededWith(auctionContext);
@@ -412,7 +412,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .executeProcessedAuctionRequestHooks(any());
 
         // when
-        final Future<AuctionContext> result = target.enrichAuctionContext(defaultActionContext);
+        final Future<AuctionContext> result = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         final BidRequest resultBidRequest = result.result().getBidRequest();
@@ -436,7 +436,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .restoreResultFromRejection(eq(exception));
 
         // when
-        final Future<AuctionContext> future = target.enrichAuctionContext(defaultActionContext);
+        final Future<AuctionContext> future = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         assertThat(future).succeededWith(auctionContext);
@@ -557,7 +557,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.failedFuture("error"));
 
         // when
-        final Future<?> future = target.enrichAuctionContext(defaultActionContext);
+        final Future<?> future = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -622,7 +622,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        target.enrichAuctionContext(defaultActionContext);
+        target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         verify(storedRequestProcessor).processAuctionRequest(eq(ACCOUNT_ID), any());
@@ -636,7 +636,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.failedFuture("error"));
 
         // when
-        final Future<?> future = target.enrichAuctionContext(defaultActionContext);
+        final Future<?> future = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -652,7 +652,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("errors")));
 
         // when
-        final Future<?> future = target.enrichAuctionContext(defaultActionContext);
+        final Future<?> future = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -669,7 +669,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.parseRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result).isEqualTo(defaultActionContext);
+        assertThat(result).isEqualTo(defaultAuctionContext);
     }
 
     @Test
@@ -682,7 +682,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(bidAdjustmentsEnricher.enrichBidRequest(any())).willReturn(updatedBidRequest);
 
         // when
-        final AuctionContext result = target.enrichAuctionContext(defaultActionContext).result();
+        final AuctionContext result = target.enrichAuctionContext(defaultAuctionContext).result();
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(updatedBidRequest);
@@ -706,7 +706,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(privacyContext));
 
         // when
-        final AuctionContext result = target.enrichAuctionContext(defaultActionContext).result();
+        final AuctionContext result = target.enrichAuctionContext(defaultAuctionContext).result();
 
         // then
         assertThat(result.getPrivacyContext()).isEqualTo(privacyContext);
@@ -731,7 +731,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(bidAdjustmentsEnricher.enrichBidRequest(any())).willReturn(givenBidRequest);
 
         // when
-        final AuctionContext result = target.enrichAuctionContext(defaultActionContext).result();
+        final AuctionContext result = target.enrichAuctionContext(defaultAuctionContext).result();
 
         // then
         assertThat(result)
@@ -754,7 +754,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .build());
 
         // when
-        target.enrichAuctionContext(defaultActionContext);
+        target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         verify(paramsResolver).resolve(
@@ -776,7 +776,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 });
 
         // when
-        final Future<AuctionContext> future = target.enrichAuctionContext(defaultActionContext);
+        final Future<AuctionContext> future = target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         assertThat(future).isSucceeded();
@@ -797,7 +797,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .build()));
 
         // when
-        target.enrichAuctionContext(defaultActionContext);
+        target.enrichAuctionContext(defaultAuctionContext);
 
         // then
         verify(paramsResolver).resolve(
@@ -817,7 +817,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private void givenAuctionContext(BidRequest bidRequest, Account account) {
         given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), anyLong()))
-                .willReturn(defaultActionContext.toBuilder()
+                .willReturn(defaultAuctionContext.toBuilder()
                         .bidRequest(bidRequest)
                         .build());
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture(account));

@@ -39,6 +39,8 @@ import java.util.Optional;
  */
 public class AuctionRequestFactory {
 
+    private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
+
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ProfilesProcessor profilesProcessor;
@@ -54,8 +56,6 @@ public class AuctionRequestFactory {
     private final OrtbTypesResolver ortbTypesResolver;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
     private final BidAdjustmentsEnricher bidAdjustmentsEnricher;
-
-    private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
     public AuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,

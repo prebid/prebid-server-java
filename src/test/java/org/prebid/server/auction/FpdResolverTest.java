@@ -198,7 +198,7 @@ public class FpdResolverTest extends VertxTest {
     public void resolveDeviceShouldNotChangeOriginExtDataIfFPDDoesNotHaveExt() {
         // given
         final Device originDevice = Device.builder()
-                .ext(ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(10, 20))))
+                .ext(ExtDevice.of(1, null, ExtDevicePrebid.of(ExtDeviceInt.of(10, 20))))
                 .build();
 
         final Device fpdDevice = Device.builder().build();
@@ -208,7 +208,7 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(resultDevice).isEqualTo(Device.builder()
-                .ext(ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(10, 20))))
+                .ext(ExtDevice.of(1, null, ExtDevicePrebid.of(ExtDeviceInt.of(10, 20))))
                 .build());
     }
 
