@@ -272,7 +272,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final ObjectNode newExt = makeKeywords(impExt);
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .banner(banner != null ? assignSizesIfMissing(banner) : null)
+                .banner(banner != null ? fillBannerSizeFromFormat(banner) : null)
                 .audio(null)
                 .bidfloor(resolveBidFloor(impExtBidder.getKadfloor(), imp.getBidfloor()))
                 .displaymanager(StringUtils.firstNonBlank(imp.getDisplaymanager(), displayManager))
@@ -281,12 +281,22 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner);
 
-        return impBuilder.build();
+        final Imp result = impBuilder.build();
+        final Banner resultBanner = result.getBanner();
+        if (resultBanner != null && resultBanner.getW() == null && resultBanner.getH() == null) {
+            throw new PreBidException("No sizes provided for Banner");
+        }
+
+        return result;
     }
 
-    private static Banner assignSizesIfMissing(Banner banner) {
+    private static Banner fillBannerSizeFromFormat(Banner banner) {
         final List<Format> format = banner.getFormat();
-        if ((banner.getW() != null && banner.getH() != null) || CollectionUtils.isEmpty(format)) {
+        if (banner.getW() != null && banner.getH() != null) {
+            return banner;
+        }
+
+        if (CollectionUtils.isEmpty(format)) {
             return banner;
         }
 
