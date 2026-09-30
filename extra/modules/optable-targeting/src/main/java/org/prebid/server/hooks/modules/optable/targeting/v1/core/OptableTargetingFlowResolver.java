@@ -87,7 +87,7 @@ public class OptableTargetingFlowResolver {
 
         if (moduleContext.isShouldSkipEnrichment()) {
             moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
-            return update(BidRequestCleaner.instance(), moduleContext);
+            return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
         }
 
         final Account account = invocationContext.auctionContext().getAccount();
@@ -95,7 +95,7 @@ public class OptableTargetingFlowResolver {
         final boolean hasBidderRequestHook = hooksExecutionPlan.hasBidderRequestHook(account);
 
         if (hasRawAuctionRequestHook && hasBidderRequestHook) {
-            return update(BidRequestCleaner.instance(), moduleContext);
+            return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
         }
 
         final Future<TargetingResult> optableTargetingCall = hasRawAuctionRequestHook
@@ -104,7 +104,7 @@ public class OptableTargetingFlowResolver {
 
         if (optableTargetingCall == null) {
             moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
-            return update(BidRequestCleaner.instance(), moduleContext);
+            return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
         }
 
         return optableTargetingCall
@@ -114,7 +114,7 @@ public class OptableTargetingFlowResolver {
                 })
                 .recover(throwable -> {
                     moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
-                    return update(BidRequestCleaner.instance(), moduleContext);
+                    return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
                 });
     }
 
@@ -130,7 +130,7 @@ public class OptableTargetingFlowResolver {
         final PayloadUpdate<AuctionRequestPayload> payloadUpdate =
                 BidRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
 
-        return update(payloadUpdate, moduleContext);
+        return updateWithAnalytics(payloadUpdate, moduleContext);
     }
 
     private Future<TargetingResult> resolveEarlyNetworkCall(ModuleContext moduleContext) {
@@ -171,6 +171,20 @@ public class OptableTargetingFlowResolver {
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
+                        .payloadUpdate(payloadUpdate)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> updateWithAnalytics(
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+            ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());

@@ -26,8 +26,11 @@ import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
+import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -39,6 +42,7 @@ import org.prebid.server.settings.model.Account;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,6 +75,9 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     @Mock(strictness = Mock.Strictness.LENIENT)
     private TimeoutFactory timeoutFactory;
 
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private BidderEnrichmentSampler bidderEnrichmentSampler;
+
     private TargetingRequestExecutor targetingRequestExecutor;
 
     private OptableTargetingProcessedAuctionRequestHook target;
@@ -83,7 +90,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         targetingRequestExecutor = new TargetingRequestExecutor(
                 optableTargeting, userFpdActivityMask, timeoutFactory, 0.01);
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver, targetingRequestExecutor, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
+                configResolver, givenFlowResolver(ExecutionPlan.empty()));
 
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(
@@ -91,6 +98,14 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         when(invocationContext.timeout()).thenReturn(timeout);
         when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
         when(timeout.remaining()).thenReturn(1000L);
+    }
+
+    private OptableTargetingFlowResolver givenFlowResolver(ExecutionPlan executionPlan) {
+        return new OptableTargetingFlowResolver(
+                bidderEnrichmentSampler,
+                targetingRequestExecutor,
+                CompositeHookExecutionPlan.of(executionPlan),
+                0.01);
     }
 
     @Test
@@ -205,11 +220,11 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     void callShouldReturnResultWithUpdateActionWhenEarlyOptableCallIsEnabled() {
         // given
         final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyNetworkCallEnabled(true);
+        moduleContext.setEarlyCallInitializationCompleted(true);
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
-                targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(givenExecutionPlan(true, false)),
-                0.01);
+                givenFlowResolver(givenExecutionPlan(true, false)));
         when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
@@ -249,13 +264,79 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
+    void callShouldRetryEarlyNetworkCallInitializationWhenItWasNotCompletedOnRawAuctionRequestHookStep() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyNetworkCallEnabled(true);
+        moduleContext.setEarlyCallInitializationCompleted(false);
+
+        final TargetingResult targetingResult = givenTargetingResult();
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(targetingResult));
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        assertThat(result.analyticsTags()).isNull();
+        assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
+        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
+        assertThat(moduleContext.getOptableTargetingCall().succeeded()).isTrue();
+        assertThat(moduleContext.getOptableTargetingCall().result()).isSameAs(targetingResult);
+
+        final BidRequest bidRequest = result
+                .payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(bidRequest.getUser().getEids()).isNull();
+        assertThat(bidRequest.getUser().getData()).isNull();
+    }
+
+    @Test
+    void callShouldNotRetryEarlyNetworkCallInitializationWhenNoBiddersToEnrich() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyNetworkCallEnabled(true);
+        moduleContext.setEarlyCallInitializationCompleted(false);
+
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of());
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        assertThat(moduleContext.getOptableTargetingCall()).isNull();
+        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+    }
+
+    @Test
     void callShouldReturnResultWithEnrichedBidRequestWhenBothHooksAreAbsent() {
         // given
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
-                targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(givenExecutionPlan(false, false)),
-                0.01);
+                givenFlowResolver(givenExecutionPlan(false, false)));
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
@@ -292,9 +373,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         // given
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
-                targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(givenExecutionPlan(false, true)),
-                0.01);
+                givenFlowResolver(givenExecutionPlan(false, true)));
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
@@ -331,9 +410,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         // given
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
-                targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(givenExecutionPlan(true, true)),
-                0.01);
+                givenFlowResolver(givenExecutionPlan(true, true)));
         when(invocationContext.moduleContext()).thenReturn(new ModuleContext());
 
         // when
@@ -365,7 +442,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 jsonMerger,
                 givenOptableTargetingProperties("key", "tenant", null, false));
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver, targetingRequestExecutor, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
+                configResolver, givenFlowResolver(ExecutionPlan.empty()));
         when(invocationContext.accountConfig())
                 .thenReturn(givenAccountConfig("key", "tenant", null, true));
 
@@ -394,7 +471,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 jsonMerger,
                 givenOptableTargetingProperties("key", null, "origin", false));
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver, targetingRequestExecutor, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
+                configResolver, givenFlowResolver(ExecutionPlan.empty()));
         when(invocationContext.accountConfig())
                 .thenReturn(givenAccountConfig("key", null, null, true));
 

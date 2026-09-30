@@ -20,6 +20,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -66,12 +67,19 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         targetingRequestExecutor = new TargetingRequestExecutor(
                 optableTargeting, userFpdActivityMask, timeoutFactory, 0.01);
         target = new OptableRawAuctionRequestHook(
-                configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
-                CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
+                configResolver, givenEarlyOptableCallResolver(), 0.01);
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         when(invocationContext.timeout()).thenReturn(timeout);
         when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
         when(timeout.remaining()).thenReturn(1000L);
+    }
+
+    private OptableTargetingFlowResolver givenEarlyOptableCallResolver() {
+        return new OptableTargetingFlowResolver(
+                bidderEnrichmentSampler,
+                targetingRequestExecutor,
+                CompositeHookExecutionPlan.of(ExecutionPlan.empty()),
+                0.01);
     }
 
     @Test
@@ -98,10 +106,12 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         // then
         assertThat(result).isNotNull();
         result.map(res -> (ModuleContext) res.moduleContext())
-                .compose(ModuleContext::getOptableTargetingCall)
-                .onComplete(call -> {
+                .onComplete(cxt -> {
                     vertxTestContext.verify(() -> {
-                        assertThat(call.result()).isNotNull();
+                        final ModuleContext moduleContext = cxt.result();
+                        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
+                        assertThat(moduleContext.getOptableTargetingCall().result()).isNotNull();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
                     });
                     vertxTestContext.completeNow();
                 });
@@ -122,8 +132,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         configResolver = new ConfigResolver(
                 mapper, jsonMerger, givenOptableTargetingProperties("key", "tenant", null, true));
         target = new OptableRawAuctionRequestHook(
-                configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
-                CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
+                configResolver, givenEarlyOptableCallResolver(), 0.01);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> result =
@@ -137,6 +146,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
                         assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
                     });
                     vertxTestContext.completeNow();
                 });
@@ -159,8 +169,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
 
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         target = new OptableRawAuctionRequestHook(
-                configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
-                CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
+                configResolver, givenEarlyOptableCallResolver(), 0.01);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> result =
@@ -174,6 +183,36 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.isShouldSkipEnrichment()).isTrue();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    @SneakyThrows
+    @Test
+    public void shouldNotInjectEarlyNetworkCallToModuleContextWhenNoBiddersToEnrich(
+            VertxTestContext vertxTestContext) {
+
+        // given
+        when(invocationContext.accountConfig())
+                .thenReturn(givenAccountConfig("key", "tenant", "origin", true));
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of());
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> result =
+                target.call(auctionRequestPayload, invocationContext);
+
+        // then
+        assertThat(result).isNotNull();
+        result.map(res -> (ModuleContext) res.moduleContext())
+                .onComplete(cxt -> {
+                    vertxTestContext.verify(() -> {
+                        final ModuleContext moduleContext = cxt.result();
+                        assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
+                        assertThat(moduleContext.getOptableTargetingCall()).isNull();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
                     });
                     vertxTestContext.completeNow();
                 });
