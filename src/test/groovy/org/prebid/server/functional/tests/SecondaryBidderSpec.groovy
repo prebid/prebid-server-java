@@ -129,8 +129,11 @@ class SecondaryBidderSpec extends BaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
 
-        then: "PBs should processed bidder call"
+        then: "PBS should process request for primary bidder"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS should process request for secondary bidder"
+        PBSUtils.waitUntil({ !openXBidder.getBidderRequests(bidRequest.id).isEmpty() })
         assert openXBidder.getBidderRequest(bidRequest.id)
 
         and: "PBs response shouldn't contain response body from openX bidder"
@@ -340,8 +343,11 @@ class SecondaryBidderSpec extends BaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
 
-        then: "PBs should processed bidder call"
+        then: "PBS should process request for primary bidder"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS should process request for secondary bidder"
+        PBSUtils.waitUntil({ !openXBidder.getBidderRequests(bidRequest.id).isEmpty() })
         assert openXBidder.getBidderRequest(bidRequest.id)
 
         and: "PBs response shouldn't contain response body from openX bidder"
@@ -376,9 +382,12 @@ class SecondaryBidderSpec extends BaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
 
-        then: "PBS should process bidder request"
-        assert bidder.getBidderRequest(bidRequest.id)
+        then: "PBS should process request for primary and secondary bidder"
+        assert bidder.getBidderRequests(bidRequest.id)
         assert genericAliasBidder.getBidderRequest(bidRequest.id)
+
+        and: "PBS should process request for secondary bidder"
+        PBSUtils.waitUntil({ !openXBidder.getBidderRequests(bidRequest.id).isEmpty() })
         assert openXBidder.getBidderRequest(bidRequest.id)
 
         and: "PBs response should contain openX alias and generic"
@@ -424,8 +433,11 @@ class SecondaryBidderSpec extends BaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
 
-        then: "PBs should processed bidder call"
+        then: "PBS should process request for primary bidder"
         assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS should process request for secondary bidder"
+        PBSUtils.waitUntil({ !openXBidder.getBidderRequests(bidRequest.id).isEmpty() })
         assert openXBidder.getBidderRequest(bidRequest.id)
 
         and: "PBs response shouldn't contain response body from openX bidder"
@@ -461,6 +473,7 @@ class SecondaryBidderSpec extends BaseSpec {
             if (bidderNames.contains(ALIAS)) {
                 it.imp[0]?.ext?.prebid?.bidder?.alias = new Generic()
             }
+            it.tmax = 5_000
             enabledReturnAllBidStatus()
         }
     }
