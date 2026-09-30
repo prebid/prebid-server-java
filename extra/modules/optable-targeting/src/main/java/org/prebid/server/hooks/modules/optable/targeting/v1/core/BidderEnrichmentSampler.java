@@ -86,4 +86,8 @@ public class BidderEnrichmentSampler {
                 .filter(Ortb2ImplicitParametersResolver::isImpExtBidder)
                 .filter(field -> impExt.get(field).isObject());
     }
+
+    public boolean hasBidders(BidRequest bidRequest) {
+        return !extractUniqueBidders(bidRequest).isEmpty();
+    }
 }
