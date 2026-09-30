@@ -27,7 +27,7 @@ import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.auction.requestfactory.PostAuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.GetAuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.BlocklistedAppException;
@@ -112,10 +112,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-public class PostAuctionHandlerTest extends VertxTest {
+public class GetAuctionHandlerTest extends VertxTest {
 
     @Mock
-    private PostAuctionRequestFactory auctionRequestFactory;
+    private GetAuctionRequestFactory auctionRequestFactory;
     @Mock
     private ExchangeService exchangeService;
     @Mock(strictness = LENIENT)
@@ -135,7 +135,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
 
-    private PostAuctionHandler target;
+    private GetAuctionHandler target;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -174,7 +174,7 @@ public class PostAuctionHandlerTest extends VertxTest {
 
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        target = new PostAuctionHandler(
+        target = new GetAuctionHandler(
                 0.01,
                 auctionRequestFactory,
                 exchangeService,
@@ -192,7 +192,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldSetRequestTypeMetricToAuctionContext() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -210,7 +210,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -233,7 +233,7 @@ public class PostAuctionHandlerTest extends VertxTest {
         // given
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -257,7 +257,7 @@ public class PostAuctionHandlerTest extends VertxTest {
         // given
         httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -279,7 +279,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -304,7 +304,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlocklisted() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new BlocklistedAccountException("Blocklisted account")));
@@ -323,7 +323,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfBidRequestHasAccountWithInvalidConfig() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new InvalidAccountConfigException("Invalid config")));
@@ -342,7 +342,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlocklisted() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new BlocklistedAppException("Blocklisted app")));
@@ -361,7 +361,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfBidRequestIsInvalid() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
@@ -380,7 +380,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
@@ -398,7 +398,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -420,7 +420,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.failedFuture(new RuntimeException()));
@@ -439,7 +439,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldRespondWithBidResponse() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -478,7 +478,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldRespondWithBidResponseWhenExitpointChangesHeadersAndResponse() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -520,7 +520,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldRespondWithCorrectResolvedRequestMediaTypePriceGranularity() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -566,7 +566,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementOkOpenrtb2WebRequestMetrics() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -583,7 +583,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementOkOpenrtb2AppRequestMetrics() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(
@@ -603,7 +603,7 @@ public class PostAuctionHandlerTest extends VertxTest {
         // given
         givenHoldAuction(BidResponse.builder().build());
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(builder -> builder.app(App.builder().build()))));
@@ -618,7 +618,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoCookieMetrics() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -640,7 +640,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementImpsRequestedMetrics() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(
@@ -660,7 +660,7 @@ public class PostAuctionHandlerTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(Imp.builder().build());
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(builder -> builder.imp(imps))));
@@ -677,7 +677,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementBadinputOnParsingRequestOpenrtb2WebRequestMetrics() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
@@ -690,7 +690,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrOpenrtb2WebRequestMetrics() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
@@ -707,7 +707,7 @@ public class PostAuctionHandlerTest extends VertxTest {
         // set up clock mock to check that request_time metric has been updated with expected value
         given(clock.millis()).willReturn(5000L).willReturn(5500L);
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -730,7 +730,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotUpdateRequestTimeMetricIfRequestFails() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
@@ -744,7 +744,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateNetworkErrorMetric() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -767,7 +767,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotUpdateNetworkErrorMetricIfResponseSucceeded() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -784,7 +784,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateNetworkErrorMetricIfClientClosedConnection() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -803,7 +803,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
@@ -823,7 +823,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldPassInternalServerErrorEventToAnalyticsReporterIfAuctionFails() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -854,7 +854,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -891,7 +891,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldPassSuccessfulEventToAnalyticsReporterWhenExitpointHookChangesResponseAndHeaders() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -932,7 +932,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateDuplicateQueryParamNames() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -956,7 +956,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateDuplicateHeaderNames() {
         // given
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -982,7 +982,7 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldSkipAuction() {
         // given
         final AuctionContext givenAuctionContext = givenAuctionContext(identity());
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext));
         given(skippedAuctionService.skipAuction(any()))
                 .willReturn(Future.succeededFuture(
@@ -1004,10 +1004,12 @@ public class PostAuctionHandlerTest extends VertxTest {
     public void shouldReturnSendAuctionEventWithAuctionContextBidResponseDebugInfoHoldingExitpointHookOutcome() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity()).toBuilder()
-                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.AMP, stageOutcomes()))
+                .hookExecutionContext(HookExecutionContext.of(
+                        HookHttpEndpoint.GET_AUCTION,
+                        stageOutcomes()))
                 .build();
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -1118,10 +1120,12 @@ public class PostAuctionHandlerTest extends VertxTest {
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .analytics(analyticsNode)
                         .build()))).toBuilder()
-                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.AMP, stageOutcomes()))
+                .hookExecutionContext(HookExecutionContext.of(
+                        HookHttpEndpoint.GET_AUCTION,
+                        stageOutcomes()))
                 .build();
 
-        given(auctionRequestFactory.parseRequest(any(), anyLong()))
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext));
         given(auctionRequestFactory.enrichAuctionContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
@@ -1253,7 +1257,7 @@ public class PostAuctionHandlerTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .debugContext(DebugContext.of(true, false, TraceLevel.verbose))
-                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.GET_AUCTION))
                 .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
         return auctionContextCustomizer.apply(auctionContextBuilder).build();
