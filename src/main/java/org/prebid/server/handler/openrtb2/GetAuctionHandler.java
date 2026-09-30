@@ -18,7 +18,7 @@ import org.prebid.server.auction.HookDebugInfoEnricher;
 import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.GetAuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.BlocklistedAppException;
@@ -49,13 +49,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class AuctionHandler implements ApplicationResource {
+public class GetAuctionHandler implements ApplicationResource {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(GetAuctionHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final double logSamplingRate;
-    private final AuctionRequestFactory auctionRequestFactory;
+    private final GetAuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
     private final SkippedAuctionService skippedAuctionService;
     private final AnalyticsReporterDelegator analyticsDelegator;
@@ -67,18 +67,18 @@ public class AuctionHandler implements ApplicationResource {
     private final HookStageExecutor hookStageExecutor;
     private final JacksonMapper mapper;
 
-    public AuctionHandler(double logSamplingRate,
-                          AuctionRequestFactory auctionRequestFactory,
-                          ExchangeService exchangeService,
-                          SkippedAuctionService skippedAuctionService,
-                          AnalyticsReporterDelegator analyticsDelegator,
-                          Metrics metrics,
-                          HooksMetricsService hooksMetricsService,
-                          Clock clock,
-                          HttpInteractionLogger httpInteractionLogger,
-                          PrebidVersionProvider prebidVersionProvider,
-                          HookStageExecutor hookStageExecutor,
-                          JacksonMapper mapper) {
+    public GetAuctionHandler(double logSamplingRate,
+                             GetAuctionRequestFactory auctionRequestFactory,
+                             ExchangeService exchangeService,
+                             SkippedAuctionService skippedAuctionService,
+                             AnalyticsReporterDelegator analyticsDelegator,
+                             Metrics metrics,
+                             HooksMetricsService hooksMetricsService,
+                             Clock clock,
+                             HttpInteractionLogger httpInteractionLogger,
+                             PrebidVersionProvider prebidVersionProvider,
+                             HookStageExecutor hookStageExecutor,
+                             JacksonMapper mapper) {
 
         this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
@@ -96,7 +96,7 @@ public class AuctionHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.openrtb2_auction.value()));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.openrtb2_auction.value()));
     }
 
     @Override
@@ -110,24 +110,15 @@ public class AuctionHandler implements ApplicationResource {
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
                 .httpContext(HttpRequestContext.from(routingContext));
 
-        auctionRequestFactory.parseRequest(routingContext, startTime)
+        auctionRequestFactory.fromRequest(routingContext, startTime)
                 .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
-                        .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
+                        .recover(_ -> holdAuction(auctionEventBuilder, auctionContext)))
                 .map(context -> addContextAndBidResponseToEvent(context, auctionEventBuilder, context))
                 .map(context -> prepareSuccessfulResponse(context, routingContext))
                 .compose(this::invokeExitpointHooks)
                 .map(context -> addContextAndBidResponseToEvent(
                         context.getAuctionContext(), auctionEventBuilder, context))
                 .onComplete(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
-    }
-
-    private static <R> R addContextAndBidResponseToEvent(AuctionContext context,
-                                                         AuctionEvent.AuctionEventBuilder auctionEventBuilder,
-                                                         R result) {
-
-        auctionEventBuilder.auctionContext(context);
-        auctionEventBuilder.bidResponse(context.getBidResponse());
-        return result;
     }
 
     private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,
@@ -138,11 +129,6 @@ public class AuctionHandler implements ApplicationResource {
                 // In case of holdAuction Exception and auctionContext is not present below
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .compose(exchangeService::holdAuction);
-    }
-
-    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
-        consumer.accept(field);
-        return result;
     }
 
     private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
@@ -162,6 +148,20 @@ public class AuctionHandler implements ApplicationResource {
         return context;
     }
 
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
+    }
+
+    private static <R> R addContextAndBidResponseToEvent(AuctionContext context,
+                                                         AuctionEvent.AuctionEventBuilder auctionEventBuilder,
+                                                         R result) {
+
+        auctionEventBuilder.auctionContext(context);
+        auctionEventBuilder.bidResponse(context.getBidResponse());
+        return result;
+    }
+
     private RawResponseContext prepareSuccessfulResponse(AuctionContext auctionContext, RoutingContext routingContext) {
         final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
@@ -171,6 +171,19 @@ public class AuctionHandler implements ApplicationResource {
                 .responseHeaders(responseHeaders)
                 .auctionContext(auctionContext)
                 .build();
+    }
+
+    private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
+        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+
+        final MultiMap requestHeaders = routingContext.request().headers();
+        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
+            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
+        }
+
+        return responseHeaders;
     }
 
     private Future<RawResponseContext> invokeExitpointHooks(RawResponseContext rawResponseContext) {
@@ -326,18 +339,5 @@ public class AuctionHandler implements ApplicationResource {
     private void handleResponseException(Throwable throwable, MetricName requestType) {
         logger.warn("Failed to send auction response: {}", throwable.getMessage());
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-    }
-
-    private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
-        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
-        HttpUtil.addHeaderIfValueIsNotEmpty(
-                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
-
-        final MultiMap requestHeaders = routingContext.request().headers();
-        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
-            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
-        }
-
-        return responseHeaders;
     }
 }
