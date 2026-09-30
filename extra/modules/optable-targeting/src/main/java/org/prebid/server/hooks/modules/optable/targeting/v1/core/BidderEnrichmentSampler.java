@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import lombok.AllArgsConstructor;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
@@ -24,6 +26,7 @@ import java.util.stream.Stream;
 public class BidderEnrichmentSampler {
 
     private static final String PREBID_BIDDER_PATH = "/prebid/bidder";
+    private static final int DEFAULT_ENRICHMENT_PERCENTAGE = 100;
 
     private final AliasesResolver aliasesResolver;
     private final IntSupplier randomSupplier;
@@ -33,9 +36,11 @@ public class BidderEnrichmentSampler {
     }
 
     public Set<String> sample(BidRequest bidRequest, OptableTargetingProperties optableTargetingProperties) {
-        final Integer defaultEnrichmentPercentage = optableTargetingProperties.getEnrichmentPercentage();
-        final Map<String, Integer> bidderEnrichmentPercentage =
-                optableTargetingProperties.getBidderEnrichmentPercentages();
+        // an explicit null in the account config overrides the defaults of the properties class
+        final int defaultEnrichmentPercentage = ObjectUtils.defaultIfNull(
+                optableTargetingProperties.getEnrichmentPercentage(), DEFAULT_ENRICHMENT_PERCENTAGE);
+        final Map<String, Integer> bidderEnrichmentPercentage = MapUtils.emptyIfNull(
+                optableTargetingProperties.getBidderEnrichmentPercentages());
 
         final BidderAliases aliases = aliasesResolver.resolve(bidRequest);
         return extractUniqueBidders(bidRequest)
@@ -49,7 +54,7 @@ public class BidderEnrichmentSampler {
     }
 
     private static int resolvePercentage(BidderAliases aliases, String bidder,
-                                         Integer defaultEnrichmentPercentage,
+                                         int defaultEnrichmentPercentage,
                                          Map<String, Integer> bidderEnrichmentPercentage) {
 
         return Optional.ofNullable(bidderEnrichmentPercentage.get(bidder))

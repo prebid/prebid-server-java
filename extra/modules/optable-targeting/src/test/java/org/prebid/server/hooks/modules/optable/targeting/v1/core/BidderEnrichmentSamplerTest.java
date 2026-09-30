@@ -331,6 +331,25 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         assertThat(target.hasBidders(bidRequest)).isTrue();
     }
 
+    @Test
+    public void sampleShouldEnrichAllBiddersWhenPercentagesAreNull() {
+        // given
+        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(randomSupplier.getAsInt()).willReturn(99);
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
+        final OptableTargetingProperties properties = new OptableTargetingProperties();
+        properties.setEnrichmentPercentage(null);
+        properties.setBidderEnrichmentPercentages(null);
+
+        // when
+        final Set<String> result = target.sample(bidRequest, properties);
+
+        // then
+        assertThat(result).containsExactly("bidderA");
+    }
+
     private OptableTargetingProperties givenSampleProperties(int defaultPct, Map<String, Integer> bidderPcts) {
         final OptableTargetingProperties props = new OptableTargetingProperties();
         props.setEnrichmentPercentage(defaultPct);
