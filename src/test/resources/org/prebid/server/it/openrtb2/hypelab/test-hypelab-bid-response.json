@@ -1,0 +1,28 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "seat": "hypelab",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.5,
+          "adm": "<html>ad</html>",
+          "adomain": [
+            "advertiser.example"
+          ],
+          "cid": "test-campaign",
+          "crid": "test-creative",
+          "w": 300,
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "curl": "https://api.hypelab.com/click"
+          }
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}
