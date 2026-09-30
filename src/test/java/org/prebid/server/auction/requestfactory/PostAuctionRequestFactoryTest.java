@@ -81,7 +81,7 @@ import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 @ExtendWith(MockitoExtension.class)
-public class AuctionRequestFactoryTest extends VertxTest {
+public class PostAuctionRequestFactoryTest extends VertxTest {
 
     private static final String ACCOUNT_ID = "acc_id";
 
@@ -114,7 +114,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private BidAdjustmentsEnricher bidAdjustmentsEnricher;
 
-    private AuctionRequestFactory target;
+    private PostAuctionRequestFactory target;
 
     @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
@@ -209,7 +209,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
         given(bidAdjustmentsEnricher.enrichBidRequest(any())).willReturn(defaultBidRequest);
 
-        target = new AuctionRequestFactory(
+        target = new PostAuctionRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 profilesProcessor,

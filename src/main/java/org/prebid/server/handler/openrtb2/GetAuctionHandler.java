@@ -18,7 +18,7 @@ import org.prebid.server.auction.HookDebugInfoEnricher;
 import org.prebid.server.auction.HooksMetricsService;
 import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.GetAuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.BlocklistedAppException;
@@ -49,13 +49,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class AuctionHandler implements ApplicationResource {
+public class GetAuctionHandler implements ApplicationResource {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(GetAuctionHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final double logSamplingRate;
-    private final AuctionRequestFactory auctionRequestFactory;
+    private final GetAuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
     private final SkippedAuctionService skippedAuctionService;
     private final AnalyticsReporterDelegator analyticsDelegator;
@@ -67,18 +67,18 @@ public class AuctionHandler implements ApplicationResource {
     private final HookStageExecutor hookStageExecutor;
     private final JacksonMapper mapper;
 
-    public AuctionHandler(double logSamplingRate,
-                          AuctionRequestFactory auctionRequestFactory,
-                          ExchangeService exchangeService,
-                          SkippedAuctionService skippedAuctionService,
-                          AnalyticsReporterDelegator analyticsDelegator,
-                          Metrics metrics,
-                          HooksMetricsService hooksMetricsService,
-                          Clock clock,
-                          HttpInteractionLogger httpInteractionLogger,
-                          PrebidVersionProvider prebidVersionProvider,
-                          HookStageExecutor hookStageExecutor,
-                          JacksonMapper mapper) {
+    public GetAuctionHandler(double logSamplingRate,
+                             GetAuctionRequestFactory auctionRequestFactory,
+                             ExchangeService exchangeService,
+                             SkippedAuctionService skippedAuctionService,
+                             AnalyticsReporterDelegator analyticsDelegator,
+                             Metrics metrics,
+                             HooksMetricsService hooksMetricsService,
+                             Clock clock,
+                             HttpInteractionLogger httpInteractionLogger,
+                             PrebidVersionProvider prebidVersionProvider,
+                             HookStageExecutor hookStageExecutor,
+                             JacksonMapper mapper) {
 
         this.logSamplingRate = logSamplingRate;
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
@@ -96,7 +96,7 @@ public class AuctionHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.openrtb2_auction.value()));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.openrtb2_auction.value()));
     }
 
     @Override
@@ -110,7 +110,7 @@ public class AuctionHandler implements ApplicationResource {
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
                 .httpContext(HttpRequestContext.from(routingContext));
 
-        auctionRequestFactory.parseRequest(routingContext, startTime)
+        auctionRequestFactory.fromRequest(routingContext, startTime)
                 .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
                         .recover(_ -> holdAuction(auctionEventBuilder, auctionContext)))
                 .map(context -> addContextAndBidResponseToEvent(context, auctionEventBuilder, context))

@@ -61,9 +61,9 @@ import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
+import org.prebid.server.auction.requestfactory.PostAuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
@@ -469,7 +469,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AuctionRequestFactory auctionRequestFactory(
+    PostAuctionRequestFactory auctionRequestFactory(
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             ProfilesProcessor profilesProcessor,
@@ -485,7 +485,7 @@ public class ServiceConfiguration {
             GeoLocationServiceWrapper geoLocationServiceWrapper,
             BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
-        return new AuctionRequestFactory(
+        return new PostAuctionRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 profilesProcessor,

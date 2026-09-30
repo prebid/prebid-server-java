@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class AuctionRequestFactory {
+public class PostAuctionRequestFactory {
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
@@ -54,21 +54,21 @@ public class AuctionRequestFactory {
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
     private final BidAdjustmentsEnricher bidAdjustmentsEnricher;
 
-    public AuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
-                                 StoredRequestProcessor storedRequestProcessor,
-                                 ProfilesProcessor profilesProcessor,
-                                 BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                                 AuctionGppService gppService,
-                                 CookieDeprecationService cookieDeprecationService,
-                                 ImplicitParametersExtractor paramsExtractor,
-                                 Ortb2ImplicitParametersResolver paramsResolver,
-                                 InterstitialProcessor interstitialProcessor,
-                                 OrtbTypesResolver ortbTypesResolver,
-                                 AuctionPrivacyContextFactory auctionPrivacyContextFactory,
-                                 DebugResolver debugResolver,
-                                 JacksonMapper mapper,
-                                 GeoLocationServiceWrapper geoLocationServiceWrapper,
-                                 BidAdjustmentsEnricher bidAdjustmentsEnricher) {
+    public PostAuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
+                                     StoredRequestProcessor storedRequestProcessor,
+                                     ProfilesProcessor profilesProcessor,
+                                     BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
+                                     AuctionGppService gppService,
+                                     CookieDeprecationService cookieDeprecationService,
+                                     ImplicitParametersExtractor paramsExtractor,
+                                     Ortb2ImplicitParametersResolver paramsResolver,
+                                     InterstitialProcessor interstitialProcessor,
+                                     OrtbTypesResolver ortbTypesResolver,
+                                     AuctionPrivacyContextFactory auctionPrivacyContextFactory,
+                                     DebugResolver debugResolver,
+                                     JacksonMapper mapper,
+                                     GeoLocationServiceWrapper geoLocationServiceWrapper,
+                                     BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);

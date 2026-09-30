@@ -23,7 +23,7 @@ import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.PostAuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CoreCacheService;
@@ -48,7 +48,8 @@ import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.info.filters.BidderInfoFilterStrategy;
 import org.prebid.server.handler.info.filters.EnabledOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.openrtb2.AmpHandler;
-import org.prebid.server.handler.openrtb2.AuctionHandler;
+import org.prebid.server.handler.openrtb2.GetAuctionHandler;
+import org.prebid.server.handler.openrtb2.PostAuctionHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
@@ -215,10 +216,10 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    AuctionHandler openrtbAuctionHandler(
+    PostAuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             SkippedAuctionService skippedAuctionService,
-            AuctionRequestFactory auctionRequestFactory,
+            PostAuctionRequestFactory postAuctionRequestFactory,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             HooksMetricsService hooksMetricsService,
@@ -228,9 +229,9 @@ public class ApplicationServerConfiguration {
             HookStageExecutor hookStageExecutor,
             JacksonMapper mapper) {
 
-        return new AuctionHandler(
+        return new PostAuctionHandler(
                 logSamplingRate,
-                auctionRequestFactory,
+                postAuctionRequestFactory,
                 exchangeService,
                 skippedAuctionService,
                 analyticsReporter,
@@ -274,6 +275,35 @@ public class ApplicationServerConfiguration {
                 hookStageExecutor,
                 mapper,
                 logSamplingRate);
+    }
+
+    @Bean
+    GetAuctionHandler getAuctionHandler(
+            ExchangeService exchangeService,
+            SkippedAuctionService skippedAuctionService,
+            GetAuctionRequestFactory getAuctionRequestFactory,
+            AnalyticsReporterDelegator analyticsReporter,
+            Metrics metrics,
+            HooksMetricsService hooksMetricsService,
+            Clock clock,
+            HttpInteractionLogger httpInteractionLogger,
+            PrebidVersionProvider prebidVersionProvider,
+            HookStageExecutor hookStageExecutor,
+            JacksonMapper mapper) {
+
+        return new GetAuctionHandler(
+                logSamplingRate,
+                getAuctionRequestFactory,
+                exchangeService,
+                skippedAuctionService,
+                analyticsReporter,
+                metrics,
+                hooksMetricsService,
+                clock,
+                httpInteractionLogger,
+                prebidVersionProvider,
+                hookStageExecutor,
+                mapper);
     }
 
     @Bean
