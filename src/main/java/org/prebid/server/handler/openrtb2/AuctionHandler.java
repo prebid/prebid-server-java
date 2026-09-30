@@ -112,22 +112,13 @@ public class AuctionHandler implements ApplicationResource {
 
         auctionRequestFactory.parseRequest(routingContext, startTime)
                 .compose(auctionContext -> skippedAuctionService.skipAuction(auctionContext)
-                        .recover(throwable -> holdAuction(auctionEventBuilder, auctionContext)))
+                        .recover(_ -> holdAuction(auctionEventBuilder, auctionContext)))
                 .map(context -> addContextAndBidResponseToEvent(context, auctionEventBuilder, context))
                 .map(context -> prepareSuccessfulResponse(context, routingContext))
                 .compose(this::invokeExitpointHooks)
                 .map(context -> addContextAndBidResponseToEvent(
                         context.getAuctionContext(), auctionEventBuilder, context))
                 .onComplete(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
-    }
-
-    private static <R> R addContextAndBidResponseToEvent(AuctionContext context,
-                                                         AuctionEvent.AuctionEventBuilder auctionEventBuilder,
-                                                         R result) {
-
-        auctionEventBuilder.auctionContext(context);
-        auctionEventBuilder.bidResponse(context.getBidResponse());
-        return result;
     }
 
     private Future<AuctionContext> holdAuction(AuctionEvent.AuctionEventBuilder auctionEventBuilder,
@@ -138,11 +129,6 @@ public class AuctionHandler implements ApplicationResource {
                 // In case of holdAuction Exception and auctionContext is not present below
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .compose(exchangeService::holdAuction);
-    }
-
-    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
-        consumer.accept(field);
-        return result;
     }
 
     private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
@@ -162,6 +148,20 @@ public class AuctionHandler implements ApplicationResource {
         return context;
     }
 
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
+    }
+
+    private static <R> R addContextAndBidResponseToEvent(AuctionContext context,
+                                                         AuctionEvent.AuctionEventBuilder auctionEventBuilder,
+                                                         R result) {
+
+        auctionEventBuilder.auctionContext(context);
+        auctionEventBuilder.bidResponse(context.getBidResponse());
+        return result;
+    }
+
     private RawResponseContext prepareSuccessfulResponse(AuctionContext auctionContext, RoutingContext routingContext) {
         final MultiMap responseHeaders = getCommonResponseHeaders(routingContext)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
@@ -171,6 +171,19 @@ public class AuctionHandler implements ApplicationResource {
                 .responseHeaders(responseHeaders)
                 .auctionContext(auctionContext)
                 .build();
+    }
+
+    private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
+        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+
+        final MultiMap requestHeaders = routingContext.request().headers();
+        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
+            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
+        }
+
+        return responseHeaders;
     }
 
     private Future<RawResponseContext> invokeExitpointHooks(RawResponseContext rawResponseContext) {
@@ -326,18 +339,5 @@ public class AuctionHandler implements ApplicationResource {
     private void handleResponseException(Throwable throwable, MetricName requestType) {
         logger.warn("Failed to send auction response: {}", throwable.getMessage());
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-    }
-
-    private MultiMap getCommonResponseHeaders(RoutingContext routingContext) {
-        final MultiMap responseHeaders = MultiMap.caseInsensitiveMultiMap();
-        HttpUtil.addHeaderIfValueIsNotEmpty(
-                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
-
-        final MultiMap requestHeaders = routingContext.request().headers();
-        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
-            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
-        }
-
-        return responseHeaders;
     }
 }
