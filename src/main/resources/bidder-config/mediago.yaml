@@ -16,10 +16,6 @@ adapters:
         enabled: false
         endpoint: https://gbid.mediagotechnology.com/api/bid?tn={AccountID}
         meta-info:
-          app-media-types:
-          site-media-types:
-            - banner
-            - native
           vendor-id: 1575
         usersync:
           cookie-family-name: mgtechnology
@@ -29,8 +25,6 @@ adapters:
     meta-info:
       maintainer-email: ext_mediago_cm@baidu.com
       app-media-types:
-        - banner
-        - native
       site-media-types:
         - banner
         - native
