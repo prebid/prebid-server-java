@@ -23,6 +23,7 @@ import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
+import org.prebid.server.auction.requestfactory.GetAuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.PostAuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;

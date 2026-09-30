@@ -61,6 +61,7 @@ import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcement;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
+import org.prebid.server.auction.requestfactory.GetAuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.PostAuctionRequestFactory;
@@ -501,6 +502,47 @@ public class ServiceConfiguration {
                 mapper,
                 geoLocationServiceWrapper,
                 bidAdjustmentsEnricher);
+    }
+
+    @Bean
+    GetAuctionRequestFactory getAuctionRequestFactory(
+            Ortb2RequestFactory ortb2RequestFactory,
+            StoredRequestProcessor storedRequestProcessor,
+            ProfilesProcessor profilesProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+            AuctionGppService auctionGppService,
+            CookieDeprecationService cookieDeprecationService,
+            ImplicitParametersExtractor implicitParametersExtractor,
+            OrtbTypesResolver ortbTypesResolver,
+            IpAddressHelper ipAddressHelper,
+            Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
+            FpdResolver fpdResolver,
+            AuctionPrivacyContextFactory auctionPrivacyContextFactory,
+            DebugResolver debugResolver,
+            JacksonMapper mapper,
+            GeoLocationServiceWrapper geoLocationServiceWrapper,
+            BidAdjustmentsEnricher bidAdjustmentsEnricher,
+            TcfDefinerService tcfDefinerService) {
+
+        return new GetAuctionRequestFactory(
+                ortb2RequestFactory,
+                storedRequestProcessor,
+                profilesProcessor,
+                bidRequestOrtbVersionConversionManager,
+                auctionGppService,
+                cookieDeprecationService,
+                implicitParametersExtractor,
+                ortbTypesResolver,
+                ipAddressHelper,
+                ortb2ImplicitParametersResolver,
+                fpdResolver,
+                new InterstitialProcessor(),
+                auctionPrivacyContextFactory,
+                debugResolver,
+                mapper,
+                geoLocationServiceWrapper,
+                bidAdjustmentsEnricher,
+                tcfDefinerService);
     }
 
     @Bean
