@@ -54,6 +54,19 @@ accounts:
                     }
                   ]
                 },
+                "processed-auction-request": {
+                  "groups": [
+                    {
+                      "timeout": 600,
+                      "hook-sequence": [
+                        {
+                          "module-code": "optable-targeting",
+                          "hook-impl-code": "optable-targeting-processed-auction-request-hook"
+                        }
+                      ]
+                    }
+                  ]
+                },
                 "bidder-request": {
                   "groups": [
                     {

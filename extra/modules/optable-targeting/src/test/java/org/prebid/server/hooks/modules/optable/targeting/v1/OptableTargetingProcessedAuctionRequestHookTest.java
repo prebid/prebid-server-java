@@ -217,7 +217,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    void callShouldReturnResultWithUpdateActionWhenEarlyOptableCallIsEnabled() {
+    void callShouldReturnResultWithNoActionWhenEarlyOptableCallIsEnabledAndInitialized() {
         // given
         final ModuleContext moduleContext = new ModuleContext();
         moduleContext.setEarlyNetworkCallEnabled(true);
@@ -247,20 +247,11 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         final InvocationResult<AuctionRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
+                .returns(InvocationAction.no_action, InvocationResult::action)
                 .extracting(InvocationResult::errors).isNull();
-        final BidRequest bidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest();
-        assertThat(bidRequest.getUser().getEids())
-                .flatExtracting(Eid::getUids)
-                .extracting(Uid::getId)
-                .containsExactly("id");
-        assertThat(bidRequest.getUser().getData())
-                .flatExtracting(Data::getSegment)
-                .extracting(Segment::getId)
-                .containsExactly("id");
+        assertThat(result.payloadUpdate()).isNull();
+        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
+        assertThat(moduleContext.getOptableTargetingCall().succeeded()).isTrue();
     }
 
     @Test

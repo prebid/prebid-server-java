@@ -50,13 +50,26 @@ public class OptableTargetingFlowResolver {
             ModuleContext moduleContext,
             AuctionRequestPayload payload,
             AuctionInvocationContext invocationContext,
-            OptableTargetingProperties properties) {
+            OptableTargetingProperties properties,
+            boolean cleanRequestOnFail) {
 
         final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
+        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
+            if (cleanRequestOnFail) {
+                moduleContext.setShouldSkipEnrichment(true);
+            }
+            moduleContext.setEarlyCallInitializationCompleted(false);
+            return cleanRequestOnFail
+                    ? update(BidRequestCleaner.instance(), moduleContext)
+                    : success(moduleContext);
+        }
+
         final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
         if (CollectionUtils.isEmpty(biddersToEnrich)) {
             moduleContext.setEarlyCallInitializationCompleted(false);
-            return update(BidRequestCleaner.instance(), moduleContext);
+            return cleanRequestOnFail
+                    ? update(BidRequestCleaner.instance(), moduleContext)
+                    : success(moduleContext);
         }
 
         moduleContext.setBiddersToEnrich(biddersToEnrich);
@@ -186,6 +199,16 @@ public class OptableTargetingFlowResolver {
                         .action(InvocationAction.update)
                         .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .payloadUpdate(payloadUpdate)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    public static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_action)
                         .moduleContext(moduleContext)
                         .build());
     }

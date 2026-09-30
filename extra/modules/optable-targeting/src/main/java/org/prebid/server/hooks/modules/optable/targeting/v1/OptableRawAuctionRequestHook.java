@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
-import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -29,15 +28,15 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
     public static final String CODE = "optable-targeting-raw-auction-request-hook";
 
     private final ConfigResolver configResolver;
-    private final OptableTargetingFlowResolver earlyOptableCallResolver;
+    private final OptableTargetingFlowResolver optableTargetingFlowResolver;
     private final double logSamplingRate;
 
     public OptableRawAuctionRequestHook(ConfigResolver configResolver,
-                                        OptableTargetingFlowResolver earlyOptableCallResolver,
+                                        OptableTargetingFlowResolver optableTargetingFlowResolver,
                                         double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.earlyOptableCallResolver = earlyOptableCallResolver;
+        this.optableTargetingFlowResolver = optableTargetingFlowResolver;
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -61,15 +60,8 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
             return update(BidRequestCleaner.instance(), moduleContext);
         }
 
-        final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
-        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
-            moduleContext.setShouldSkipEnrichment(true);
-            moduleContext.setEarlyCallInitializationCompleted(false);
-            return update(BidRequestCleaner.instance(), moduleContext);
-        }
-
-        return earlyOptableCallResolver.resolveAsyncOptableTargetingFlow(
-                moduleContext, payload, invocationContext, properties);
+        return optableTargetingFlowResolver.resolveAsyncOptableTargetingFlow(
+                moduleContext, payload, invocationContext, properties, false);
     }
 
     public static Future<InvocationResult<AuctionRequestPayload>> update(
@@ -81,6 +73,16 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
                         .payloadUpdate(payloadUpdate)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    public static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_action)
                         .moduleContext(moduleContext)
                         .build());
     }

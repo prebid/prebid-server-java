@@ -19,6 +19,11 @@ This module runs at three stages:
 * Bidder Request: awaits the API response and enriches individual bidder requests with `user.eids` and `user.data`.
 * Auction Response: injects ad server targeting.
 
+Requests that rely on stored requests (f.e. Prebid Mobile SDK traffic, where bidders and often `app` live in the
+stored request) are only merged after the Raw Auction Request stage. When the bidders or `site`/`app` can't be
+determined at that stage, the API call is started by the Bidder Request hook on the merged request instead and is
+awaited there, so for such traffic the `bidder-request` hook timeout has to cover the whole API roundtrip.
+
 We recommend defining the execution plan in the account config so the module is only invoked for specific accounts. See
 below for an example.
 
