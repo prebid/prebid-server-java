@@ -589,7 +589,7 @@ public class PubmaticBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfBannerHasNoSizesAndNoFormat() {
-        // given
+        // given - non-interstitial banner with no W/H and no format: should error
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot"));
@@ -601,6 +601,23 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("No sizes provided for Banner"));
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotReturnErrorForInterstitialBannerWithNoSizes() {
+        // given - per OpenRTB 2.6, banner sizes are optional for interstitial imps (instl=1)
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .instl(1)
+                        .banner(Banner.builder().build()),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
