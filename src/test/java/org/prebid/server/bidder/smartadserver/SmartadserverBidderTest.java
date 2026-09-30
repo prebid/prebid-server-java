@@ -218,7 +218,8 @@ public class SmartadserverBidderTest extends VertxTest {
                         .put("networkId", 5)
                         .put("siteId", 6)
                         .put("formatId", 7)
-                        .put("pageId", 8));
+                        .put("pageId", 8)
+                        .put("placementuuid", PLACEMENT_UUID));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(
@@ -241,7 +242,8 @@ public class SmartadserverBidderTest extends VertxTest {
                         .put("networkId", 5)
                         .put("siteId", 6)
                         .put("formatId", 7)
-                        .put("pageId", 8));
+                        .put("pageId", 8)
+                        .put("plcmtuuid", PLACEMENT_UUID));
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
@@ -308,147 +310,6 @@ public class SmartadserverBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(singleImpExt(result)).isEqualTo(expectedImpExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotEmitPlcmtuuidWhenPlacementUuidIsAbsent() {
-        // given
-        final ObjectNode givenImpExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("siteId", 1)
-                        .put("pageId", 2)
-                        .put("formatId", 3)
-                        .put("networkId", 73));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        final ObjectNode expectedImpExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("siteId", 1)
-                        .put("pageId", 2)
-                        .put("formatId", 3)
-                        .put("networkId", 73));
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(singleImpExt(result)).isEqualTo(expectedImpExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldForwardMalformedPlacementUuidVerbatim() {
-        // given
-        final ObjectNode givenImpExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("networkId", 73)
-                        .put("placementuuid", "not-a-uuid"));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(singleImpExt(result).path("bidder").path("plcmtuuid").asText()).isEqualTo("not-a-uuid");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPutPlcmtuuidUnderSmartadserverKeyWhenProgrammaticGuaranteed() {
-        // given
-        final ObjectNode givenImpExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("networkId", 73)
-                        .put("placementuuid", PLACEMENT_UUID)
-                        .put("programmaticGuaranteed", true));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri())
-                .isEqualTo("https://test.endpoint2.com/path/ortb?testParam=testVal");
-
-        final ObjectNode impExt = singleImpExt(result);
-        assertThat(impExt.has("bidder")).isFalse();
-        assertThat(impExt.path("smartadserver").path("plcmtuuid").asText()).isEqualTo(PLACEMENT_UUID);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldKeepPlacementUuidPerImp() {
-        // given
-        final ObjectNode givenImpExt1 = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("siteId", 1)
-                        .put("pageId", 2)
-                        .put("formatId", 3)
-                        .put("networkId", 73));
-        final ObjectNode givenImpExt2 = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("networkId", 73)
-                        .put("placementuuid", PLACEMENT_UUID));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(List.of(
-                        givenImp(imp -> imp.id("impId1").ext(givenImpExt1)),
-                        givenImp(imp -> imp.id("impId2").ext(givenImpExt2))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        final ObjectNode expectedImpExt1 = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("siteId", 1)
-                        .put("pageId", 2)
-                        .put("formatId", 3)
-                        .put("networkId", 73));
-        final ObjectNode expectedImpExt2 = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("networkId", 73)
-                        .put("plcmtuuid", PLACEMENT_UUID));
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsExactly(expectedImpExt1, expectedImpExt2);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldOmitPlcmtuuidWhenPlacementUuidIsEmpty() {
-        // given
-        final ObjectNode givenImpExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("networkId", 73)
-                        .put("placementuuid", ""));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(singleImpExt(result).path("bidder").has("plcmtuuid")).isFalse();
     }
 
     @Test
