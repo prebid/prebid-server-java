@@ -417,6 +417,23 @@ public class GetAuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void fromRequestShouldOmitNegativeTmax() {
+        // given
+        givenQueryParams(MultiMap.caseInsensitiveMultiMap()
+                .add("srid", "storedRequestId")
+                .add("tmax", "-123"));
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
+
+        // then
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getTmax)
+                .isNull();
+    }
+
+    @Test
     public void fromRequestShouldUseDefaultDebug() {
         // given
         givenQueryParams(MultiMap.caseInsensitiveMultiMap().add("srid", "storedRequestId"));

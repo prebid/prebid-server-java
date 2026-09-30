@@ -553,7 +553,8 @@ public class GetAuctionRequestFactory {
         public Long tmax() {
             try {
                 final String value = getString("tmax");
-                return StringUtils.isNotBlank(value) ? Long.parseLong(value) : null;
+                final Long tmax = StringUtils.isNotBlank(value) ? Long.parseLong(value) : null;
+                return tmax != null && tmax > 0 ? tmax : null;
             } catch (NumberFormatException e) {
                 throw new InvalidRequestException("Invalid number: " + e.getMessage());
             }
