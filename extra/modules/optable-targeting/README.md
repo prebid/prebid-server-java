@@ -13,16 +13,16 @@ Targeting API endpoint is configurable per publisher.
 
 ### Execution Plan
 
-This module runs at three stages:
+The module uses four hooks, all of which are required:
 
-* Raw Auction Request: initiates a non-blocking Optable API call early in the auction lifecycle.
-* Bidder Request: awaits the API response and enriches individual bidder requests with `user.eids` and `user.data`.
+* Raw Auction Request: starts the Optable API call early, without blocking the auction.
+* Processed Auction Request: starts the call for requests that rely on stored requests (see below).
+* Bidder Request: awaits the API response and enriches each bidder request with `user.eids` and `user.data`.
 * Auction Response: injects ad server targeting.
 
-Requests that rely on stored requests (f.e. Prebid Mobile SDK traffic, where bidders and often `app` live in the
-stored request) are only merged after the Raw Auction Request stage. When the bidders or `site`/`app` can't be
-determined at that stage, the API call is started by the Bidder Request hook on the merged request instead and is
-awaited there, so for such traffic the `bidder-request` hook timeout has to cover the whole API roundtrip.
+Stored requests and stored imps are merged after the Raw Auction Request stage. When the bidders or `site`/`app` are
+not known at that stage (f.e. Prebid Mobile SDK traffic, where they live in the stored request), the Processed Auction
+Request hook starts the call on the merged request instead. Without it such requests are not enriched.
 
 We recommend defining the execution plan in the account config so the module is only invoked for specific accounts. See
 below for an example.
@@ -53,6 +53,19 @@ hooks:
                     {
                       "module-code": "optable-targeting",
                       "hook-impl-code": "optable-targeting-raw-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            },
+            "processed-auction-request": {
+              "groups": [
+                {
+                  "timeout": 50,
+                  "hook-sequence": [
+                    {
+                      "module-code": "optable-targeting",
+                      "hook-impl-code": "optable-targeting-processed-auction-request-hook"
                     }
                   ]
                 }
@@ -141,41 +154,17 @@ Sample module enablement configuration in JSON and YAML formats:
 
 ### Migrating from legacy configuration
 
-Previous versions of the module used a `processed-auction-request` hook (alongside the `auction-response` hook) that both
-made the API call and enriched the request synchronously in one step, blocking the auction pipeline. The new
-configuration replaces it with two hooks: `raw-auction-request` (initiates the API call early) and `bidder-request`
-(awaits the result and enriches per-bidder), while the `auction-response` hook remains unchanged. If your execution plan contains the following fragment, it should
-be replaced with the `raw-auction-request` and `bidder-request` hooks shown above:
-
-```json
-"processed-auction-request": {
-  "groups": [
-    {
-      "timeout": 600,
-      "hook-sequence": [
-        {
-          "module-code": "optable-targeting",
-          "hook-impl-code": "optable-targeting-processed-auction-request-hook"
-        }
-      ]
-    }
-  ]
-}
-```
-
-The `processed-auction-request` hook is still supported for backwards compatibility. It detects whether the new hooks
-(`raw-auction-request` and `bidder-request`) are present in the execution plan. If both are active, it passes through
-immediately without blocking the pipeline. If the new hooks are absent, it falls back to the legacy synchronous
-behavior. This means the legacy fragment can be kept during migration without negating the latency benefit of the new
-configuration.
+Previous versions used only the `processed-auction-request` hook (with `auction-response`), which made the API call
+and enriched the whole request synchronously, blocking the auction. To migrate, keep that hook and add the
+`raw-auction-request` and `bidder-request` hooks as shown above. With them in the plan, the processed hook no longer
+blocks; without them, it keeps the legacy synchronous behavior.
 
 ### Timeout considerations
 
-The `bidder-request` hook timeout is used as the timeout budget for the Optable Targeting API call Future that is
-initiated in the `raw-auction-request` stage. The API call runs in parallel with other auction processing, so the
-effective wait time at the `bidder-request` stage is typically much shorter than the full API roundtrip. The
-`raw-auction-request` hook timeout only needs to cover its own lightweight setup (validation, sampling) and can be kept
-short.
+The `bidder-request` hook timeout is the budget for the API call started in the `raw-auction-request` or
+`processed-auction-request` stage. The call runs in parallel with the rest of the auction, so the actual wait at the
+`bidder-request` stage is usually much shorter than the full roundtrip. The `raw-auction-request` and
+`processed-auction-request` hook timeouts only cover validation and sampling and can be kept short.
 
 **Note:** Do not confuse hook timeout value with the module timeout parameter which is optional. The hook timeout value
 would depend on the cloud/region where the PBS instance is hosted and the latency to reach the Optable's servers. This
