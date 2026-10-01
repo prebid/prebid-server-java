@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
@@ -57,7 +57,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
             moduleContext.failWithExecutionTime(
                     System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
 
-            return update(BidRequestCleaner.instance(), moduleContext);
+            return update(AuctionRequestCleaner.instance(), moduleContext);
         }
 
         return optableTargetingFlowResolver.resolveAsyncOptableTargetingFlow(

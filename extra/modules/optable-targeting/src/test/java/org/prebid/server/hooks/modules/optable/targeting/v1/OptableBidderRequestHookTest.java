@@ -59,7 +59,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnNoActionWhenPerBidderEnrichmentIsDisabled() {
+    public void shouldCleanBidRequestWhenPerBidderEnrichmentIsDisabled() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenOptableTargetingProperties(false));
@@ -74,12 +74,13 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
         assertThat(result.moduleContext()).isSameAs(moduleContext);
+        assertCleanedBidRequest(result);
     }
 
     @Test
-    public void shouldReturnNoActionWhenPerBidderEnrichmentIsDisabledAndTargetingCallFailed() {
+    public void shouldCleanBidRequestWhenPerBidderEnrichmentIsDisabledAndTargetingCallFailed() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenOptableTargetingProperties(false));
@@ -93,7 +94,8 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
         assertThat(moduleContext.getId5Signature()).isNull();
     }
 
@@ -120,7 +122,8 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
         assertThat(moduleContext.getId5Signature()).isNull();
     }
 
@@ -148,12 +151,13 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
         assertThat(moduleContext.getId5Signature()).isNull();
     }
 
     @Test
-    public void shouldReturnNoActionWhenBiddersToEnrichIsEmpty() {
+    public void shouldCleanBidRequestWhenBiddersToEnrichIsEmpty() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
@@ -169,11 +173,12 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
     }
 
     @Test
-    public void shouldReturnNoActionWhenBiddersToEnrichIsNull() {
+    public void shouldCleanBidRequestWhenBiddersToEnrichIsNull() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
@@ -188,7 +193,8 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
     }
 
     @Test
@@ -291,7 +297,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnNoActionWithNoDataOutcomeWhenTargetingResultHasNoUser() {
+    public void shouldCleanBidRequestWithNoDataOutcomeWhenTargetingResultHasNoUser() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
@@ -310,14 +316,15 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
 
         assertThat(moduleContext.getTargeting()).isNull();
         assertAnalyticsTags(result.analyticsTags(), "bidder1", "no-data", "fail");
     }
 
     @Test
-    public void shouldReturnNoActionWithErrorOutcomeWhenTargetingCallFails() {
+    public void shouldCleanBidRequestWithErrorOutcomeWhenTargetingCallFails() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
@@ -337,13 +344,14 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
 
         assertAnalyticsTags(result.analyticsTags(), "bidder1", "error", "fail");
     }
 
     @Test
-    public void shouldReturnNoActionWithTimeoutOutcomeWhenTargetingCallTimesOut() {
+    public void shouldCleanBidRequestWithTimeoutOutcomeWhenTargetingCallTimesOut() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
@@ -363,9 +371,18 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final InvocationResult<BidderRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action);
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertCleanedBidRequest(result);
 
         assertAnalyticsTags(result.analyticsTags(), "bidder1", "timeout", "fail");
+    }
+
+    private void assertCleanedBidRequest(InvocationResult<BidderRequestPayload> result) {
+        final BidRequest cleanedRequest = result
+                .payloadUpdate()
+                .apply(BidderRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(cleanedRequest.getUser().getExt().getProperty("optable")).isNull();
     }
 
     private static ModuleContext givenModuleContextWithProperties(OptableTargetingProperties properties) {

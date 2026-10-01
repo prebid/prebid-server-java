@@ -60,7 +60,7 @@ public class OptableTargetingFlowResolver {
             }
             moduleContext.setEarlyCallInitializationCompleted(false);
             return cleanRequestOnFail
-                    ? update(BidRequestCleaner.instance(), moduleContext)
+                    ? update(AuctionRequestCleaner.instance(), moduleContext)
                     : success(moduleContext);
         }
 
@@ -68,7 +68,7 @@ public class OptableTargetingFlowResolver {
         if (CollectionUtils.isEmpty(biddersToEnrich)) {
             moduleContext.setEarlyCallInitializationCompleted(false);
             return cleanRequestOnFail
-                    ? update(BidRequestCleaner.instance(), moduleContext)
+                    ? update(AuctionRequestCleaner.instance(), moduleContext)
                     : success(moduleContext);
         }
 
@@ -85,7 +85,7 @@ public class OptableTargetingFlowResolver {
 
         moduleContext.setOptableTargetingCall(optableTargetingCall);
 
-        return update(BidRequestCleaner.instance(), moduleContext);
+        return update(AuctionRequestCleaner.instance(), moduleContext);
     }
 
     /**
@@ -100,7 +100,7 @@ public class OptableTargetingFlowResolver {
 
         if (moduleContext.isShouldSkipEnrichment()) {
             moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
-            return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
+            return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
         }
 
         final Account account = invocationContext.auctionContext().getAccount();
@@ -108,7 +108,7 @@ public class OptableTargetingFlowResolver {
         final boolean hasBidderRequestHook = hooksExecutionPlan.hasBidderRequestHook(account);
 
         if (hasRawAuctionRequestHook && hasBidderRequestHook) {
-            return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
+            return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
         }
 
         final Future<TargetingResult> optableTargetingCall = hasRawAuctionRequestHook
@@ -117,7 +117,7 @@ public class OptableTargetingFlowResolver {
 
         if (optableTargetingCall == null) {
             moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
-            return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
+            return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
         }
 
         return optableTargetingCall
@@ -127,7 +127,7 @@ public class OptableTargetingFlowResolver {
                 })
                 .recover(throwable -> {
                     moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
-                    return updateWithAnalytics(BidRequestCleaner.instance(), moduleContext);
+                    return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
                 });
     }
 
@@ -141,7 +141,7 @@ public class OptableTargetingFlowResolver {
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
         final PayloadUpdate<AuctionRequestPayload> payloadUpdate =
-                BidRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
+                AuctionRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
 
         return updateWithAnalytics(payloadUpdate, moduleContext);
     }

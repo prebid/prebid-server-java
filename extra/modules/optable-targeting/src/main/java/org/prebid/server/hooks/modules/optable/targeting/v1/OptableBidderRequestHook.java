@@ -9,6 +9,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Id5Resolver;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -68,7 +69,8 @@ public class OptableBidderRequestHook implements BidderRequestHook {
                 bidder, outcome, executionTime);
 
         return hasData
-                ? update(BidderRequestEnricher.of(targetingResult, properties), moduleContext, analyticsTags)
+                ? update(BidRequestCleaner.instance()
+                .andThen(BidderRequestEnricher.of(targetingResult, properties))::apply, moduleContext, analyticsTags)
                 : noAction(moduleContext, analyticsTags);
     }
 
@@ -102,7 +104,8 @@ public class OptableBidderRequestHook implements BidderRequestHook {
         return Future.succeededFuture(
                 InvocationResultImpl.<BidderRequestPayload>builder()
                         .status(InvocationStatus.success)
-                        .action(InvocationAction.no_action)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(BidRequestCleaner.instance())
                         .analyticsTags(analyticsTags)
                         .moduleContext(moduleContext)
                         .build());
