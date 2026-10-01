@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CompositeHookExecutionPlanTest {
 
     @Test
-    public void hasRawAuctionRequestHookShouldReturnTrueWhenGlobalPlanHasHook() {
+    public void hasRawAuctionRequestHookShouldReturnTrueWhenHostPlanHasHook() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -35,7 +35,7 @@ public class CompositeHookExecutionPlanTest {
         // given
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -43,13 +43,39 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
+    public void hasRawAuctionRequestHookShouldReturnTrueWhenDefaultAccountPlanHasHookAndAccountHasNoOwnPlan() {
+        // given
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlan(
+                "raw_auction_request", "optable-targeting-raw-auction-request-hook");
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, defaultAccountPlan);
+        final Account account = Account.builder().id("accountId").build();
+
+        // when and then
+        assertThat(target.hasRawAuctionRequestHook(account)).isTrue();
+    }
+
+    @Test
+    public void hasRawAuctionRequestHookShouldNotFallBackToDefaultAccountPlanWhenAccountHasOwnPlan() {
+        // given
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlan(
+                "raw_auction_request", "optable-targeting-raw-auction-request-hook");
+        final ExecutionPlan accountPlan = givenExecutionPlan(
+                "bidder_request", "optable-targeting-bidder-request-hook");
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, defaultAccountPlan);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.hasRawAuctionRequestHook(account)).isFalse();
+    }
+
+    @Test
     public void hasRawAuctionRequestHookShouldReturnTrueWhenBothPlansHaveHook() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -59,7 +85,7 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void hasRawAuctionRequestHookShouldReturnFalseWhenNeitherPlanHasHook() {
         // given
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -69,9 +95,9 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void hasRawAuctionRequestHookShouldReturnFalseWhenAccountIsNull() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
 
         // when and then
         assertThat(target.hasRawAuctionRequestHook(null)).isFalse();
@@ -80,9 +106,9 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void hasRawAuctionRequestHookShouldReturnFalseWhenAccountIdIsEmpty() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("").build();
 
         // when and then
@@ -90,11 +116,11 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void hasRawAuctionRequestHookShouldReturnGlobalFlagWhenAccountHasNoHooksConfig() {
+    public void hasRawAuctionRequestHookShouldReturnHostFlagWhenAccountHasNoHooksConfig() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -106,7 +132,7 @@ public class CompositeHookExecutionPlanTest {
         // given
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -115,11 +141,11 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void hasBidderRequestHookShouldReturnTrueWhenGlobalPlanHasHook() {
+    public void hasBidderRequestHookShouldReturnTrueWhenHostPlanHasHook() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -131,7 +157,7 @@ public class CompositeHookExecutionPlanTest {
         // given
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -139,13 +165,39 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
+    public void hasBidderRequestHookShouldReturnTrueWhenDefaultAccountPlanHasHookAndAccountHasNoOwnPlan() {
+        // given
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlan(
+                "bidder_request", "optable-targeting-bidder-request-hook");
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, defaultAccountPlan);
+        final Account account = Account.builder().id("accountId").build();
+
+        // when and then
+        assertThat(target.hasBidderRequestHook(account)).isTrue();
+    }
+
+    @Test
+    public void hasBidderRequestHookShouldNotFallBackToDefaultAccountPlanWhenAccountHasOwnPlan() {
+        // given
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlan(
+                "bidder_request", "optable-targeting-bidder-request-hook");
+        final ExecutionPlan accountPlan = givenExecutionPlan(
+                "raw_auction_request", "optable-targeting-raw-auction-request-hook");
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, defaultAccountPlan);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.hasBidderRequestHook(account)).isFalse();
+    }
+
+    @Test
     public void hasBidderRequestHookShouldReturnTrueWhenBothPlansHaveHook() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -155,7 +207,7 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void hasBidderRequestHookShouldReturnFalseWhenNeitherPlanHasHook() {
         // given
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -165,9 +217,9 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void hasBidderRequestHookShouldReturnFalseWhenAccountIsNull() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
 
         // when and then
         assertThat(target.hasBidderRequestHook(null)).isFalse();
@@ -176,9 +228,9 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void hasBidderRequestHookShouldReturnFalseWhenAccountIdIsEmpty() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("").build();
 
         // when and then
@@ -186,11 +238,11 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void hasBidderRequestHookShouldReturnGlobalFlagWhenAccountHasNoHooksConfig() {
+    public void hasBidderRequestHookShouldReturnHostFlagWhenAccountHasNoHooksConfig() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -202,7 +254,7 @@ public class CompositeHookExecutionPlanTest {
         // given
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -211,11 +263,11 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void hasRawAuctionRequestHookShouldReturnFalseWhenOnlyBidderRequestHookIsInGlobalPlan() {
+    public void hasRawAuctionRequestHookShouldReturnFalseWhenOnlyBidderRequestHookIsInHostPlan() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "bidder_request", "optable-targeting-bidder-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -223,11 +275,11 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void hasBidderRequestHookShouldReturnFalseWhenOnlyRawAuctionRequestHookIsInGlobalPlan() {
+    public void hasBidderRequestHookShouldReturnFalseWhenOnlyRawAuctionRequestHookIsInHostPlan() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlan(
+        final ExecutionPlan hostPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -235,13 +287,13 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void getBidderRequestTimeoutShouldReturnGlobalTimeoutWhenConfigured() {
+    public void getBidderRequestTimeoutShouldReturnHostTimeoutWhenConfigured() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 500L);
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -251,7 +303,7 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void getBidderRequestTimeoutShouldReturnAccountTimeoutWhenAccountPlanOverrides() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 500L);
@@ -259,7 +311,7 @@ public class CompositeHookExecutionPlanTest {
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 200L);
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -267,15 +319,63 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void getBidderRequestTimeoutShouldFallbackToGlobalWhenAccountPlanHasNoTimeout() {
+    public void getBidderRequestTimeoutShouldReturnDefaultAccountPlanTimeoutWhenAccountHasNoOwnPlan() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlanWithTimeout(
+                "bidder_request",
+                "optable-targeting-bidder-request-hook",
+                500L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, defaultAccountPlan);
+        final Account account = Account.builder().id("accountId").build();
+
+        // when and then
+        assertThat(target.getOptableTargetingBidderRequestTimeout(account)).isEqualTo(500L);
+    }
+
+    @Test
+    public void getBidderRequestTimeoutShouldReturnAccountTimeoutWhenBothAccountAndDefaultAccountPlansHaveTimeout() {
+        // given
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlanWithTimeout(
+                "bidder_request",
+                "optable-targeting-bidder-request-hook",
+                500L);
+        final ExecutionPlan accountPlan = givenExecutionPlanWithTimeout(
+                "bidder_request",
+                "optable-targeting-bidder-request-hook",
+                200L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, defaultAccountPlan);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingBidderRequestTimeout(account)).isEqualTo(200L);
+    }
+
+    @Test
+    public void getBidderRequestTimeoutShouldFallbackToHostWhenDefaultAccountPlanHasNoTimeout() {
+        // given
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
+                "bidder_request",
+                "optable-targeting-bidder-request-hook",
+                300L);
+        final ExecutionPlan defaultAccountPlan = givenExecutionPlan(
+                "bidder_request", "optable-targeting-bidder-request-hook");
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, defaultAccountPlan);
+        final Account account = Account.builder().id("accountId").build();
+
+        // when and then
+        assertThat(target.getOptableTargetingBidderRequestTimeout(account)).isEqualTo(300L);
+    }
+
+    @Test
+    public void getBidderRequestTimeoutShouldFallbackToHostWhenAccountPlanHasNoTimeout() {
+        // given
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 300L);
         final ExecutionPlan accountPlan = givenExecutionPlan(
                 "raw_auction_request", "optable-targeting-raw-auction-request-hook");
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -285,7 +385,7 @@ public class CompositeHookExecutionPlanTest {
     @Test
     public void getBidderRequestTimeoutShouldReturnZeroWhenNoPlanIsConfigured() {
         // given
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = Account.builder().id("accountId").build();
 
         // when and then
@@ -293,26 +393,26 @@ public class CompositeHookExecutionPlanTest {
     }
 
     @Test
-    public void getBidderRequestTimeoutShouldReturnGlobalTimeoutWhenAccountIsNull() {
+    public void getBidderRequestTimeoutShouldReturnHostTimeoutWhenAccountIsNull() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 400L);
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
 
         // when and then
         assertThat(target.getOptableTargetingBidderRequestTimeout(null)).isEqualTo(400L);
     }
 
     @Test
-    public void getBidderRequestTimeoutShouldReturnGlobalTimeoutWhenAccountIdIsEmpty() {
+    public void getBidderRequestTimeoutShouldReturnHostTimeoutWhenAccountIdIsEmpty() {
         // given
-        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 150L);
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
         final Account account = Account.builder().id("").build();
 
         // when and then
@@ -326,7 +426,7 @@ public class CompositeHookExecutionPlanTest {
                 "bidder_request",
                 "optable-targeting-bidder-request-hook",
                 250L);
-        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
         final Account account = givenAccount("accountId", accountPlan);
 
         // when and then
@@ -357,4 +457,3 @@ public class CompositeHookExecutionPlanTest {
                 .build();
     }
 }
-

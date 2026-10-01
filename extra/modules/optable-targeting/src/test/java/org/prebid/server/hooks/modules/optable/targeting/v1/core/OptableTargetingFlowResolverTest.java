@@ -51,7 +51,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         target = new OptableTargetingFlowResolver(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(ExecutionPlan.empty()),
+                CompositeHookExecutionPlan.of(ExecutionPlan.empty(), null),
                 0.01);
     }
 

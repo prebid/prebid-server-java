@@ -79,7 +79,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         return new OptableTargetingFlowResolver(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(ExecutionPlan.empty()),
+                CompositeHookExecutionPlan.of(ExecutionPlan.empty(), null),
                 0.01);
     }
 

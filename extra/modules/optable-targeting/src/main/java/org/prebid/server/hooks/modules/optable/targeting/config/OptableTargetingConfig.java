@@ -137,13 +137,18 @@ public class OptableTargetingConfig {
             BidderEnrichmentSampler bidderEnrichmentSampler,
             TargetingRequestExecutor targetingRequestExecutor,
             @Value("${hooks.host-execution-plan:}")
-            String executionPlan,
+            String hostExecutionPlan,
+            @Value("${hooks.default-account-execution-plan:}")
+            String defaultAccountExecutionPlan,
             JacksonMapper mapper,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         final CompositeHookExecutionPlan hooksExecutionPlan = CompositeHookExecutionPlan.of(
-                StringUtils.isNoneEmpty(executionPlan)
-                        ? mapper.decodeValue(executionPlan, ExecutionPlan.class)
+                StringUtils.isNoneEmpty(hostExecutionPlan)
+                        ? mapper.decodeValue(hostExecutionPlan, ExecutionPlan.class)
+                        : null,
+                StringUtils.isNoneEmpty(defaultAccountExecutionPlan)
+                        ? mapper.decodeValue(defaultAccountExecutionPlan, ExecutionPlan.class)
                         : null);
 
         return new OptableTargetingFlowResolver(

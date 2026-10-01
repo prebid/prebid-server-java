@@ -104,7 +104,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         return new OptableTargetingFlowResolver(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(executionPlan),
+                CompositeHookExecutionPlan.of(executionPlan, null),
                 0.01);
     }
 
