@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.IntSupplier;
-import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -357,31 +355,11 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         return props;
     }
 
-    private ObjectNode givenPrebidBidderExt(String... bidders) {
-        final ObjectNode prebidNode = mapper.createObjectNode();
-        prebidNode.set("bidder", givenBidderNode(bidders));
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("prebid", prebidNode);
-        return ext;
-    }
-
     private ObjectNode givenOldStyleExt(String... bidders) {
         final ObjectNode ext = mapper.createObjectNode();
         for (String bidder : bidders) {
             ext.putObject(bidder).put("param", "value");
         }
         return ext;
-    }
-
-    private ObjectNode givenBidderNode(String... bidders) {
-        final ObjectNode bidderNode = mapper.createObjectNode();
-        for (String bidder : bidders) {
-            bidderNode.put(bidder, "value");
-        }
-        return bidderNode;
-    }
-
-    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()).build();
     }
 }

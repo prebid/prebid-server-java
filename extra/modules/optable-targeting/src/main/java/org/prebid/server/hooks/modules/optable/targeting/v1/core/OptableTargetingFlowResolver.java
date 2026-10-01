@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
@@ -17,12 +18,18 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 
+import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class OptableTargetingFlowResolver {
+
+    private static final String PREBID_STORED_REQUEST_PATH = "/prebid/storedrequest";
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
             LoggerFactory.getLogger(OptableTargetingProcessedAuctionRequestHook.class));
@@ -65,7 +72,8 @@ public class OptableTargetingFlowResolver {
         }
 
         final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
-        if (CollectionUtils.isEmpty(biddersToEnrich)) {
+        if (CollectionUtils.isEmpty(biddersToEnrich)
+                || !cleanRequestOnFail && (hasStoredRequest(bidRequest) || hasStoredImps(bidRequest))) {
             moduleContext.setEarlyCallInitializationCompleted(false);
             return cleanRequestOnFail
                     ? update(AuctionRequestCleaner.instance(), moduleContext)
@@ -87,6 +95,23 @@ public class OptableTargetingFlowResolver {
 
         return update(AuctionRequestCleaner.instance(), moduleContext);
     }
+
+    private static boolean hasStoredImps(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getImp())
+                .stream()
+                .flatMap(Collection::stream)
+                .map(Imp::getExt)
+                .filter(Objects::nonNull)
+                .anyMatch(impExt -> impExt.at(PREBID_STORED_REQUEST_PATH).isObject());
+    }
+
+    private static boolean hasStoredRequest(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getStoredrequest)
+                .isPresent();
+    }
+
 
     /**
      * @deprecated This call is deprecated and will be removed in a future release.

@@ -27,6 +27,7 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -212,6 +213,45 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    @SneakyThrows
+    @Test
+    public void shouldNotInjectEarlyNetworkCallToModuleContextWhenAnyImpIsStoredImp(
+            VertxTestContext vertxTestContext) {
+
+        // given
+        when(invocationContext.accountConfig())
+                .thenReturn(givenAccountConfig("key", "tenant", "origin", true));
+        final BidRequest bidRequestWithStoredImp = givenBidRequest(request -> request.imp(List.of(
+                givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))),
+                givenImp(imp -> imp.ext(givenStoredImpExt())))));
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout)
+                        .toBuilder()
+                        .bidRequest(bidRequestWithStoredImp)
+                        .build());
+        when(auctionRequestPayload.bidRequest()).thenReturn(bidRequestWithStoredImp);
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> result =
+                target.call(auctionRequestPayload, invocationContext);
+
+        // then
+        assertThat(result).isNotNull();
+        result.map(res -> (ModuleContext) res.moduleContext())
+                .onComplete(cxt -> {
+                    vertxTestContext.verify(() -> {
+                        final ModuleContext moduleContext = cxt.result();
+                        assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
+                        assertThat(moduleContext.getOptableTargetingCall()).isNull();
+                        assertThat(moduleContext.getBiddersToEnrich()).isNull();
+                        assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
                         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
                     });
                     vertxTestContext.completeNow();

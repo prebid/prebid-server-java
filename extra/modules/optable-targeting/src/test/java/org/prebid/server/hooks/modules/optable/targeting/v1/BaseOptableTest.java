@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Uid;
@@ -179,6 +180,43 @@ public abstract class BaseOptableTest {
                 .site(Site.builder().build())
                 .cur(List.of("USD"))
                 .build();
+    }
+
+    protected static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()).build();
+    }
+
+    protected ObjectNode givenPrebidBidderExt(String... bidders) {
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        prebidNode.set("bidder", givenBidderNode(bidders));
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("prebid", prebidNode);
+        return ext;
+    }
+
+    protected ObjectNode givenStoredImpExt() {
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        prebidNode.putObject("storedrequest").put("id", "storedImpId");
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("prebid", prebidNode);
+        return ext;
+    }
+
+    protected ObjectNode givenResolvedStoredImpExt(String... bidders) {
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        prebidNode.set("bidder", givenBidderNode(bidders));
+        prebidNode.putObject("storedrequest").put("id", "storedImpId");
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("prebid", prebidNode);
+        return ext;
+    }
+
+    protected ObjectNode givenBidderNode(String... bidders) {
+        final ObjectNode bidderNode = mapper.createObjectNode();
+        for (String bidder : bidders) {
+            bidderNode.put(bidder, "value");
+        }
+        return bidderNode;
     }
 
     protected BidResponse givenBidResponse() {

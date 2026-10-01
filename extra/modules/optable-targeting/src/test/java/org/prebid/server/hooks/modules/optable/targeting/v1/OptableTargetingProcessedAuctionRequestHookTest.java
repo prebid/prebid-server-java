@@ -323,6 +323,46 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
+    void callShouldRetryEarlyNetworkCallInitializationWhenResolvedRequestStillHasStoredImps() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyNetworkCallEnabled(true);
+        moduleContext.setEarlyCallInitializationCompleted(false);
+
+        final TargetingResult targetingResult = givenTargetingResult();
+        final BidRequest bidRequestWithResolvedStoredImp = givenBidRequest(
+                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenResolvedStoredImpExt("bidderA"))))));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout, Account.builder().id("accountId").build())
+                        .toBuilder()
+                        .bidRequest(bidRequestWithResolvedStoredImp)
+                        .build());
+        when(auctionRequestPayload.bidRequest()).thenReturn(bidRequestWithResolvedStoredImp);
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(targetingResult));
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
+        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
+        assertThat(moduleContext.getOptableTargetingCall().succeeded()).isTrue();
+        assertThat(moduleContext.getOptableTargetingCall().result()).isSameAs(targetingResult);
+    }
+
+    @Test
     void callShouldReturnResultWithEnrichedBidRequestWhenBothHooksAreAbsent() {
         // given
         target = new OptableTargetingProcessedAuctionRequestHook(
