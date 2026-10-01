@@ -270,15 +270,17 @@ public class SmartadserverBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri())
-                .isEqualTo("https://test.endpoint.com/path/api/bid?testParam=testVal&callerId=5");
+        final ObjectNode expectedImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("networkId", 73)
+                        .put("plcmtuuid", PLACEMENT_UUID));
 
-        final ObjectNode bidderExt = (ObjectNode) singleImpExt(result).get("bidder");
-        assertThat(bidderExt.path("plcmtuuid").asText()).isEqualTo(PLACEMENT_UUID);
-        assertThat(bidderExt.path("networkId").asInt()).isEqualTo(73);
-        assertThat(bidderExt.has("placementuuid")).isFalse();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
     }
 
     @Test
@@ -309,7 +311,11 @@ public class SmartadserverBidderTest extends VertxTest {
                         .put("plcmtuuid", PLACEMENT_UUID));
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(singleImpExt(result)).isEqualTo(expectedImpExt);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
     }
 
     @Test
@@ -333,8 +339,11 @@ public class SmartadserverBidderTest extends VertxTest {
                         .put("networkId", 73));
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(singleImpExt(result)).isEqualTo(expectedImpExt);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
     }
 
     @Test
@@ -491,10 +500,6 @@ public class SmartadserverBidderTest extends VertxTest {
                                 null,
                                 ExtImpSmartadserver.of(1, 2, 3, 4, false, null)))))
                 .build();
-    }
-
-    private static ObjectNode singleImpExt(Result<List<HttpRequest<BidRequest>>> result) {
-        return result.getValue().getFirst().getPayload().getImp().getFirst().getExt();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
