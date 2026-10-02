@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.execution.timeout.Timeout;
@@ -13,6 +14,8 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -169,5 +172,91 @@ public class CachedAPIClientTest extends BaseOptableTest {
         assertThat(result.getOrtb2()).isNull();
         assertThat(result.getAudience()).isNull();
         verify(cache, times(1)).put(any(), eq(targetingResult.result()), anyInt());
+    }
+
+    @Test
+    public void shouldIncludeHidInCacheKey() {
+        // given
+        final Query query = Query.of("&id=e%3Aemail", "&hid=c:234", "&gdpr=1", "");
+        final ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        when(cache.get(keyCaptor.capture())).thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        target.getTargeting(
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                "user agent",
+                timeout);
+
+        // then
+        final String key = keyCaptor.getValue();
+        assertThat(key).contains(URLEncoder.encode("&hid=c:234", StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void shouldIncludeHidAttributesInCacheKey() {
+        // given
+        final Query query = Query.of("&id=e%3Aemail", "", "&gdpr=1", "&bundle=com.example.app");
+        final ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        when(cache.get(keyCaptor.capture())).thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        target.getTargeting(
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                "user agent",
+                timeout);
+
+        // then
+        final String key = keyCaptor.getValue();
+        assertThat(key).contains(URLEncoder.encode("&bundle=com.example.app", StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void shouldBuildCacheKeyWithAllComponents() {
+        // given
+        final Query query = Query.of("&id=e%3Aemail", "&hid=c:234", "&gdpr=1", "&id5_signature=sig");
+        final ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        when(cache.get(keyCaptor.capture())).thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        target.getTargeting(
+                givenOptableTargetingProperties("key", "accountId", "origin", true),
+                query,
+                List.of("8.8.8.8"),
+                "user agent",
+                timeout);
+
+        // then
+        final String key = keyCaptor.getValue();
+        assertThat(key).isEqualTo(
+                "accountId:origin:8.8.8.8:"
+                        + URLEncoder.encode("&id=e%3Aemail", StandardCharsets.UTF_8)
+                        + ":"
+                        + URLEncoder.encode("&hid=c:234", StandardCharsets.UTF_8)
+                        + ":"
+                        + URLEncoder.encode("&id5_signature=sig", StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void shouldUseNullInCacheKeyWhenHidIsNull() {
+        // given
+        final Query query = Query.of("&id=e%3Aemail", null, "&gdpr=1", null);
+        final ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        when(cache.get(keyCaptor.capture())).thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        target.getTargeting(
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                "user agent",
+                timeout);
+
+        // then
+        final String key = keyCaptor.getValue();
+        assertThat(key).endsWith(":null:null");
     }
 }

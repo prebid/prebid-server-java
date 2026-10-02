@@ -1,15 +1,26 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.PbcStorageService;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AliasesResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
@@ -38,7 +49,7 @@ public class OptableTargetingConfig {
 
     @Bean
     IdsMapper queryParametersExtractor(@Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
-        return new IdsMapper(ObjectMapperProvider.mapper(), logSamplingRate);
+        return new IdsMapper(logSamplingRate);
     }
 
     @Bean
@@ -46,12 +57,12 @@ public class OptableTargetingConfig {
                             @Value("${logging.sampling-rate:0.01}")
                             double logSamplingRate,
                             OptableTargetingProperties optableTargetingProperties,
-                            JacksonMapper jacksonMapperr) {
+                            JacksonMapper jacksonMapper) {
 
         return new APIClientImpl(
                 optableTargetingProperties.getApiEndpoint(),
                 httpClient,
-                jacksonMapperr,
+                jacksonMapper,
                 logSamplingRate);
     }
 
@@ -87,21 +98,60 @@ public class OptableTargetingConfig {
     }
 
     @Bean
+    TargetingRequestExecutor targetingRequestExecutor(OptableTargeting optableTargeting,
+                                                      UserFpdActivityMask userFpdActivityMask,
+                                                      TimeoutFactory timeoutFactory,
+                                                      @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+
+        return new TargetingRequestExecutor(optableTargeting, userFpdActivityMask, timeoutFactory, logSamplingRate);
+    }
+
+    @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
-                                                  OptableTargeting optableTargeting,
-                                                  UserFpdActivityMask userFpdActivityMask,
                                                   JsonMerger jsonMerger,
+                                                  OptableTargetingFlowResolver earlyOptableCallResolver,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
+                new OptableRawAuctionRequestHook(
+                        configResolver,
+                        earlyOptableCallResolver,
+                        logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
-                        optableTargeting,
-                        userFpdActivityMask,
-                        logSamplingRate),
+                        earlyOptableCallResolver),
+                new OptableBidderRequestHook(),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,
                         ObjectMapperProvider.mapper(),
                         jsonMerger)));
+    }
+
+    @Bean
+    BidderEnrichmentSampler bidderEnrichmentSampler(BidderCatalog bidderCatalog) {
+        return BidderEnrichmentSampler.of(AliasesResolver.of(bidderCatalog));
+    }
+
+    @Bean
+    OptableTargetingFlowResolver earlyOptableCallResolver(
+            BidderEnrichmentSampler bidderEnrichmentSampler,
+            TargetingRequestExecutor targetingRequestExecutor,
+            @Value("${hooks.host-execution-plan:}")
+            String hostExecutionPlan,
+            @Value("${hooks.default-account-execution-plan:}")
+            String defaultAccountExecutionPlan,
+            JacksonMapper mapper,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+
+        final CompositeHookExecutionPlan hooksExecutionPlan = CompositeHookExecutionPlan.of(
+                StringUtils.isNoneEmpty(hostExecutionPlan)
+                        ? mapper.decodeValue(hostExecutionPlan, ExecutionPlan.class)
+                        : null,
+                StringUtils.isNoneEmpty(defaultAccountExecutionPlan)
+                        ? mapper.decodeValue(defaultAccountExecutionPlan, ExecutionPlan.class)
+                        : null);
+
+        return new OptableTargetingFlowResolver(
+                bidderEnrichmentSampler, targetingRequestExecutor, hooksExecutionPlan, logSamplingRate);
     }
 }
