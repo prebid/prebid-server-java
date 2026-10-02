@@ -213,7 +213,8 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
-                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+                        assertThat(moduleContext.getBiddersToEnrich()).isNull();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
                     });
                     vertxTestContext.completeNow();
                 });

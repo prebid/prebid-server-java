@@ -91,7 +91,6 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
                 .imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA")))))
                 .ext(givenStoredRequestExt()));
         givenInvocationContext(bidRequest);
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
         final ModuleContext moduleContext = new ModuleContext();
 
         // when
@@ -120,7 +119,6 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))),
                 givenImp(imp -> imp.ext(givenStoredImpExt())))));
         givenInvocationContext(bidRequest);
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
         final ModuleContext moduleContext = new ModuleContext();
 
         // when
@@ -143,7 +141,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void resolveAsyncOptableTargetingFlowShouldDeferWhenNoBiddersToEnrich() {
+    public void resolveAsyncOptableTargetingFlowShouldNotDeferWhenNoBiddersToEnrich() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
@@ -164,8 +162,9 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
                 .returns(InvocationAction.no_action, InvocationResult::action)
                 .extracting(InvocationResult::errors).isNull();
         assertThat(result.payloadUpdate()).isNull();
+        assertThat(moduleContext.getBiddersToEnrich()).isNull();
         assertThat(moduleContext.getOptableTargetingCall()).isNull();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
     }
 
     @Test

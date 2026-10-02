@@ -61,25 +61,15 @@ public class OptableTargetingFlowResolver {
             boolean cleanRequestOnFail) {
 
         final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
-        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
-            if (cleanRequestOnFail) {
-                moduleContext.setShouldSkipEnrichment(true);
-            }
-            moduleContext.setEarlyCallInitializationCompleted(false);
-            return cleanRequestOnFail
-                    ? update(AuctionRequestCleaner.instance(), moduleContext)
-                    : success(moduleContext);
+        if (!isTrafficSourceValid(moduleContext, properties, cleanRequestOnFail, bidRequest)
+                || hasStoredRequestOrImps(moduleContext, cleanRequestOnFail, bidRequest)) {
+            return noEnrichment(cleanRequestOnFail, moduleContext);
         }
 
         final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
-        if (CollectionUtils.isEmpty(biddersToEnrich)
-                || !cleanRequestOnFail && (hasStoredRequest(bidRequest) || hasStoredImps(bidRequest))) {
-            moduleContext.setEarlyCallInitializationCompleted(false);
-            return cleanRequestOnFail
-                    ? update(AuctionRequestCleaner.instance(), moduleContext)
-                    : success(moduleContext);
+        if (CollectionUtils.isEmpty(biddersToEnrich)) {
+            return noEnrichment(cleanRequestOnFail, moduleContext);
         }
-
         moduleContext.setBiddersToEnrich(biddersToEnrich);
         final Account account = invocationContext.auctionContext().getAccount();
         final long crossHookFutureTimeout =
@@ -94,6 +84,32 @@ public class OptableTargetingFlowResolver {
         moduleContext.setOptableTargetingCall(optableTargetingCall);
 
         return update(AuctionRequestCleaner.instance(), moduleContext);
+    }
+
+    private static boolean hasStoredRequestOrImps(ModuleContext moduleContext,
+                                                  boolean cleanRequestOnFail,
+                                                  BidRequest bidRequest) {
+
+        if (!cleanRequestOnFail && ((hasStoredRequest(bidRequest) || hasStoredImps(bidRequest)))) {
+            moduleContext.setEarlyCallInitializationCompleted(false);
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isTrafficSourceValid(ModuleContext moduleContext,
+                                                OptableTargetingProperties properties,
+                                                boolean cleanRequestOnFail,
+                                                BidRequest bidRequest) {
+
+        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
+            if (cleanRequestOnFail) {
+                moduleContext.setShouldSkipEnrichment(true);
+            }
+            moduleContext.setEarlyCallInitializationCompleted(false);
+            return false;
+        }
+        return true;
     }
 
     private static boolean hasStoredImps(BidRequest bidRequest) {
@@ -236,5 +252,13 @@ public class OptableTargetingFlowResolver {
                         .action(InvocationAction.no_action)
                         .moduleContext(moduleContext)
                         .build());
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> noEnrichment(
+            boolean cleanRequest, ModuleContext moduleContext) {
+
+        return cleanRequest
+                ? update(AuctionRequestCleaner.instance(), moduleContext)
+                : success(moduleContext);
     }
 }
