@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AdPlayx Adapter Params",
+  "type": "object",
+  "properties": {
+    "apptoken": {
+      "type": "string",
+      "description": "Publisher app token"
+    },
+    "placementid": {
+      "type": "string",
+      "description": "Placement ID (optional)"
+    }
+  },
+  "required": ["apptoken"]
+}
