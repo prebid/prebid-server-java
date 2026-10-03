@@ -19,9 +19,15 @@
               "placementid": "test_placement_id"
             }
           }
-        }
+        },
+        "adplayx": {}
       }
     }
   ],
-  "tmax": 1000
+  "tmax": 1000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
 }

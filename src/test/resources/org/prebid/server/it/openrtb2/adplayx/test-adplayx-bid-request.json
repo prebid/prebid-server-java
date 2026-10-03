@@ -11,7 +11,9 @@
           }
         ]
       },
+      "secure": 1,
       "ext": {
+        "tid": "${json-unit.any-string}",
         "prebid": {
           "bidder": {
             "adplayx": {
@@ -23,5 +25,42 @@
       }
     }
   ],
-  "tmax": 1000
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "http_method": "POST",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
 }

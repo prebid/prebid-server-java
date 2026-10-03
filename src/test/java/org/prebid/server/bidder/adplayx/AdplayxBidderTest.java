@@ -145,6 +145,34 @@ public class AdplayxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldResolveTypeFromImpressionInRequestPayload() throws JsonProcessingException {
+        // given
+        final BidRequest auctionRequest = BidRequest.builder()
+                .imp(List.of(
+                        Imp.builder().id("video_imp").video(Video.builder().build()).build(),
+                        Imp.builder().id("banner_imp").banner(Banner.builder().build()).build()))
+                .build();
+        final BidRequest bidderRequest = givenBidRequest(imp -> imp
+                .id("banner_imp")
+                .banner(Banner.builder().build()));
+        final BidResponse bidResponse = givenBidResponse(bid -> bid
+                .impid("banner_imp")
+                .price(BigDecimal.valueOf(1.5)));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidderRequest, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, auctionRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(
+                Bid.builder().impid("banner_imp").price(BigDecimal.valueOf(1.5)).build(),
+                BidType.banner,
+                "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp_id_video").video(Video.builder().build()));
