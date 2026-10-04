@@ -285,7 +285,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final Banner resultBanner = result.getBanner();
         // Per OpenRTB 2.6 spec, banner sizes are optional for interstitial impressions.
         final boolean isInterstitial = Objects.equals(result.getInstl(), 1);
-        if (resultBanner != null && resultBanner.getW() == null && resultBanner.getH() == null && !isInterstitial) {
+        if (resultBanner != null && (resultBanner.getW() == null || resultBanner.getH() == null) && !isInterstitial) {
             throw new PreBidException("No sizes provided for Banner");
         }
 
