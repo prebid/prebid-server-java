@@ -68,7 +68,7 @@ public class OptableTargetingFlowResolver {
 
         final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
         if (CollectionUtils.isEmpty(biddersToEnrich)) {
-            return noEnrichment(cleanRequestOnFail, moduleContext);
+            return noEnrichment(true, moduleContext);
         }
         moduleContext.setBiddersToEnrich(biddersToEnrich);
         final Account account = invocationContext.auctionContext().getAccount();

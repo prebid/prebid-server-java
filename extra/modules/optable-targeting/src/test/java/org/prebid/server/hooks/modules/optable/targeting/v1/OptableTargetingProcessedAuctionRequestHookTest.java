@@ -296,7 +296,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    void callShouldNotRetryEarlyNetworkCallInitializationWhenNoBiddersToEnrich() {
+    void callShouldCleanRequestWhenNoBiddersToEnrich() {
         // given
         final ModuleContext moduleContext = new ModuleContext();
         moduleContext.setEarlyNetworkCallEnabled(true);
@@ -318,6 +318,12 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 .returns(InvocationStatus.success, InvocationResult::status)
                 .returns(InvocationAction.update, InvocationResult::action)
                 .extracting(InvocationResult::errors).isNull();
+        assertThat(result.payloadUpdate()).isNotNull();
+        final ObjectNode optable = (ObjectNode) result.payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest()
+                .getUser().getExt().getProperty("optable");
+        assertThat(optable).isNull();
         assertThat(moduleContext.getOptableTargetingCall()).isNull();
         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
     }

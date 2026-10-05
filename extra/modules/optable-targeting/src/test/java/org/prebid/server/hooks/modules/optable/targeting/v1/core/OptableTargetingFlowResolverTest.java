@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
@@ -141,7 +142,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void resolveAsyncOptableTargetingFlowShouldNotDeferWhenNoBiddersToEnrich() {
+    public void resolveAsyncOptableTargetingFlowShouldCleanRequestWhenNoBiddersToEnrich() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
@@ -159,12 +160,47 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         final InvocationResult<AuctionRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action)
+                .returns(InvocationAction.update, InvocationResult::action)
                 .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNull();
+        assertThat(result.payloadUpdate()).isNotNull();
         assertThat(moduleContext.getBiddersToEnrich()).isNull();
         assertThat(moduleContext.getOptableTargetingCall()).isNull();
         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
+
+        final AuctionRequestPayload cleanedPayload = result.payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequestWithUser(givenUser())));
+        assertThat(cleanedPayload.bidRequest().getUser().getExt().getProperty("optable")).isNull();
+    }
+
+    @Test
+    public void resolveAsyncOptableTargetingFlowShouldCleanRequestWhenProcessedStageCallHasNoBiddersToEnrich() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
+                givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
+        givenInvocationContext(bidRequest);
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of());
+        final ModuleContext moduleContext = new ModuleContext();
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
+                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), true);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        assertThat(result.payloadUpdate()).isNotNull();
+        assertThat(moduleContext.getBiddersToEnrich()).isNull();
+        assertThat(moduleContext.getOptableTargetingCall()).isNull();
+        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
+
+        final AuctionRequestPayload cleanedPayload = result.payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequestWithUser(givenUser())));
+        assertThat(cleanedPayload.bidRequest().getUser().getExt().getProperty("optable")).isNull();
     }
 
     @Test
