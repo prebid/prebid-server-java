@@ -24,12 +24,13 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.aliases.BidderAliases;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
@@ -89,7 +90,7 @@ public class Ortb2ImplicitParametersResolver {
     private static final String BIDDER_EXT = "bidder";
 
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
-            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid", "ae");
+            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid", "tid");
     private static final String OVERRIDE_SOURCE_ID_TEMPLATE = "{{UUID}}";
 
     private final boolean shouldCacheOnlyWinningBids;
@@ -126,7 +127,7 @@ public class Ortb2ImplicitParametersResolver {
         this.generateBidRequestId = generateBidRequestId;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blocklistedApps = Objects.requireNonNull(blocklistedApps);
-        this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion, null);
+        this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion, null, null);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
@@ -191,7 +192,8 @@ public class Ortb2ImplicitParametersResolver {
         final ExtRequest populatedExt = populateRequestExt(
                 ext,
                 bidRequest,
-                ObjectUtils.defaultIfNull(populatedImps, imps),
+                ObjectUtils.getIfNull(populatedImps, imps),
+                auctionContext.getHttpRequest().getHttpMethod().name(),
                 endpoint,
                 auctionContext.getAccount());
 
@@ -287,7 +289,7 @@ public class Ortb2ImplicitParametersResolver {
 
     private Integer resolveDntHeader(HttpRequestContext request) {
         final String dnt = request.getHeaders().get(HttpUtil.DNT_HEADER.toString());
-        return StringUtils.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
+        return Strings.CS.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
     }
 
     private String sanitizeIp(String ip, IpAddress.IP version) {
@@ -317,7 +319,7 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private static Integer resolveLmt(Device device, App app) {
-        if (app == null || device == null || !StringUtils.equalsIgnoreCase(device.getOs(), "ios")) {
+        if (app == null || device == null || !Strings.CI.equals(device.getOs(), "ios")) {
             return null;
         }
 
@@ -405,12 +407,12 @@ public class Ortb2ImplicitParametersResolver {
 
         final String domain = site != null ? StringUtils.trimToNull(site.getDomain()) : null;
         final String updatedDomain = domain == null
-                ? HttpUtil.getHostFromUrl(ObjectUtils.defaultIfNull(updatedPage, page))
+                ? HttpUtil.getHostFromUrl(ObjectUtils.getIfNull(updatedPage, page))
                 : null;
 
         final Publisher publisher = site != null ? site.getPublisher() : null;
         final Publisher updatedPublisher = populateSitePublisher(
-                publisher, ObjectUtils.defaultIfNull(updatedDomain, domain));
+                publisher, ObjectUtils.getIfNull(updatedDomain, domain));
 
         final ExtSite siteExt = site != null ? site.getExt() : null;
         final ExtSite updatedSiteExt = siteExt == null || siteExt.getAmp() == null
@@ -423,10 +425,10 @@ public class Ortb2ImplicitParametersResolver {
 
             return (site == null ? Site.builder() : site.toBuilder())
                     // do not set page if domain was not parsed successfully
-                    .page(domainPresent ? ObjectUtils.defaultIfNull(updatedPage, page) : page)
-                    .domain(ObjectUtils.defaultIfNull(updatedDomain, domain))
-                    .publisher(ObjectUtils.defaultIfNull(updatedPublisher, publisher))
-                    .ext(ObjectUtils.defaultIfNull(updatedSiteExt, siteExt))
+                    .page(domainPresent ? ObjectUtils.getIfNull(updatedPage, page) : page)
+                    .domain(ObjectUtils.getIfNull(updatedDomain, domain))
+                    .publisher(ObjectUtils.getIfNull(updatedPublisher, publisher))
+                    .ext(ObjectUtils.getIfNull(updatedSiteExt, siteExt))
                     .build();
         }
         return null;
@@ -485,7 +487,7 @@ public class Ortb2ImplicitParametersResolver {
                                            boolean hasStoredBidRequest,
                                            IdGenerator tidGenerator) {
 
-        final boolean containsTidMacro = StringUtils.containsIgnoreCase(tid, OVERRIDE_SOURCE_ID_TEMPLATE);
+        final boolean containsTidMacro = Strings.CI.contains(tid, OVERRIDE_SOURCE_ID_TEMPLATE);
         if (StringUtils.isNotBlank(tid)
                 && !containsTidMacro
                 && !(generateBidRequestId
@@ -500,7 +502,7 @@ public class Ortb2ImplicitParametersResolver {
                 && hasStoredBidRequest)
                 && !containsTidMacro
                 ? generatedId
-                : StringUtils.replaceIgnoreCase(tid, OVERRIDE_SOURCE_ID_TEMPLATE, generatedId);
+                : Strings.CI.replace(tid, OVERRIDE_SOURCE_ID_TEMPLATE, generatedId);
     }
 
     private SupplyChain populateSupplyChain(SupplyChain supplyChain, ExtRequest extRequest) {
@@ -521,10 +523,10 @@ public class Ortb2ImplicitParametersResolver {
 
         return populatedData != null
                 ? Optional.ofNullable(user)
-                .map(User::toBuilder)
-                .orElseGet(User::builder)
-                .data(populatedData)
-                .build()
+                  .map(User::toBuilder)
+                  .orElseGet(User::builder)
+                  .data(populatedData)
+                  .build()
                 : null;
     }
 
@@ -625,9 +627,9 @@ public class Ortb2ImplicitParametersResolver {
                 ? SetUtils.difference(
                 newIds,
                 CollectionUtils.emptyIfNull(segments).stream()
-                        .filter(Objects::nonNull)
-                        .map(Segment::getId)
-                        .collect(Collectors.toSet()))
+                .filter(Objects::nonNull)
+                .map(Segment::getId)
+                .collect(Collectors.toSet()))
                 : newIds;
     }
 
@@ -722,6 +724,7 @@ public class Ortb2ImplicitParametersResolver {
     private ExtRequest populateRequestExt(ExtRequest ext,
                                           BidRequest bidRequest,
                                           List<Imp> imps,
+                                          String httpMethod,
                                           String endpoint,
                                           Account account) {
 
@@ -736,13 +739,13 @@ public class Ortb2ImplicitParametersResolver {
                 : ExtRequestPrebid.builder();
 
         final ExtRequest updatedExt = ExtRequest.of(prebidBuilder
-                .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                .targeting(ObjectUtils.getIfNull(updatedTargeting,
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                .cache(ObjectUtils.defaultIfNull(updatedCache,
+                .cache(ObjectUtils.getIfNull(updatedCache,
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                .channel(ObjectUtils.defaultIfNull(updatedChannel,
+                .channel(ObjectUtils.getIfNull(updatedChannel,
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
-                .server(serverInfo.with(endpoint))
+                .server(serverInfo.with(httpMethod, endpoint))
                 .build());
 
         final Map<String, JsonNode> extProperties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
@@ -827,7 +830,7 @@ public class Ortb2ImplicitParametersResolver {
      */
     private boolean isWinningOnly(ExtRequestPrebidCache cache) {
         final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
-        return ObjectUtils.defaultIfNull(cacheWinningOnly, shouldCacheOnlyWinningBids);
+        return ObjectUtils.getIfNull(cacheWinningOnly, shouldCacheOnlyWinningBids);
     }
 
     /**
@@ -923,7 +926,7 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private static ExtRequestPrebidChannel populateChannel(BidRequest bidRequest, String endpoint) {
-        if (StringUtils.equals(Endpoint.openrtb2_amp.value(), endpoint)) {
+        if (Strings.CS.equals(Endpoint.openrtb2_amp.value(), endpoint)) {
             return ExtRequestPrebidChannel.of(AMP_CHANNEL);
         } else if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
@@ -1030,10 +1033,10 @@ public class Ortb2ImplicitParametersResolver {
 
             return ObjectUtils.anyNotNull(populatedImpId, populatedImpSecure, populatedImpExt)
                     ? imp.toBuilder()
-                    .id(populatedImpId != null ? populatedImpId : impId)
-                    .secure(populatedImpSecure != null ? populatedImpSecure : impSecure)
-                    .ext(populatedImpExt != null ? populatedImpExt : impExt)
-                    .build()
+                      .id(populatedImpId != null ? populatedImpId : impId)
+                      .secure(populatedImpSecure != null ? populatedImpSecure : impSecure)
+                      .ext(populatedImpExt != null ? populatedImpExt : impExt)
+                      .build()
                     : null;
         }
 

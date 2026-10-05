@@ -108,7 +108,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private String resolveTagId(ExtImpSovrn sovrnExt) {
-        final String tagId = ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId());
+        final String tagId = ObjectUtils.getIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId());
         if (StringUtils.isEmpty(tagId)) {
             throw new PreBidException("Missing required parameter 'tagid'");
         }

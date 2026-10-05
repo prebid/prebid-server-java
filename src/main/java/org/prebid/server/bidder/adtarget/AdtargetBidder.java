@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.adtarget.proto.ExtImpAdtargetBidRequest;
@@ -24,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -41,11 +40,11 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdtargetBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -55,8 +54,10 @@ public class AdtargetBidder implements Bidder<BidRequest> {
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceIdToImpsResult.getValue().entrySet()) {
-            final String url = "%s?aid=%d"
-                    .formatted(endpointUrl, ObjectUtils.defaultIfNull(sourceIdToImps.getKey(), 0));
+            final String url = endpointUrl
+                    .addQueryParam("aid", Objects.toString(sourceIdToImps.getKey(), "0"))
+                    .expand();
+
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
             httpRequests.add(BidderUtil.defaultRequest(bidRequest, url, mapper));
         }

@@ -20,7 +20,7 @@
         "crid": "crid2",
         "w": 300,
         "h": 600,
-        "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+        "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=magnite&f=i&int=dmbjs"
       }
     },
     {
@@ -91,7 +91,7 @@
         "crid": "crid1",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=magnite&f=i&int=dmbjs",
         "ext": {
           "rp": {
             "targeting": [
@@ -152,7 +152,7 @@
         "impid": "impStoredAuctionResponse",
         "crid": "crid1",
         "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=magnite&f=i&int=dmbjs"
       }
     },
     {
@@ -162,12 +162,12 @@
         "impid": "impStoredBidResponse",
         "crid": "crid1",
         "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=magnite&f=i&int=dmbjs"
       }
     },
     {
       "type": "xml",
-      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=dmbjs]]></Impression>",
+      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=magnite&f=b&int=dmbjs]]></Impression>",
       "expiry": 120
     }
   ]

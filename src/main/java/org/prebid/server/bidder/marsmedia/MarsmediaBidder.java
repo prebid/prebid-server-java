@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.marsmedia.ExtImpMarsmedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,11 +39,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MarsmediaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -57,12 +58,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = "%s&zone=%s".formatted(endpointUrl, firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(uri)
+                .uri(endpointUrl.addQueryParam("zone", firstImpZone).expand())
                 .headers(headers)
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
@@ -112,8 +112,8 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static Banner updateBanner(Banner banner) {
         final Format firstFormat = banner.getFormat().getFirst();
         return banner.toBuilder()
-                .w(ObjectUtils.defaultIfNull(firstFormat.getW(), 0))
-                .h(ObjectUtils.defaultIfNull(firstFormat.getH(), 0))
+                .w(ObjectUtils.getIfNull(firstFormat.getW(), 0))
+                .h(ObjectUtils.getIfNull(firstFormat.getH(), 0))
                 .build();
     }
 
@@ -148,10 +148,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         final SeatBid firstSeatBid = seatbid.getFirst();
-        return firstSeatBid != null ? firstSeatBid.getBid().stream()
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
-                .toList()
+        return firstSeatBid != null
+                ? firstSeatBid.getBid().stream()
+                  .filter(Objects::nonNull)
+                  .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
+                  .toList()
                 : Collections.emptyList();
     }
 

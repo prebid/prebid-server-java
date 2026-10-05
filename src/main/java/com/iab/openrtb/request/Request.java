@@ -20,43 +20,67 @@ import java.util.List;
 @Value
 public class Request {
 
-    /** Version in use. **/
+    /**
+     * Version in use.
+     **/
     String ver;
 
-    /** The context in which the ad appears. */
+    /**
+     * The context in which the ad appears.
+     */
     Integer context;
 
-    /** A more detailed context in which the ad appears. */
+    /**
+     * A more detailed context in which the ad appears.
+     */
     Integer contextsubtype;
 
-    /** The design/format/layout of the ad unit being offered. */
+    /**
+     * The design/format/layout of the ad unit being offered.
+     */
     Integer plcmttype;
 
-    /** The number of identical placements in this layout */
+    /**
+     * The number of identical placements in this layout
+     */
     Integer plcmtcnt;
 
-    /** 0 for the first ad, 1 for the second ad, and so on */
+    /**
+     * 0 for the first ad, 1 for the second ad, and so on
+     */
     Integer seq;
 
-    /** Any bid response must comply with the array of elements expressed in the bid request.*/
+    /**
+     * Any bid response must comply with the array of elements expressed in the bid request.
+     */
     List<Asset> assets;
 
-    /** Set to '0' in case if supply source / impression supports returning an assets url. */
+    /**
+     * Set to '0' in case if supply source / impression supports returning an assets url.
+     */
     Integer aurlsupport;
 
-    /** Set to '0' in case if supply source / impression supports returning a dco url. */
+    /**
+     * Set to '0' in case if supply source / impression supports returning a dco url.
+     */
     Integer durlsupport;
 
-    /** Specifies types of events supported by tracking. */
+    /**
+     * Specifies types of events supported by tracking.
+     */
     List<EventTracker> eventtrackers;
 
-    /** Set to '0' or field absent if doesn't support custom privacy or support unknown, otherwise '1'. */
+    /**
+     * Set to '0' or field absent if doesn't support custom privacy or support unknown, otherwise '1'.
+     */
     Integer privacy;
 
     Integer adunit;
 
     Integer layout;
 
-    /** Placeholder that may contain custom JSON. */
+    /**
+     * Placeholder that may contain custom JSON.
+     */
     ObjectNode ext;
 }

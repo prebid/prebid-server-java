@@ -15,5 +15,4 @@ public enum BidAdjustmentType {
             return UNKNOWN;
         }
     }
-
 }

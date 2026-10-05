@@ -21,6 +21,7 @@ import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversio
 import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -38,7 +39,6 @@ import java.util.Optional;
  */
 public class AuctionRequestFactory {
 
-    private final long maxRequestSize;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ProfilesProcessor profilesProcessor;
@@ -57,8 +57,7 @@ public class AuctionRequestFactory {
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
-    public AuctionRequestFactory(long maxRequestSize,
-                                 Ortb2RequestFactory ortb2RequestFactory,
+    public AuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ProfilesProcessor profilesProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
@@ -74,7 +73,6 @@ public class AuctionRequestFactory {
                                  GeoLocationServiceWrapper geoLocationServiceWrapper,
                                  BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
-        this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
@@ -104,7 +102,7 @@ public class AuctionRequestFactory {
         }
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_auction, MetricName.openrtb2web);
+                HookHttpEndpoint.POST_AUCTION, MetricName.openrtb2web);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
@@ -166,10 +164,6 @@ public class AuctionRequestFactory {
             throw new InvalidRequestException("Incoming request has no body");
         }
 
-        if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
-        }
-
         return body;
     }
 
@@ -206,8 +200,8 @@ public class AuctionRequestFactory {
     private BidRequest fillWithValuesFromHttpRequest(BidRequest bidRequest, HttpRequestContext httpRequest) {
         return !containsRegsExtGpc(bidRequest)
                 ? bidRequest.toBuilder()
-                .regs(fillRegsWithValuesFromHttpRequest(bidRequest.getRegs(), httpRequest))
-                .build()
+                  .regs(fillRegsWithValuesFromHttpRequest(bidRequest.getRegs(), httpRequest))
+                  .build()
                 : bidRequest;
     }
 

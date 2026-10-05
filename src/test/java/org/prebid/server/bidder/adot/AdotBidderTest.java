@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdotBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint{{PUBLISHER_PATH}}.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com{/PUBLISHER_PATH*}";
 
     private final AdotBidder target = new AdotBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -78,28 +78,13 @@ public class AdotBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint/publisherPath.com");
+                .containsExactly("https://test.endpoint.com/publisher/path");
     }
 
     @Test
     public void makeHttpRequestsShouldNotChangeUrlWhenNotResolvedPublisherPath() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenImpExtAdot(null)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnNullIfNotResolvedExtImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -130,7 +115,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -145,7 +130,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -158,7 +143,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -172,7 +157,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidExtAdotMediaTypeIsInvalid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse("invalid")));
 
         // when
@@ -186,7 +171,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenBidExtAdotMediaTypeIsVideo() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse("video")));
 
         // when
@@ -201,7 +186,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenBidExtAdotMediaTypeIsBanner() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse("banner")));
 
         // when
@@ -216,7 +201,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenBidExtAdotMediaTypeIsNative() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse("native")));
 
         // when
@@ -231,7 +216,7 @@ public class AdotBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse(
                         bidBuilder -> bidBuilder
                                 .nurl("nurl:${AUCTION_PRICE}")
@@ -266,7 +251,7 @@ public class AdotBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("firstImp")
                         .banner(Banner.builder().build())
-                        .ext(givenImpExtAdot("/publisherPath")))
+                        .ext(givenImpExtAdot("/publisher/path")))
                 .build();
     }
 
@@ -299,9 +284,9 @@ public class AdotBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

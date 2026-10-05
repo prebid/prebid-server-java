@@ -10,6 +10,8 @@
           "price": 10.2,
           "adm": "adm",
           "crid": "id",
+          "w": 320,
+          "h": 250,
           "ext": {
             "origbidcpm": 10.2,
             "origbidcur": "USD",

@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class EplanningBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://eplanning.com";
+    private static final String ENDPOINT_URL = "https://eplanning.com/{ClientId}/{DfpClientId}/{RequestTarget}/{Sec}";
 
     private final EplanningBidder target = new EplanningBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -106,26 +106,6 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Ignoring imp id=123, no ClientID present"));
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder
-                        .site(Site.builder().domain("invalid domain").build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage())
-                            .startsWith("Invalid url: https://eplanning.com/clientId/1/invalid domain/ROS");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
     }
 
     @Test
@@ -415,7 +395,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&e=testadun_itco_de%3A1x1&"
-                        + "appn=appName&appid=id&ifa=ifa&app=1");
+                        + "appn=appName&appid=id&app=1&ifa=ifa");
     }
 
     @Test
@@ -432,7 +412,7 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
         assertThat(uri).doesNotContain("sch=");
     }
 
@@ -449,7 +429,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
         assertThat(uri).doesNotContain("sch=");
     }
 
@@ -469,7 +449,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
         assertThat(uri).doesNotContain("sch=");
     }
 
@@ -490,7 +470,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
         assertThat(uri).doesNotContain("sch=");
     }
 
@@ -517,7 +497,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
         assertThat(uri).doesNotContain("sch=");
     }
 
@@ -543,7 +523,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
         assertThat(uri)
                 .contains("sch=")
                 .contains("%21asi1%2Csid1%2C1%2Crid1%2Cname1%2Cdomain1%2C")
@@ -577,7 +557,7 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String uri = result.getValue().get(0).getUri();
+        final String uri = result.getValue().getFirst().getUri();
 
         assertThat(uri).contains("&sch=");
         assertThat(uri).contains("1.0%2C0");

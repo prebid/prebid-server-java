@@ -25,11 +25,9 @@ public class Edge226Test extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/edge226/test-auction-edge226-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/edge226/test-auction-edge226-response.json", response, List.of("edge226"));
     }
-
 }

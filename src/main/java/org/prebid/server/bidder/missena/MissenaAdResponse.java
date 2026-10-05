@@ -16,6 +16,10 @@ public class MissenaAdResponse {
 
     String currency;
 
+    Integer width;
+
+    Integer height;
+
     @JsonProperty("requestId")
     String requestId;
 }

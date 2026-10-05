@@ -7,7 +7,12 @@
     "host": {
       "type": "string",
       "description": "Optional network host to request from, used when host macro provided in config",
-      "enum": ["lbs-eu1.ads", "lbs-ru1.ads", "lbs-us-east1.ads", "lbs-asia1.ads"]
+      "enum": [
+        "lbs-eu1.ads",
+        "lbs-ru1.ads",
+        "lbs-us-east1.ads",
+        "lbs-asia1.ads"
+      ]
     },
     "publisher_id": {
       "type": "string",

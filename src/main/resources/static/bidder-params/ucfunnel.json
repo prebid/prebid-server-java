@@ -13,5 +13,7 @@
       "description": "ID for partner"
     }
   },
-  "required": ["partnerid"]
+  "required": [
+    "partnerid"
+  ]
 }

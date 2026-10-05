@@ -9,7 +9,7 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -97,7 +97,7 @@ public class BidderRequestPreferredMediaProcessor implements BidderRequestPostPr
 
     private static Optional<JsonNode> getBidder(String bidderName, JsonNode biddersNode) {
         return StreamUtil.asStream(biddersNode.fieldNames())
-                .filter(fieldName -> StringUtils.equalsIgnoreCase(bidderName, fieldName))
+                .filter(fieldName -> Strings.CI.equals(bidderName, fieldName))
                 .map(biddersNode::get)
                 .findAny();
     }

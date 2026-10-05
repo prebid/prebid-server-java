@@ -33,5 +33,4 @@ public class AdtrgtmeTest extends IntegrationTest {
         assertJsonEquals("openrtb2/adtrgtme/test-auction-adtrgtme-response.json", response,
                 singletonList("adtrgtme"));
     }
-
 }

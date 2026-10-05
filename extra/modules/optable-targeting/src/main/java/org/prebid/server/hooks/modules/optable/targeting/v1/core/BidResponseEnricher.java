@@ -8,6 +8,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
@@ -70,14 +71,15 @@ public class BidResponseEnricher implements PayloadUpdate<AuctionResponsePayload
 
         for (Audience audience : targeting) {
             final List<AudienceId> ids = audience.getIds();
-            if (CollectionUtils.isEmpty(ids)) {
+            final String keyspace = audience.getKeyspace();
+            if (CollectionUtils.isEmpty(ids) || StringUtils.isEmpty(keyspace)) {
                 continue;
             }
 
             final String joinedIds = ids.stream()
                     .map(AudienceId::getId)
                     .collect(Collectors.joining(","));
-            node.putIfAbsent(audience.getKeyspace(), TextNode.valueOf(joinedIds));
+            node.putIfAbsent(keyspace, TextNode.valueOf(joinedIds));
         }
 
         return node;

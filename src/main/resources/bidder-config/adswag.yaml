@@ -1,0 +1,26 @@
+adapters:
+  adswag:
+    ortb-version: "2.6"
+    endpoint: https://bid.adswag.ai/prebid/bid
+    modifying-vast-xml-allowed: false
+    geoscope:
+      - EEA
+    ortb:
+      multiformat-supported: true
+    usersync:
+      cookie-family-name: adswag
+      redirect:
+        url: https://ev.adswag.ai/sync/pixel?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
+        uid-macro: '$UID'
+    meta-info:
+      maintainer-email: prebid@adswag.ai
+      app-media-types:
+        - banner
+        - video
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - audio
+      supported-vendors:
+      vendor-id: 1417

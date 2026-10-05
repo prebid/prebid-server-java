@@ -134,7 +134,7 @@ public class PlaydigoBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid) {
-        final Integer markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
+        final Integer markupType = ObjectUtils.getIfNull(bid.getMtype(), 0);
 
         return switch (markupType) {
             case 1 -> BidType.banner;

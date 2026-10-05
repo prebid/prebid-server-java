@@ -41,7 +41,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class AfrontBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/?aid={{AccountId}}&sid={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.com/?aid={AccountId}&sid={SourceId}";
 
     private final AfrontBidder target = new AfrontBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -219,9 +219,10 @@ public class AfrontBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("impId")
-                .ext(givenImpExt("accountId", "sourceId")))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("impId")
+                                .ext(givenImpExt("accountId", "sourceId")))
                 .build();
     }
 

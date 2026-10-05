@@ -13,5 +13,8 @@
       "description": "Host"
     }
   },
-  "required": ["zoneid", "host"]
+  "required": [
+    "zoneid",
+    "host"
+  ]
 }

@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class OwnAdxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/test/{{SeatID}}/{{SspID}}?token={{TokenID}}";
+    private static final String ENDPOINT_URL = "https://test.com/test/{SeatID}/{SspID}?token={TokenID}";
 
     private final OwnAdxBidder target = new OwnAdxBidder(ENDPOINT_URL, jacksonMapper);
 

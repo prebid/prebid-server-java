@@ -7,17 +7,19 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.builder.Transferable
 
+import static org.prebid.server.functional.model.config.Endpoint.STATUS
 import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
-    private static final int PROMETHEUS_PORT = 8070
+    public static final String ADMIN_ENDPOINT_USERNAME = "admin"
+    public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
+    public static final String APP_WORKDIR = "/app/prebid-server/"
+    public static final int PROMETHEUS_PORT = 8070
+
     private static final int DEFAULT_PORT = 8080
     private static final int DEFAULT_ADMIN_PORT = 8060
     private static final int DEFAULT_DEBUG_PORT = 8000
-    private static final String ADMIN_ENDPOINT_USERNAME = "admin"
-    private static final String ADMIN_ENDPOINT_PASSWORD = "admin"
-    private static final String APP_WORKDIR = "/app/prebid-server/"
     private static final int PORT = SystemProperties.getPropertyOrDefault("port", DEFAULT_PORT)
     private static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
     private static final int DEBUG_PORT = SystemProperties.getPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT)
@@ -29,9 +31,9 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
         withFixedPorts()
         withStartupAttempts(3)
-        waitingFor(Wait.forHttp("/status")
-                       .forPort(PORT)
-                       .forStatusCode(200))
+        waitingFor(Wait.forHttp(STATUS.value)
+                .forPort(PORT)
+                .forStatusCode(200))
         withDebug()
         withNetwork(Dependencies.network)
         def commonConfig = [:] << DEFAULT_ENV

@@ -5,7 +5,10 @@
   "type": "object",
   "properties": {
     "placementId": {
-      "type": ["integer", "string"],
+      "type": [
+        "integer",
+        "string"
+      ],
       "description": "Placement ID"
     }
   }

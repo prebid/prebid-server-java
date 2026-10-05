@@ -16,6 +16,7 @@ class TcfMetrics extends UpdatableMetrics {
 
     private final TcfVersionMetrics tcfVersion1Metrics;
     private final TcfVersionMetrics tcfVersion2Metrics;
+    private final LiveVendorListMetrics liveVendorListMetrics;
 
     TcfMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
         super(
@@ -25,6 +26,7 @@ class TcfMetrics extends UpdatableMetrics {
 
         tcfVersion1Metrics = new TcfVersionMetrics(metricRegistry, counterType, createTcfPrefix(prefix), "v1");
         tcfVersion2Metrics = new TcfVersionMetrics(metricRegistry, counterType, createTcfPrefix(prefix), "v2");
+        liveVendorListMetrics = new LiveVendorListMetrics(metricRegistry, counterType, createTcfPrefix(prefix));
     }
 
     TcfVersionMetrics fromVersion(int version) {
@@ -33,6 +35,10 @@ class TcfMetrics extends UpdatableMetrics {
             case TCF_V2_VERSION -> tcfVersion2Metrics;
             default -> throw new PreBidException("Unknown tcf version " + version);
         };
+    }
+
+    LiveVendorListMetrics liveVendorList() {
+        return liveVendorListMetrics;
     }
 
     private static String createTcfPrefix(String prefix) {
@@ -81,6 +87,24 @@ class TcfMetrics extends UpdatableMetrics {
 
         private static String createVersionPrefix(String prefix) {
             return prefix + ".vendorlist";
+        }
+
+        private static Function<MetricName, String> nameCreator(String prefix) {
+            return metricName -> "%s.%s".formatted(prefix, metricName);
+        }
+    }
+
+    static class LiveVendorListMetrics extends UpdatableMetrics {
+
+        LiveVendorListMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
+            super(
+                    metricRegistry,
+                    counterType,
+                    nameCreator(createLatestPrefix(prefix)));
+        }
+
+        private static String createLatestPrefix(String prefix) {
+            return prefix + ".vendorlist.live";
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {

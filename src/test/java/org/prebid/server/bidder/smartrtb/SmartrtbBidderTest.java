@@ -38,7 +38,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class SmartrtbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?pubid={PubId}";
 
     private final SmartrtbBidder target = new SmartrtbBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -95,7 +95,7 @@ public class SmartrtbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri()).isEqualTo(ENDPOINT_URL + "publisherID");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://test.endpoint.com?pubid=publisherID");
     }
 
     @Test
@@ -110,7 +110,7 @@ public class SmartrtbBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://test.endpoint.com/publisherID");
+                .containsOnly("https://test.endpoint.com?pubid=publisherID");
         assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
@@ -121,7 +121,7 @@ public class SmartrtbBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "false");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -135,7 +135,6 @@ public class SmartrtbBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenBidExtIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -151,7 +150,6 @@ public class SmartrtbBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("BANNER"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -167,7 +165,6 @@ public class SmartrtbBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("wrong type"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -207,9 +204,9 @@ public class SmartrtbBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

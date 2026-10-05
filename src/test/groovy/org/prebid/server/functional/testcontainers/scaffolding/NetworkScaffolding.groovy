@@ -1,156 +1,143 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
-import org.mockserver.client.MockServerClient
-import org.mockserver.matchers.Times
-import org.mockserver.model.ClearType
-import org.mockserver.model.Header
-import org.mockserver.model.HttpRequest
-import org.mockserver.model.HttpStatusCode
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.matching.RequestPattern
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.prebid.server.functional.model.ResponseModel
+import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
-import org.testcontainers.containers.MockServerContainer
 
-import java.util.concurrent.TimeUnit
-
-import static java.util.concurrent.TimeUnit.SECONDS
-import static org.mockserver.model.ClearType.ALL
-import static org.mockserver.model.HttpRequest.request
-import static org.mockserver.model.HttpResponse.response
-import static org.mockserver.model.HttpStatusCode.OK_200
-import static org.mockserver.model.MediaType.APPLICATION_JSON
+import static org.apache.http.HttpStatus.SC_OK
 
 abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
-    protected MockServerClient mockServerClient
+    protected WireMock wireMockClient
     protected String endpoint
 
-    NetworkScaffolding(MockServerContainer mockServerContainer, String endpoint) {
-        this.mockServerClient = new MockServerClient(mockServerContainer.host, mockServerContainer.serverPort)
+    NetworkScaffolding(NetworkServiceContainer wireMockContainer, String endpoint) {
+        this.wireMockClient = new WireMock(wireMockContainer.host, wireMockContainer.firstMappedPort)
         this.endpoint = endpoint
     }
 
-    abstract protected HttpRequest getRequest(String value)
+    abstract protected RequestPattern getRequest()
 
-    abstract protected HttpRequest getRequest()
+    abstract protected RequestPatternBuilder getRequest(String value)
 
     abstract void setResponse()
 
-    int getRequestCount(HttpRequest httpRequest) {
-        mockServerClient.retrieveRecordedRequests(httpRequest)
-                .size()
+    int getRequestCount(RequestPatternBuilder requestPatternBuilder) {
+        return wireMockClient.find(requestPatternBuilder).size()
     }
 
     int getRequestCount(String value) {
-        mockServerClient.retrieveRecordedRequests(getRequest(value))
-                .size()
+        return wireMockClient.find(getRequest(value)).size()
     }
 
-    int getRequestCount() {
-        mockServerClient.retrieveRecordedRequests(request)
-                .size()
-    }
-
-    void setResponse(HttpRequest httpRequest,
+    void setResponse(RequestPattern requestPattern,
                      ResponseModel responseModel,
-                     HttpStatusCode statusCode = OK_200,
-                     Times times = Times.exactly(1)) {
-        def mockResponse = encode(responseModel)
-        mockServerClient.when(httpRequest, times)
-                .respond(response().withStatusCode(statusCode.code())
-                        .withBody(mockResponse, APPLICATION_JSON))
+                     Integer statusCode = SC_OK) {
+
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(statusCode)
+                .withHeader("Content-Type", "application/json")
+                .withBody(encode(responseModel))
+
+        wireMockClient.register(new StubMapping(requestPattern, responseBuilder.build()))
     }
 
     void setResponse(String value,
                      ResponseModel responseModel,
                      Map<String, String> headers) {
-        setResponse(value, responseModel, OK_200, headers)
+        setResponse(value, responseModel, SC_OK, headers)
     }
 
     void setResponse(String value,
                      ResponseModel responseModel,
-                     HttpStatusCode statusCode = OK_200,
+                     Integer statusCode = SC_OK,
                      Map<String, String> headers = [:]) {
-        def responseHeaders = headers.collect { new Header(it.key, it.value) }
-        def mockResponse = encode(responseModel)
-        mockServerClient.when(getRequest(value), Times.unlimited())
-                .respond(response().withStatusCode(statusCode.code())
-                        .withBody(mockResponse, APPLICATION_JSON)
-                        .withHeaders(responseHeaders))
+
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(statusCode)
+                .withHeader("Content-Type", "application/json")
+                .withBody(encode(responseModel))
+
+        headers.each { responseBuilder.withHeader(it.key, it.value) }
+
+        wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }
 
     void setResponse(String value,
                      ResponseModel responseModel,
                      int responseDelay,
-                     HttpStatusCode statusCode = OK_200,
-                     Map<String, String> headers = [:]) {
-        def responseHeaders = headers.collect { new Header(it.key, it.value) }
-        def mockResponse = encode(responseModel)
-        mockServerClient.when(getRequest(value), Times.unlimited())
-                .respond(response().withStatusCode(statusCode.code())
-                        .withBody(mockResponse, APPLICATION_JSON)
-                        .withHeaders(responseHeaders)
-                        .withDelay(TimeUnit.MILLISECONDS, responseDelay))
+                     Integer statusCode = SC_OK) {
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(statusCode)
+                .withHeader("Content-Type", "application/json")
+                .withBody(encode(responseModel))
+                .withFixedDelay(responseDelay)
+
+        wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }
 
     void setResponse(String value, String mockResponse) {
-        mockServerClient.when(getRequest(value), Times.exactly(1))
-                .respond(response().withStatusCode(OK_200.code())
-                        .withBody(mockResponse, APPLICATION_JSON))
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(SC_OK)
+                .withHeader("Content-Type", "application/json")
+                .withBody(mockResponse)
+
+        wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }
 
     void setResponse(ResponseModel responseModel) {
-        def mockResponse = encode(responseModel)
-        mockServerClient.when(request().withPath(endpoint))
-                .respond(response().withStatusCode(OK_200.code())
-                        .withBody(mockResponse, APPLICATION_JSON))
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(SC_OK)
+                .withHeader("Content-Type", "application/json")
+                .withBody(encode(responseModel))
+
+        wireMockClient.register(new StubMapping(getRequest(), responseBuilder.build()))
     }
 
-    void setResponse(String value, HttpStatusCode httpStatusCode) {
-        mockServerClient.when(getRequest(value), Times.exactly(1))
-                .respond(response().withStatusCode(httpStatusCode.code()))
-    }
+    void setResponse(String value, Integer statusCode) {
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(statusCode)
 
-    void setResponse(String value, HttpStatusCode httpStatusCode, String errorText) {
-        mockServerClient.when(getRequest(value), Times.exactly(1))
-                .respond(response().withStatusCode(httpStatusCode.code())
-                        .withBody(errorText, APPLICATION_JSON))
+        wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }
 
     void setResponseWithTimeout(String value, int timeoutSec = 5) {
-        mockServerClient.when(getRequest(value), Times.exactly(1))
-                .respond(response().withDelay(SECONDS, timeoutSec))
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withFixedDelay(timeoutSec * 1000)
+
+        wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }
 
-    protected def getRequestAndResponse() {
-        mockServerClient.retrieveRecordedRequestsAndResponses(request())
+    List<String> getRecordedRequestsBody(RequestPatternBuilder requestPatternBuilder) {
+        wireMockClient.find(requestPatternBuilder).bodyAsString
     }
 
-    List<String> getRecordedRequestsBody(HttpRequest httpRequest) {
-        mockServerClient.retrieveRecordedRequests(httpRequest)
-                        .collect { it.body.toString() }
-    }
-
-    String getRecordedRequestsQueryParameters(HttpRequest httpRequest) {
-        mockServerClient.retrieveRecordedRequests(httpRequest)
-                .collect { it -> it.queryStringParameters.multimap.toString()}
+    String getRecordedRequestsQueryParameters(RequestPatternBuilder requestPatternBuilder) {
+        wireMockClient.find(requestPatternBuilder)
+                .collect {
+                    it.queryParams.collectEntries { k, v ->
+                        [(k): v.values()]
+                    }.toString()
+                }
     }
 
     List<String> getRecordedRequestsBody(String value) {
-        mockServerClient.retrieveRecordedRequests(getRequest(value))
-                .collect { it.body.toString() }
+        wireMockClient.find(getRequest(value)).bodyAsString
     }
 
-    List<String> getRecordedRequestsBody() {
-        mockServerClient.retrieveRecordedRequests(request)
-                .collect { it.body.toString() }
+    Map<String, List<String>> getLastRecordedRequestHeaders(RequestPatternBuilder requestPatternBuilder) {
+        getRecordedRequestsHeaders(requestPatternBuilder).last()
     }
 
-    Map<String, List<String>> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
-        getRecordedRequestsHeaders(httpRequest).last()
-    }
-
-    List<Map<String, List<String>>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
-        getRequestsHeaders(mockServerClient.retrieveRecordedRequests(httpRequest) as List<HttpRequest>)
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(RequestPatternBuilder builder) {
+        wireMockClient.find(builder).collect { req ->
+            req.headers.all().collectEntries { [it.key(), it.values()*.toString()] }
+        }
     }
 
     Map<String, List<String>> getLastRecordedRequestHeaders(String value) {
@@ -158,17 +145,12 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
     }
 
     List<Map<String, List<String>>> getRecordedRequestsHeaders(String value) {
-        getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
+        getRecordedRequestsHeaders(getRequest(value))
     }
 
-    // should be used instead of mockServerClient.reset due to memory leak on library
-    void reset(String resetEndpoint = endpoint, ClearType clearType = ALL) {
-        mockServerClient.clear(request().withPath(resetEndpoint), clearType)
-    }
-
-    private static List<Map<String, List<String>>> getRequestsHeaders(List<HttpRequest> httpRequests) {
-        httpRequests*.headerList*.collectEntries { header ->
-            [header.name as String, header.values.collect { it as String }]
-        }
+    void reset() {
+        wireMockClient.resetMappings()
+        wireMockClient.resetScenarios()
+        wireMockClient.resetRequests()
     }
 }

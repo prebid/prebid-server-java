@@ -103,5 +103,4 @@ public class BidResponsesMraidFilterTest {
     private static BidderError givenError(String... rejectedImps) {
         return BidderError.of("Invalid bid", BidderError.Type.invalid_bid, Set.of(rejectedImps));
     }
-
 }

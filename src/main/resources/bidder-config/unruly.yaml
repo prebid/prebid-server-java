@@ -15,6 +15,5 @@ adapters:
     usersync:
       cookie-family-name: unruly
       redirect:
-        url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
-        support-cors: false
+        url: https://sync.1rx.io/usersync2/rmphb?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redir={redirect_url}
         uid-macro: '[RX_UUID]'

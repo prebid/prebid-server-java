@@ -1,17 +1,8 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.FileProps;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.file.FileSystemException;
-import lombok.Value;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -21,19 +12,14 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Works with GDPR Vendor List.
@@ -54,66 +40,60 @@ public class VendorListService {
 
     private static final int TCF_VERSION = 2;
 
-    private static final String JSON_SUFFIX = ".json";
-    private static final String VERSION_PLACEHOLDER = "{VERSION}";
+    private static final String VERSION_PLACEHOLDER = "VERSION";
 
     private final double logSamplingRate;
     private final String cacheDir;
-    private final String endpointTemplate;
+    private final Uri endpoint;
     private final int defaultTimeoutMs;
     private final long refreshMissingListPeriodMs;
     private final boolean deprecated;
     private final Vertx vertx;
-    private final FileSystem fileSystem;
     private final HttpClient httpClient;
     private final Metrics metrics;
     private final String generationVersion;
-    protected final JacksonMapper mapper;
+    private final VendorListFetchThrottler fetchThrottler;
+    private final VendorListFileStore vendorListFileStore;
+    private final JacksonMapper mapper;
 
-    /**
-     * This is memory/performance optimized model slice:
-     * map of vendor list version -> map of vendor ID -> Vendors
-     */
+    // Map of vendor list version -> map of vendor ID -> Vendors
     private final Map<Integer, Map<Integer, Vendor>> cache;
 
     private final Map<Integer, Vendor> fallbackVendorList;
     private final Set<Integer> versionsToFallback;
-    private final VendorListFetchThrottler fetchThrottler;
 
     public VendorListService(double logSamplingRate,
                              String cacheDir,
-                             String endpointTemplate,
+                             String endpoint,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
                              boolean deprecated,
                              String fallbackVendorListPath,
                              Vertx vertx,
-                             FileSystem fileSystem,
                              HttpClient httpClient,
                              Metrics metrics,
                              String generationVersion,
-                             JacksonMapper mapper,
-                             VendorListFetchThrottler fetchThrottler) {
+                             VendorListFetchThrottler fetchThrottler,
+                             VendorListFileStore vendorListFileStore,
+                             JacksonMapper mapper) {
 
         this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
-        this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
+        this.endpoint = Uri.of(endpoint);
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
         this.deprecated = deprecated;
         this.generationVersion = generationVersion;
         this.vertx = Objects.requireNonNull(vertx);
-        this.fileSystem = Objects.requireNonNull(fileSystem);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
-        this.mapper = Objects.requireNonNull(mapper);
         this.fetchThrottler = Objects.requireNonNull(fetchThrottler);
+        this.vendorListFileStore = Objects.requireNonNull(vendorListFileStore);
+        this.mapper = Objects.requireNonNull(mapper);
 
-        createAndCheckWritePermissionsFor(fileSystem, cacheDir);
-        cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
+        cache = Objects.requireNonNull(vendorListFileStore.createCacheFromDisk(cacheDir));
 
-        fallbackVendorList = StringUtils.isNotBlank(fallbackVendorListPath)
-                ? readFallbackVendorList(fallbackVendorListPath) : null;
+        fallbackVendorList = vendorListFileStore.readFallbackVendorList(fallbackVendorListPath);
         if (deprecated) {
             validateFallbackVendorListIfDeprecatedVersion();
         }
@@ -162,110 +142,10 @@ public class VendorListService {
     }
 
     /**
-     * Creates vendorList object from string content or throw {@link PreBidException}.
-     */
-    private VendorList toVendorList(String content) {
-        try {
-            return mapper.mapper().readValue(content, VendorList.class);
-        } catch (IOException e) {
-            final String message = "Cannot parse vendor list from: " + content;
-
-            logger.error(message, e);
-            throw new PreBidException(message, e);
-        }
-    }
-
-    /**
-     * Returns a Map of vendor id to Vendors.
-     */
-    private Map<Integer, Vendor> filterVendorIdToVendors(VendorList vendorList) {
-        return vendorList.getVendors().entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    /**
-     * Verifies all significant fields of given {@link VendorList} object.
-     */
-    private boolean isValid(VendorList vendorList) {
-        return vendorList.getVendorListVersion() != null
-                && vendorList.getLastUpdated() != null
-                && MapUtils.isNotEmpty(vendorList.getVendors())
-                && isValidVendors(vendorList.getVendors().values());
-    }
-
-    private static boolean isValidVendors(Collection<Vendor> vendors) {
-        return vendors.stream()
-                .allMatch(vendor -> vendor != null
-                        && vendor.getId() != null
-                        && vendor.getPurposes() != null
-                        && vendor.getLegIntPurposes() != null
-                        && vendor.getFlexiblePurposes() != null
-                        && vendor.getSpecialPurposes() != null
-                        && vendor.getFeatures() != null
-                        && vendor.getSpecialFeatures() != null);
-    }
-
-    /**
      * Returns the version of TCF which {@link VendorListService} implementation deals with.
      */
     private int getTcfVersion() {
         return TCF_VERSION;
-    }
-
-    /**
-     * Creates if doesn't exists and checks write permissions for the given directory.
-     */
-    private static void createAndCheckWritePermissionsFor(FileSystem fileSystem, String dir) {
-        final FileProps props = fileSystem.existsBlocking(dir) ? fileSystem.propsBlocking(dir) : null;
-        if (props == null || !props.isDirectory()) {
-            try {
-                fileSystem.mkdirsBlocking(dir);
-            } catch (FileSystemException e) {
-                throw new PreBidException("Cannot create directory: " + dir, e);
-            }
-        } else if (!Files.isWritable(Paths.get(dir))) {
-            throw new PreBidException("No write permissions for directory: " + dir);
-        }
-    }
-
-    /**
-     * Creates the cache from previously downloaded vendor lists.
-     */
-    private Map<Integer, Map<Integer, Vendor>> createCache(FileSystem fileSystem, String cacheDir) {
-        final Map<String, String> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
-
-        final Map<Integer, Map<Integer, Vendor>> cache = Caffeine.newBuilder()
-                .<Integer, Map<Integer, Vendor>>build()
-                .asMap();
-
-        for (Map.Entry<String, String> versionAndFileContent : versionToFileContent.entrySet()) {
-            final VendorList vendorList = toVendorList(versionAndFileContent.getValue());
-            final Map<Integer, Vendor> vendorIdToVendors = filterVendorIdToVendors(vendorList);
-
-            cache.put(Integer.valueOf(versionAndFileContent.getKey()), vendorIdToVendors);
-        }
-        return cache;
-    }
-
-    /**
-     * Reads files with .json extension in configured directory and
-     * returns a {@link Map} where key is a file name without .json extension and value is file content.
-     */
-    private Map<String, String> readFileSystemCache(FileSystem fileSystem, String dir) {
-        return fileSystem.readDirBlocking(dir).stream()
-                .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
-                .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
-                        filename -> fileSystem.readFileBlocking(filename).toString()));
-    }
-
-    private Map<Integer, Vendor> readFallbackVendorList(String fallbackVendorListPath) {
-        final String vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).toString();
-        final VendorList vendorList = toVendorList(vendorListContent);
-        if (!isValid(vendorList)) {
-            throw new PreBidException("Fallback vendor list parsed but has invalid data: " + vendorListContent);
-        }
-
-        return filterVendorIdToVendors(vendorList);
     }
 
     private boolean shouldFallback(int version) {
@@ -276,7 +156,7 @@ public class VendorListService {
      * Proceeds obtaining new vendor list from HTTP resource.
      */
     private void fetchNewVendorListFor(int version) {
-        final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
+        final String url = endpoint.replaceMacro(VERSION_PLACEHOLDER, String.valueOf(version)).expand();
 
         httpClient.get(url, defaultTimeoutMs)
                 .map(response -> processResponse(response, version))
@@ -290,7 +170,7 @@ public class VendorListService {
      * and creates {@link Future} with {@link VendorListResult} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private VendorListResult<VendorList> processResponse(HttpClientResponse response, int version) {
+    private VendorListResult processResponse(HttpClientResponse response, int version) {
         final int statusCode = response.getStatusCode();
 
         if (statusCode == HttpResponseStatus.NOT_FOUND.code()) {
@@ -301,11 +181,11 @@ public class VendorListService {
         }
 
         final String body = response.getBody();
-        final VendorList vendorList = toVendorList(body);
+        final VendorList vendorList = VendorListUtil.parseVendorList(body, mapper);
 
         // we should care on obtained vendor list, because it'll be saved and never be downloaded again
         // while application is running
-        if (!isValid(vendorList)) {
+        if (!VendorListUtil.vendorListIsValid(vendorList)) {
             throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
 
@@ -313,33 +193,14 @@ public class VendorListService {
         return VendorListResult.of(version, body, vendorList);
     }
 
-    /**
-     * Saves given vendor list on file system.
-     */
-    private Future<VendorListResult<VendorList>> saveToFile(VendorListResult<VendorList> vendorListResult) {
-        final Promise<VendorListResult<VendorList>> promise = Promise.promise();
-        final int version = vendorListResult.getVersion();
-        final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
-
-        fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()), result -> {
-            if (result.succeeded()) {
-                promise.complete(vendorListResult);
-            } else {
-                conditionalLogger.error(
-                        "Could not create new vendor list for version %s.%s, file: %s, trace: %s".formatted(
-                                generationVersion, version, filepath, ExceptionUtils.getStackTrace(result.cause())),
-                        logSamplingRate);
-                promise.fail(result.cause());
-            }
-        });
-
-        return promise.future();
+    private Future<VendorListResult> saveToFile(VendorListResult vendorListResult) {
+        return vendorListFileStore.saveToFile(vendorListResult, cacheDir, generationVersion);
     }
 
-    private Void updateCache(VendorListResult<VendorList> vendorListResult) {
+    private Void updateCache(VendorListResult vendorListResult) {
         final int version = vendorListResult.getVersion();
 
-        cache.put(version, filterVendorIdToVendors(vendorListResult.getVendorList()));
+        cache.put(version, vendorListResult.getVendorList().getVendors());
 
         final int tcf = getTcfVersion();
 
@@ -393,16 +254,6 @@ public class VendorListService {
         }
 
         versionsToFallback.remove(version);
-    }
-
-    @Value(staticConstructor = "of")
-    private static class VendorListResult<T> {
-
-        int version;
-
-        String vendorListAsString;
-
-        T vendorList;
     }
 
     private static class MissingVendorListException extends RuntimeException {

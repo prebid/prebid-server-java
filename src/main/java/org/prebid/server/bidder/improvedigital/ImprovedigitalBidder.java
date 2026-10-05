@@ -27,7 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
-    private static final String URL_PATH_PREFIX_MACRO = "{{PathPrefix}}";
+    private static final String URL_PATH_PREFIX_MACRO = "PathPrefix";
     private static final TypeReference<ExtPrebid<?, ExtImpImprovedigital>> IMPROVEDIGITAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -52,11 +52,11 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
     private static final Pattern DEALS_PATTERN = Pattern.compile("(classic|deal)");
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public ImprovedigitalBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -106,10 +106,10 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 .build();
 
         final String pathPrefix = publisherId != null && publisherId > 0
-                ? String.format("%d/", publisherId)
+                ? publisherId.toString()
                 : StringUtils.EMPTY;
 
-        final String endpointUrl = this.endpointUrl.replace(URL_PATH_PREFIX_MACRO, pathPrefix);
+        final String endpointUrl = this.endpointUrl.replaceMacro(URL_PATH_PREFIX_MACRO, pathPrefix).expand();
         return BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper);
     }
 

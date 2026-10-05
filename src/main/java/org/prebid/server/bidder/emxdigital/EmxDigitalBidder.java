@@ -16,6 +16,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -29,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.emxdigital.ExtImpEmxDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -46,11 +48,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public EmxDigitalBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -231,8 +233,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Long tmax = bidRequest.getTmax();
         final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
-        return "%s?t=%s&ts=%s&src=pbserver"
-                .formatted(endpointUrl, urlTimeout, (int) Instant.now().getEpochSecond());
+        return endpointUrl
+                .addQueryParam("t", Objects.toString(urlTimeout))
+                .addQueryParam("ts", Objects.toString((int) Instant.now().getEpochSecond()))
+                .addQueryParam("src", "pbserver")
+                .expand();
     }
 
     @Override
@@ -262,7 +267,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String bidAdm) {
-        return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
+        return Strings.CS.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video : BidType.banner;
     }
 }

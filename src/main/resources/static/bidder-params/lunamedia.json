@@ -14,5 +14,7 @@
       "description": "A placement created on adserver."
     }
   },
-  "required": ["pubid"]
+  "required": [
+    "pubid"
+  ]
 }

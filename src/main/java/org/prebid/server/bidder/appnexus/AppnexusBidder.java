@@ -19,7 +19,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -51,12 +51,11 @@ import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,7 +82,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpoint;
     private final Integer headerBiddingSource;
     private final Map<Integer, String> iabCategories;
     private final JacksonMapper mapper;
@@ -93,9 +92,9 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                           Map<Integer, String> iabCategories,
                           JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.headerBiddingSource = ObjectUtils.defaultIfNull(platformId, DEFAULT_PLATFORM_ID);
-        this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
+        this.endpoint = Uri.of(endpointUrl);
+        this.headerBiddingSource = ObjectUtils.getIfNull(platformId, DEFAULT_PLATFORM_ID);
+        this.iabCategories = ObjectUtils.getIfNull(iabCategories, Collections.emptyMap());
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -128,8 +127,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final String requestEndpointName = extractEndpointName(bidRequest);
-        final boolean isAmp = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
-        final boolean isVideo = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_video.value());
+        final boolean isAmp = Strings.CS.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
+        final boolean isVideo = Strings.CS.equals(requestEndpointName, Endpoint.openrtb2_video.value());
 
         final String url;
         final BidRequest updatedBidRequest;
@@ -173,7 +172,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                SameValueValidator<String> memberValidator,
                                                SameValueValidator<Boolean> generateAdPodIdValidator) {
 
-        final int placementId = ObjectUtils.defaultIfNull(extImpAppnexus.getPlacementId(), 0);
+        final int placementId = ObjectUtils.getIfNull(extImpAppnexus.getPlacementId(), 0);
         final String member = extImpAppnexus.getMember();
         if (placementId == 0 && StringUtils.isAnyBlank(extImpAppnexus.getInvCode(), member)) {
             throw new PreBidException("No placement or member+invcode provided");
@@ -225,10 +224,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return position != null || replaceWithFirstFormat
                 ? banner.toBuilder()
-                .pos(position != null ? position : banner.getPos())
-                .w(replaceWithFirstFormat ? firstFormat.getW() : width)
-                .h(replaceWithFirstFormat ? firstFormat.getH() : height)
-                .build()
+                  .pos(position != null ? position : banner.getPos())
+                  .w(replaceWithFirstFormat ? firstFormat.getW() : width)
+                  .h(replaceWithFirstFormat ? firstFormat.getH() : height)
+                  .build()
                 : banner;
     }
 
@@ -307,13 +306,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String member) {
-        try {
-            return member != null
-                    ? new URIBuilder(endpointUrl).addParameter("member_id", member).build().toString()
-                    : endpointUrl;
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return endpoint.addQueryParam("member_id", member).expand();
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {

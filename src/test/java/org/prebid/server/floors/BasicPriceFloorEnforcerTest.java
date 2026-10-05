@@ -9,11 +9,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -348,7 +348,7 @@ public class BasicPriceFloorEnforcerTest {
                                 Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.TEN).build(), null, null)),
                         singletonList(BidderError.of(
                                 "Bid with id 'bidId1' was rejected by floor enforcement: "
-                                + "price 1 is below the floor 1.1",
+                                        + "price 1 is below the floor 1.1",
                                 BidderError.Type.rejected_ipf,
                                 singleton("impId1"))));
     }

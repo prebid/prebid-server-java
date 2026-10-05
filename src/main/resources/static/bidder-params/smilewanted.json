@@ -10,5 +10,7 @@
       "minLength": 1
     }
   },
-  "required": ["zoneId"]
+  "required": [
+    "zoneId"
+  ]
 }

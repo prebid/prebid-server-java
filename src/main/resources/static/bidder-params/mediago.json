@@ -11,7 +11,11 @@
     },
     "region": {
       "type": "string",
-      "enum": ["US", "EU", "APAC"],
+      "enum": [
+        "US",
+        "EU",
+        "APAC"
+      ],
       "description": "Server region for PBS request: US for US Region, EU for EU Region, APAC for APAC Region, default is US. This parameter expects all imps to be the same"
     },
     "placementId": {
@@ -20,5 +24,7 @@
       "minLength": 1
     }
   },
-  "required": ["token"]
+  "required": [
+    "token"
+  ]
 }

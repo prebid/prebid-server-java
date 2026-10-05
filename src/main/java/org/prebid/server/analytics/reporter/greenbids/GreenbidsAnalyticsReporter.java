@@ -245,7 +245,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> parseOrtb2ImpExtResult(entry.getValue()),
-                                (existing, replacement) -> existing));
+                        (existing, _) -> existing));
     }
 
     private Ortb2ImpExtResult parseOrtb2ImpExtResult(JsonNode node) {
@@ -329,9 +329,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
-        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp ->
-                createAdUnit(
-                        imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur(), analyticsResultFromAnalyticsTag))
+        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream()
+                .map(imp -> createAdUnit(
+                        imp,
+                        seatsWithBids,
+                        seatsWithNonBids,
+                        bidResponse.getCur(),
+                        analyticsResultFromAnalyticsTag))
                 .toList();
 
         final String auctionId = bidRequest
@@ -346,17 +350,17 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final String pbuid = Optional.ofNullable(greenbidsConfig.getPbuid()).orElse(StringUtils.EMPTY);
 
         return CommonMessage.builder()
-                        .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
-                        .auctionId(auctionId)
-                        .referrer(referrer)
-                        .sampling(samplingRate)
-                        .prebidServer(prebidVersionProvider.getNameVersionRecord())
-                        .greenbidsId(greenbidsId)
-                        .pbuid(pbuid)
-                        .billingId(billingId)
-                        .adUnits(adUnitsWithBidResponses)
-                        .auctionElapsed(auctionElapsed)
-                        .build();
+                .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
+                .auctionId(auctionId)
+                .referrer(referrer)
+                .sampling(samplingRate)
+                .prebidServer(prebidVersionProvider.getNameVersionRecord())
+                .greenbidsId(greenbidsId)
+                .pbuid(pbuid)
+                .billingId(billingId)
+                .adUnits(adUnitsWithBidResponses)
+                .auctionElapsed(auctionElapsed)
+                .build();
     }
 
     private static Map<String, Bid> getSeatsWithBids(BidResponse bidResponse) {
@@ -461,14 +465,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final ObjectNode bidders = impExtPrebid.getBidder();
 
         return Stream.concat(
-                seatsWithBids.entrySet().stream()
-                        .filter(entry -> entry.getValue().getImpid().equals(impId))
-                        .map(entry -> GreenbidsBid.ofBid(
-                                entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)),
-                seatsWithNonBids.entrySet().stream()
-                        .filter(entry -> entry.getValue().getImpId().equals(impId))
-                        .map(entry -> GreenbidsBid.ofNonBid(
-                                entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)))
+                        seatsWithBids.entrySet().stream()
+                                .filter(entry -> entry.getValue().getImpid().equals(impId))
+                                .map(entry -> GreenbidsBid.ofBid(
+                                        entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)),
+                        seatsWithNonBids.entrySet().stream()
+                                .filter(entry -> entry.getValue().getImpId().equals(impId))
+                                .map(entry -> GreenbidsBid.ofNonBid(
+                                        entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)))
                 .toList();
     }
 

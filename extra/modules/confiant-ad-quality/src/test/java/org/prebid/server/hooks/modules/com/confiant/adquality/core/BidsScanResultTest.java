@@ -83,9 +83,9 @@ public class BidsScanResultTest {
 
         // then
         assertThat(groupByIssues.getWithIssues().size()).isEqualTo(1);
-        assertThat(groupByIssues.getWithIssues().get(0).getBidder()).isEqualTo("critio1");
+        assertThat(groupByIssues.getWithIssues().getFirst().getBidder()).isEqualTo("critio1");
         assertThat(groupByIssues.getWithoutIssues().size()).isEqualTo(1);
-        assertThat(groupByIssues.getWithoutIssues().get(0).getBidder()).isEqualTo("critio2");
+        assertThat(groupByIssues.getWithoutIssues().getFirst().getBidder()).isEqualTo("critio2");
     }
 
     @Test

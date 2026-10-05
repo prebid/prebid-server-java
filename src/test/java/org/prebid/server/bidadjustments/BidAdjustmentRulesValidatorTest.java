@@ -249,18 +249,18 @@ public class BidAdjustmentRulesValidatorTest {
                 Map.of("dealId", givenRules));
 
         final BidAdjustments givenBidAdjustments = BidAdjustments.of(Map.of(
-                        "audio", givenRulesMap,
-                        "native", givenRulesMap,
-                        "video-instream", givenRulesMap,
-                        "video-outstream", givenRulesMap,
-                        "banner", givenRulesMap,
-                        "video", givenRulesMap,
-                        "unknown", givenRulesMap,
-                        "*", Map.of(
-                                "*", Map.of("*", givenRules),
-                                "bidderName", Map.of(
-                                        "*", givenRules,
-                                        "dealId", givenRules))));
+                "audio", givenRulesMap,
+                "native", givenRulesMap,
+                "video-instream", givenRulesMap,
+                "video-outstream", givenRulesMap,
+                "banner", givenRulesMap,
+                "video", givenRulesMap,
+                "unknown", givenRulesMap,
+                "*", Map.of(
+                        "*", Map.of("*", givenRules),
+                        "bidderName", Map.of(
+                                "*", givenRules,
+                                "dealId", givenRules))));
 
         //when & then
         BidAdjustmentRulesValidator.validate(givenBidAdjustments);

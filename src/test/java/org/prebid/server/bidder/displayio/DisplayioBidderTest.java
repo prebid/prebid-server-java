@@ -51,7 +51,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 @ExtendWith(MockitoExtension.class)
 class DisplayioBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/{{PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/{PublisherID}";
 
     @Mock
     private CurrencyConversionService currencyConversionService;

@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class AdheseBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://ads-{{AccountId}}.adhese.com/openrtb2";
+    private static final String ENDPOINT_URL = "https://ads-{AccountId}.adhese.com/openrtb2";
 
     private final AdheseBidder target = new AdheseBidder(ENDPOINT_URL, jacksonMapper);
 

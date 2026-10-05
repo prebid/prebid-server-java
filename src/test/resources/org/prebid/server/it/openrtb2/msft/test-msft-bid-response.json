@@ -1,0 +1,21 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "imp_id",
+          "price": 2.5,
+          "adm": "test-ad-content",
+          "adid": "456",
+          "crid": "1234",
+          "cid": "1234",
+          "ext": {
+            "appnexus": {}
+          }
+        }
+      ]
+    }
+  ]
+}

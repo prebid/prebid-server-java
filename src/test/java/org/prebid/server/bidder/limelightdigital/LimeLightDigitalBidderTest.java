@@ -48,7 +48,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 @ExtendWith(MockitoExtension.class)
 public class LimeLightDigitalBidderTest extends VertxTest {
 
-    public static final String ENDPOINT_URL = "http://ads.test.com/{{PublisherID}}?host={{Host}}";
+    public static final String ENDPOINT_URL = "http://ads.test.com/{PublisherID}?host={Host}";
 
     @Mock
     private CurrencyConversionService currencyConversionService;

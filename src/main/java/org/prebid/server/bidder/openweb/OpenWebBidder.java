@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.openweb.ExtImpOpenweb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,11 +35,11 @@ public class OpenWebBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public OpenWebBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -95,7 +95,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String org) {
-        return "%s?publisher_id=%s".formatted(endpointUrl, HttpUtil.encodeUrl(org));
+        return endpointUrl.addQueryParam("publisher_id", org).expand();
     }
 
     @Override

@@ -1,7 +1,7 @@
 package org.prebid.server.vertx;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 
 /**
  * Denotes components requiring initialization after they have been created.
@@ -12,5 +12,5 @@ import io.vertx.core.Promise;
 @FunctionalInterface
 public interface Initializable {
 
-    void initialize(Promise<Void> initializePromise);
+    Future<Void> initialize();
 }

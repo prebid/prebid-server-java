@@ -16,9 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +30,6 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
 
     private Vertx vertx;
 
-    private Clock clock;
     @Mock
     private GeoLocationService wrappedGeoLocationService;
     @Mock
@@ -44,14 +40,13 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
-        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 1,
-                100L, 200L, clock);
+                1000L, 200L);
     }
 
     @AfterEach
     public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+        vertx.close().onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -143,7 +138,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     public void lookupShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds() {
         // given
         geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 2,
-                100L, 200L, clock);
+                100L, 200L);
 
         givenWrappedGeoLocationReturning(
                 Future.failedFuture(new RuntimeException("exception1")),

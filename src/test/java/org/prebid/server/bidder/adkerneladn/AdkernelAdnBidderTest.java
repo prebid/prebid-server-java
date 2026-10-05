@@ -43,7 +43,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdkernelAdnBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/test?account={{PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test.com/test?account={PublisherID}";
 
     private final AdkernelAdnBidder target = new AdkernelAdnBidder(ENDPOINT_URL, jacksonMapper);
 

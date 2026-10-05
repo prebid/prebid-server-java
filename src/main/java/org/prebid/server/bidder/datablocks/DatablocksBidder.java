@@ -20,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,15 +32,16 @@ import java.util.Objects;
 
 public class DatablocksBidder implements Bidder<BidRequest> {
 
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpDatablocks>> DATABLOCKS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
-    public DatablocksBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public DatablocksBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -50,7 +51,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpDatablocks extImpDatablocks = parseAndValidateImpExt(imp.getExt());
-                extToImps.computeIfAbsent(extImpDatablocks, ext -> new ArrayList<>()).add(imp);
+                extToImps.computeIfAbsent(extImpDatablocks, _ -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
@@ -83,8 +84,9 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                                                     BidRequest bidRequest) {
 
         final ExtImpDatablocks extImpDatablocks = extToImps.getKey();
-        final String uri = endpointTemplate
-                .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
+        final String uri = endpoint
+                .replaceMacro(SOURCE_ID_MACRO, extImpDatablocks.getSourceId().toString())
+                .expand();
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
 

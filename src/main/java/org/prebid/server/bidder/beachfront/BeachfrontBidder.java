@@ -21,6 +21,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
@@ -45,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -60,7 +62,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final String ADM_VIDEO_TYPE = "adm";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
     private static final String BEACHFRONT_VERSION = "1.0.0";
-    private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
+    private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "prebidserver";
     private static final String FAKE_IP = "255.255.255.255";
 
     private static final int DEFAULT_VIDEO_WIDTH = 300;
@@ -71,7 +73,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             };
 
     private final String bannerEndpointUrl;
-    private final String videoEndpointUrl;
+    private final Uri videoEndpointUrl;
     private final BeachfrontFloorResolver beachfrontFloorResolver;
     private final JacksonMapper mapper;
 
@@ -81,7 +83,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                             JacksonMapper mapper) {
 
         this.bannerEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(bannerEndpointUrl));
-        this.videoEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpointUrl));
+        this.videoEndpointUrl = Uri.of(videoEndpointUrl);
         this.beachfrontFloorResolver = new BeachfrontFloorResolver(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -144,10 +146,14 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private String resolveVideoUri(String appId, Boolean isPrebid) {
-        final String videoWithId = videoEndpointUrl + appId;
-        return BooleanUtils.toBoolean(isPrebid)
-                ? videoWithId + NURL_VIDEO_ENDPOINT_SUFFIX
-                : videoWithId;
+        final Uri.ParameterizedUri uri = videoEndpointUrl
+                .addQueryParam("exchange_id", appId);
+
+        if (BooleanUtils.toBoolean(isPrebid)) {
+            uri.addQueryParam(NURL_VIDEO_ENDPOINT_SUFFIX, StringUtils.EMPTY);
+        }
+
+        return uri.expand();
     }
 
     private static boolean checkFormats(Banner banner) {
@@ -309,7 +315,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private static int getSecure(String page) {
-        return StringUtils.contains(page, "https") ? 1 : 0;
+        return Strings.CS.contains(page, "https") ? 1 : 0;
     }
 
     private static SupplyChain getSchain(BidRequest bidRequest) {
@@ -373,8 +379,8 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             final App app = bidRequest.getApp();
             if (app != null && StringUtils.isBlank(app.getDomain()) && StringUtils.isNotBlank(app.getBundle())) {
-                final String trimmedBundle = StringUtils.removeStart(app.getBundle(), "_");
-                final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split("\\.");
+                final String trimmedBundle = Strings.CS.removeStart(app.getBundle(), "_");
+                final String[] split = Strings.CS.removeEnd(trimmedBundle, "_").split("\\.");
 
                 if (split.length > 1) {
                     bidRequestBuilder.app(app.toBuilder().domain("%s.%s".formatted(split[1], split[0])).build());

@@ -2,6 +2,7 @@ package org.prebid.server.privacy.ccpa;
 
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.exception.PreBidException;
 
 @Value(staticConstructor = "of")
@@ -36,7 +37,7 @@ public class Ccpa {
         }
 
         final String optOutSale = Character.toString(usPrivacy.charAt(OPT_OUT_SALE_INDEX));
-        return StringUtils.equalsIgnoreCase(optOutSale, ENFORCED_SIGNAL);
+        return Strings.CI.equals(optOutSale, ENFORCED_SIGNAL);
     }
 
     public static boolean isValid(String consent) {
@@ -63,7 +64,7 @@ public class Ccpa {
     }
 
     private static void agreementSpecified(char agreement, String agreementType) {
-        final boolean isAppropriateValue = StringUtils.equalsAnyIgnoreCase(Character.toString(agreement),
+        final boolean isAppropriateValue = Strings.CI.equalsAny(Character.toString(agreement),
                 NOT_ENFORCED_SIGNAL, ENFORCED_SIGNAL, NOT_DEFINED_SIGNAL);
 
         if (!isAppropriateValue) {

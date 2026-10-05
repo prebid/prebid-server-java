@@ -29,7 +29,7 @@
     "publisher": {
       "domain": "example.com"
     },
-    "keywords" : "tagId=some_tag_id",
+    "keywords": "tagId=some_tag_id",
     "ext": {
       "amp": 0
     }
@@ -54,6 +54,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     }

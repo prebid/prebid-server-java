@@ -3,7 +3,6 @@
   "title": "Boldwin Adapter Params",
   "description": "A schema which validates params accepted by the Boldwin adapter",
   "type": "object",
-
   "properties": {
     "placementId": {
       "type": "string",
@@ -17,7 +16,15 @@
     }
   },
   "oneOf": [
-    { "required": ["placementId"] },
-    { "required": ["endpointId"] }
+    {
+      "required": [
+        "placementId"
+      ]
+    },
+    {
+      "required": [
+        "endpointId"
+      ]
+    }
   ]
 }

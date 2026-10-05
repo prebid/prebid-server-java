@@ -2,8 +2,12 @@ adapters:
   showheroes:
     endpoint: https://ads.viralize.tv/openrtb2/auction/
     aliases:
-      showheroes-bs: ~
-      showheroesBs: ~
+      showheroes-bs:
+        meta-info:
+          vendor-id: 111
+      showheroesBs:
+        meta-info:
+          vendor-id: 111
     ortb-version: '2.6'
     meta-info:
       maintainer-email: tech@showheroes.com

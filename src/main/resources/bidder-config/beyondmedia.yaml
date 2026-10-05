@@ -4,6 +4,8 @@ adapters:
     aliases:
       andbeyondmedia:
         endpoint: http://backend.andbeyond.media/pserver
+        meta-info:
+          vendor-id: 0
     meta-info:
       maintainer-email: sysengg@andbeyond.media
       app-media-types:

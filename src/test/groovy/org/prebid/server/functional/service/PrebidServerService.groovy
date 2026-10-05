@@ -43,26 +43,27 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.prebid.server.functional.model.config.Endpoint.AMP
+import static org.prebid.server.functional.model.config.Endpoint.AUCTION
+import static org.prebid.server.functional.model.config.Endpoint.BIDDER_PARAMS
+import static org.prebid.server.functional.model.config.Endpoint.COLLECTED_METRICS
+import static org.prebid.server.functional.model.config.Endpoint.COOKIE_SYNC
+import static org.prebid.server.functional.model.config.Endpoint.CURRENCY_RATES
+import static org.prebid.server.functional.model.config.Endpoint.EVENT
+import static org.prebid.server.functional.model.config.Endpoint.GETUIDS
+import static org.prebid.server.functional.model.config.Endpoint.HTTP_INTERACTION
+import static org.prebid.server.functional.model.config.Endpoint.INFLUX_DB
+import static org.prebid.server.functional.model.config.Endpoint.INFO_BIDDERS
+import static org.prebid.server.functional.model.config.Endpoint.PROMETHEUS_METRICS
+import static org.prebid.server.functional.model.config.Endpoint.SETUID
+import static org.prebid.server.functional.model.config.Endpoint.STATUS
+import static org.prebid.server.functional.model.config.Endpoint.VTRACK
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
+import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 
 class PrebidServerService implements ObjectMapperWrapper {
 
-    static final String AUCTION_ENDPOINT = "/openrtb2/auction"
-    static final String AMP_ENDPOINT = "/openrtb2/amp"
-    static final String COOKIE_SYNC_ENDPOINT = "/cookie_sync"
-    static final String SET_UID_ENDPOINT = "/setuid"
-    static final String GET_UIDS_ENDPOINT = "/getuids"
-    static final String EVENT_ENDPOINT = "/event"
-    static final String VTRACK_ENDPOINT = "/vtrack"
-    static final String STATUS_ENDPOINT = "/status"
-    static final String INFO_BIDDERS_ENDPOINT = "/info/bidders"
-    static final String BIDDERS_PARAMS_ENDPOINT = "/bidders/params"
-    static final String CURRENCY_RATES_ENDPOINT = "/currency/rates"
-    static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
-    static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
-    static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
-    static final String INFLUX_DB_ENDPOINT = "/query"
     static final String UIDS_COOKIE_NAME = "uids"
 
     private final PrebidServerContainer pbsContainer
@@ -190,7 +191,7 @@ class PrebidServerService implements ObjectMapperWrapper {
                 .cookies(cookies)
                 .queryParams(toMap(request))
                 .headers(header)
-                .get(SET_UID_ENDPOINT)
+                .get(SETUID.value)
 
         checkResponseStatusCode(response)
 
@@ -206,7 +207,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
 
         def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
-                .get(GET_UIDS_ENDPOINT)
+                .get(GETUIDS.value)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), GetuidResponse)
@@ -215,7 +216,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     byte[] sendEventRequest(EventRequest eventRequest, Map<String, String> headers = [:]) {
         def response = given(requestSpecification).headers(headers)
                 .queryParams(toMap(eventRequest))
-                .get(EVENT_ENDPOINT)
+                .get(EVENT.value)
 
         checkResponseStatusCode(response)
         response.body.asByteArray()
@@ -224,7 +225,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     PrebidCacheResponse sendPostVtrackRequest(VtrackRequest request, String account) {
         def response = given(requestSpecification).queryParams(["a": account])
                 .body(request)
-                .post(VTRACK_ENDPOINT)
+                .post(VTRACK.value)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), PrebidCacheResponse)
@@ -233,28 +234,28 @@ class PrebidServerService implements ObjectMapperWrapper {
     TransferValue sendGetVtrackRequest(Map<String, Object> parameters) {
         def response = given(requestSpecification)
                 .queryParams(parameters)
-                .get(VTRACK_ENDPOINT)
+                .get(VTRACK.value)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), TransferValue)
     }
 
     StatusResponse sendStatusRequest() {
-        def response = given(requestSpecification).get(STATUS_ENDPOINT)
+        def response = given(requestSpecification).get(STATUS.value)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), StatusResponse)
     }
 
     String sendInfoBiddersRequest() {
-        def response = given(requestSpecification).get(INFO_BIDDERS_ENDPOINT)
+        def response = given(requestSpecification).get(INFO_BIDDERS.value)
 
         checkResponseStatusCode(response)
         response.body().asString()
     }
 
     List<String> sendInfoBiddersRequest(Map<String, String> queryParam) {
-        def response = given(requestSpecification).queryParams(queryParam).get(INFO_BIDDERS_ENDPOINT)
+        def response = given(requestSpecification).queryParams(queryParam).get(INFO_BIDDERS.value)
 
         checkResponseStatusCode(response)
         decode(response.asString(), new TypeReference<List<String>>() {})
@@ -262,21 +263,21 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     BidderInfoResponse sendBidderInfoRequest(BidderName bidderName) {
 
-        def response = given(requestSpecification).get("$INFO_BIDDERS_ENDPOINT/$bidderName.value")
+        def response = given(requestSpecification).get("${INFO_BIDDERS.value}/$bidderName.value")
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), BidderInfoResponse)
     }
 
     BiddersParamsResponse sendBiddersParamsRequest() {
-        def response = given(requestSpecification).get(BIDDERS_PARAMS_ENDPOINT)
+        def response = given(requestSpecification).get(BIDDER_PARAMS.value)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), BiddersParamsResponse)
     }
 
     CurrencyRatesResponse sendCurrencyRatesRequest() {
-        def response = given(adminRequestSpecification).get(CURRENCY_RATES_ENDPOINT)
+        def response = given(adminRequestSpecification).get(CURRENCY_RATES.value)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), CurrencyRatesResponse)
@@ -284,14 +285,14 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     String sendLoggingHttpInteractionRequest(HttpInteractionRequest httpInteractionRequest) {
         def response = given(adminRequestSpecification).queryParams(toMap(httpInteractionRequest))
-                .get(HTTP_INTERACTION_ENDPOINT)
+                .get(HTTP_INTERACTION.value)
 
         checkResponseStatusCode(response)
         response.body().asString()
     }
 
     Map<String, Number> sendCollectedMetricsRequest() {
-        def response = given(adminRequestSpecification).get(COLLECTED_METRICS_ENDPOINT)
+        def response = given(adminRequestSpecification).get(COLLECTED_METRICS.value)
 
         checkResponseStatusCode(response)
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
@@ -301,14 +302,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = given(influxRequestSpecification)
                 .queryParams(["db": influxdbContainer.getDatabase(),
                               "q" : "SELECT COUNT(count) FROM /.*/  WHERE count >= 1 GROUP BY \"measurement\""])
-                .get(INFLUX_DB_ENDPOINT)
+                .get(INFLUX_DB.value)
 
         checkResponseStatusCode(response)
         collectInToMap(decode(response.getBody().asString(), InfluxResponse))
     }
 
     String sendPrometheusMetricsRequest() {
-        def response = given(prometheusRequestSpecification).get(PROMETHEUS_METRICS_ENDPOINT)
+        def response = given(prometheusRequestSpecification).get(PROMETHEUS_METRICS.value)
 
         checkResponseStatusCode(response)
         response.body().asString()
@@ -324,7 +325,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         given(requestSpecification).headers(headers)
                 .body(payload)
-                .post(AUCTION_ENDPOINT)
+                .post(AUCTION.value)
     }
 
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
@@ -355,7 +356,7 @@ class PrebidServerService implements ObjectMapperWrapper {
             requestSpecification.headers(headers)
         }
 
-        requestSpecification.post(COOKIE_SYNC_ENDPOINT)
+        requestSpecification.post(COOKIE_SYNC.value)
     }
 
     private Response getAmp(AmpRequest ampRequest,
@@ -369,7 +370,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         given(requestSpecification).headers(headers)
                 .queryParams(map)
-                .get(AMP_ENDPOINT)
+                .get(AMP.value)
     }
 
     private void checkResponseStatusCode(Response response, int statusCode = 200) {
@@ -410,33 +411,17 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    List<String> getLogsByTime(Instant testStart, Instant testEnd = Instant.now()) {
-        if (testEnd.isBefore(testStart)) {
-            throw new IllegalArgumentException("The end time of the test is less than the start time")
-        }
-        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                .withZone(ZoneId.from(UTC))
-        def logs = Arrays.asList(pbsContainer.logs.split("\n"))
-        def filteredLogs = []
-
-        def deltaTime = Duration.between(testStart, testEnd).plusSeconds(1).seconds
-
-        for (int i = 0; i <= deltaTime; i++) {
-            def time = testStart.plusSeconds(i)
-            def element = logs.find { it.contains(formatter.format(time)) }
-            if (element) {
-                filteredLogs.addAll(logs.subList(logs.indexOf(element), logs.size()))
-                break
-            }
-        }
-        filteredLogs
-    }
-
     String getLogsByValue(String value) {
         if (!value) {
             throw new IllegalArgumentException("Value is null or empty")
         }
-        getPbsLogsByValue(value)
+        def matches = getPbsLogsByValue(value)
+        if (matches.size() > 1) {
+            throw new IllegalStateException(
+                    "Expected exactly one log containing '$value', but found ${matches.size()}"
+            )
+        }
+        matches ? matches.first() : null
     }
 
     Boolean isContainLogsByValue(String value) {
@@ -448,6 +433,42 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    private List<String> getPbsLogsByValue(String value) {
+        getPbsLogs().findAll { it.contains(value) }
+    }
+
+    private List<String> getPbsLogs() {
+        pbsContainer.logs?.readLines() ?: []
+    }
+
+    List<String> getLogsByTime(Instant testStart, long timeoutMs = DEFAULT_TIMEOUT) {
+        if (!testStart) {
+            throw new IllegalArgumentException("Test start time is null")
+        }
+        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(UTC)
+        List<String> result = []
+
+        PBSUtils.waitUntil({
+            result = findLogsByTime(testStart, getPbsLogs(), formatter)
+            !result.isEmpty()
+        }, timeoutMs)
+        result
+    }
+
+    private static List<String> findLogsByTime(Instant testStart, List<String> logs, DateTimeFormatter formatter) {
+        def deltaTime = Duration.between(testStart, Instant.now()).plusSeconds(1).seconds
+        for (long i = 0; i <= deltaTime; i++) {
+            def timestamp = formatter.format(testStart.plusSeconds(i))
+            def index = logs.findIndexOf { it.contains(timestamp) }
+
+            if (index >= 0) {
+                return logs[index..-1]
+            }
+        }
+        []
+    }
+
+
     Boolean isContainMetricByValue(String value) {
         try {
             PBSUtils.waitUntil({ sendInfluxMetricsRequest()[value] != null })
@@ -455,10 +476,6 @@ class PrebidServerService implements ObjectMapperWrapper {
         } catch (IllegalStateException ignored) {
             false
         }
-    }
-
-    private String getPbsLogsByValue(String value) {
-        pbsContainer.logs.split("\n").find { it.contains(value) }
     }
 
     <T> T getValueFromContainer(String path, Class<T> clazz) {

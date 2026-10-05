@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -29,32 +31,32 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class FullEnforcePurposeStrategyTest {
 
     private static final PurposeCode PURPOSE_CODE = PurposeCode.ONE;
 
     private FullEnforcePurposeStrategy target;
 
-    @Mock(strictness = LENIENT)
+    @Mock
     private TCString tcString;
-    @Mock(strictness = LENIENT)
+    @Mock
     private IntIterable allowedVendors;
-    @Mock(strictness = LENIENT)
+    @Mock
     private IntIterable allowedVendorsLI;
-    @Mock(strictness = LENIENT)
+    @Mock
     private IntIterable purposesConsent;
-    @Mock(strictness = LENIENT)
+    @Mock
     private IntIterable purposesLI;
     @Spy
     private IntIterable vendorIds;
 
-    @Mock(strictness = LENIENT)
+    @Mock
     private PublisherRestriction publisherRestriction;
 
     @BeforeEach
@@ -349,6 +351,87 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
+    }
+
+    @Test
+    public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndPurposeSupportsLI() {
+        // given
+        final Vendor vendorGvl = Vendor.builder()
+                .legIntPurposes(EnumSet.of(
+                        PurposeCode.ONE,
+                        PurposeCode.TWO,
+                        PurposeCode.SEVEN,
+                        PurposeCode.EIGHT,
+                        PurposeCode.NINE,
+                        PurposeCode.TEN))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
+                .build();
+
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = withGvl(vendorPermission, vendorGvl);
+        final List<VendorPermissionWithGvl> vendorPermissions = singletonList(vendorPermissionWitGvl);
+
+        given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
+
+        // when and then
+        assertThat(target.allowedByTypeStrategy(PurposeCode.ONE, tcString, vendorPermissions, emptyList(), false))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.TWO, tcString, vendorPermissions, emptyList(), false))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.SEVEN, tcString, vendorPermissions, emptyList(), false))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.EIGHT, tcString, vendorPermissions, emptyList(), false))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.NINE, tcString, vendorPermissions, emptyList(), false))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.TEN, tcString, vendorPermissions, emptyList(), false))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+
+        verify(purposesLI).contains(PurposeCode.ONE.code());
+        verify(purposesLI).contains(PurposeCode.TWO.code());
+        verify(purposesLI).contains(PurposeCode.SEVEN.code());
+        verify(purposesLI).contains(PurposeCode.EIGHT.code());
+        verify(purposesLI).contains(PurposeCode.NINE.code());
+        verify(purposesLI).contains(PurposeCode.TEN.code());
+    }
+
+    @Test
+    public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndPurposeDoesNotSupportLI() {
+        // given
+        final Vendor vendorGvl = Vendor.builder()
+                .legIntPurposes(EnumSet.of(
+                        PurposeCode.THREE,
+                        PurposeCode.FOUR,
+                        PurposeCode.FIVE,
+                        PurposeCode.SIX))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
+                .build();
+
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = withGvl(vendorPermission, vendorGvl);
+        final List<VendorPermissionWithGvl> permissions = singletonList(vendorPermissionWitGvl);
+
+        given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
+
+        // when and then
+        assertThat(target.allowedByTypeStrategy(PurposeCode.THREE, tcString, permissions, emptyList(), false))
+                .isEmpty();
+        assertThat(target.allowedByTypeStrategy(PurposeCode.FOUR, tcString, permissions, emptyList(), false))
+                .isEmpty();
+        assertThat(target.allowedByTypeStrategy(PurposeCode.FIVE, tcString, permissions, emptyList(), false))
+                .isEmpty();
+        assertThat(target.allowedByTypeStrategy(PurposeCode.SIX, tcString, permissions, emptyList(), false))
+                .isEmpty();
+
+        verifyNoInteractions(purposesLI);
     }
 
     @Test

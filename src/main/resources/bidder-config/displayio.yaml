@@ -1,6 +1,6 @@
 adapters:
   displayio:
-    endpoint: https://prebid.display.io/?publisher={{PublisherID}}
+    endpoint: https://prebid.display.io/?publisher={PublisherID}
     endpoint-compression: gzip
     modifying-vast-xml-allowed: true
     geoscope:

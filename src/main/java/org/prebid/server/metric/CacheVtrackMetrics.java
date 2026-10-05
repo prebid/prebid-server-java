@@ -50,5 +50,4 @@ class CacheVtrackMetrics extends UpdatableMetrics {
     CacheCreativeTtlMetrics creativeTtl() {
         return creativeTtlMetrics;
     }
-
 }

@@ -7,6 +7,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -93,7 +94,7 @@ public class SonobiBidder implements Bidder<BidRequest> {
 
         if (BidderUtil.isValidPrice(bidFloor)
                 && StringUtils.isNotBlank(bidFloorCurrency)
-                && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
+                && !Strings.CI.equals(bidFloorCurrency, BIDDER_CURRENCY)) {
             return Price.of(
                     BIDDER_CURRENCY,
                     currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY));

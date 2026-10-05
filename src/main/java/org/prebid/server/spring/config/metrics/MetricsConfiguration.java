@@ -72,7 +72,7 @@ public class MetricsConfiguration {
                 influxdbProperties.getConnectTimeout(),
                 influxdbProperties.getReadTimeout(),
                 influxdbProperties.getPrefix());
-        final Map<String, String> tags = ObjectUtils.defaultIfNull(
+        final Map<String, String> tags = ObjectUtils.getIfNull(
                 influxdbProperties.getTags(),
                 Collections.emptyMap()
         );

@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "AdGeneration Adapter Params",
   "description": "A schema which validates params accepted by the AdGeneration adapter",
-
   "type": "object",
   "properties": {
     "id": {
@@ -10,5 +9,7 @@
       "description": "Ad ID registered by AdGeneration."
     }
   },
-  "required": ["id"]
+  "required": [
+    "id"
+  ]
 }

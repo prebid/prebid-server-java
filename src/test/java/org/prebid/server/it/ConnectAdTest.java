@@ -21,7 +21,7 @@ public class ConnectAdTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/connectad-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("Content-Type", equalTo("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("DNT", equalTo("0"))

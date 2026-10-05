@@ -19,7 +19,7 @@ class Video {
     Integer width
     @JsonProperty("h")
     Integer height
-    Integer podid
+    String podid
     Integer podseq
     List<Integer> rqddurs
     VideoPlacementSubtypes placement

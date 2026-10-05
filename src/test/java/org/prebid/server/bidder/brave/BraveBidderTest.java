@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class BraveBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com?partner={{.PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test.com?partner={PublisherID}";
 
     private final BraveBidder target = new BraveBidder(ENDPOINT_URL, jacksonMapper);
 

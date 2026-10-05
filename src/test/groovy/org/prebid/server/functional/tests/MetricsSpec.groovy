@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 
+import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.NONE
@@ -24,7 +25,7 @@ class MetricsSpec extends BaseSpec {
         flushMetrics(softPrebidService)
     }
 
-    def "PBS should not populate account metric when verbosity level is none"() {
+    def "PBS should only populate requests.gotbids account metric when verbosity level is none"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -39,7 +40,8 @@ class MetricsSpec extends BaseSpec {
 
         then: "account.<account-id>.* metric shouldn't be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics.find { it.key.startsWith("account.${accountId}") }
+        def filteredMetrics = metrics.findAll { it.key != "account.${accountId}.requests.gotbids" }
+        assert !filteredMetrics.find { it.key.startsWith("account.${accountId}") }
     }
 
     def "PBS should update account.<account-id>.requests metric when verbosity level is basic"() {
@@ -94,7 +96,42 @@ class MetricsSpec extends BaseSpec {
         assert metrics["account.${accountId}.adapter.generic.request_time"      as String] == 1
         assert metrics["account.${accountId}.adapter.generic.requests.gotbids"  as String] == 1
         assert metrics["account.${accountId}.requests"                          as String] == 1
+        assert metrics["account.${accountId}.requests.gotbids"                  as String] == 1
         assert metrics["account.${accountId}.requests.type.openrtb2-web"        as String] == 1
+    }
+
+    def "PBS should not populate bid-related account metrics for failed bidder response when verbosity level is detailed"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default basic BidResponse with bid price"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+
+        and: "Set bidder response to internal server error"
+        bidder.setResponse(bidRequest.id, bidResponse, SC_INTERNAL_SERVER_ERROR)
+
+        and: "Account in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
+        def account = new Account(uuid: accountId, config: accountMetricsConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "General request metrics should be populated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["account.${accountId}.requests" as String] == 1
+        assert metrics["account.${accountId}.requests.type.openrtb2-web" as String] == 1
+
+        and: "Adapter request time should be populated"
+        assert metrics["account.${accountId}.adapter.generic.request_time" as String] == 1
+
+        and: "Bid-related metrics should not be populated due to bidder error"
+        assert !metrics["account.${accountId}.requests.gotbids" as String]
+        assert !metrics["account.${accountId}.adapter.generic.requests.gotbids" as String]
+        assert !metrics["account.${accountId}.adapter.generic.bids_received" as String]
+        assert !metrics["account.${accountId}.adapter.generic.prices" as String]
     }
 
     def "PBS should update hood metrics when bid request contains hood channel type and verbosity level is detailed"() {
@@ -183,8 +220,8 @@ class MetricsSpec extends BaseSpec {
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(APP).tap {
-                           it.dooh = Dooh.defaultDooh
-                       },
+            it.dooh = Dooh.defaultDooh
+        },
                        BidRequest.getDefaultBidRequest(APP).tap {
                            it.site = Site.defaultSite
                        },

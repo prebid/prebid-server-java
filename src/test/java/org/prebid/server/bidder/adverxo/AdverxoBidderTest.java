@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class AdverxoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/{{adUnitId}}/{{auth}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{adUnitId}/{auth}";
     private static final String AD_UNIT_ID = "123";
     private static final String AUTH = "testAuth";
 
@@ -70,7 +70,7 @@ public class AdverxoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Error parsing ext.imp.bidder");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Error parsing ext.imp.bidder");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -115,8 +115,8 @@ public class AdverxoBidderTest extends VertxTest {
                 eq("USD")
         );
 
-        final BidRequest outgoingRequest = result.getValue().get(0).getPayload();
-        final Imp modifiedImp = outgoingRequest.getImp().get(0);
+        final BidRequest outgoingRequest = result.getValue().getFirst().getPayload();
+        final Imp modifiedImp = outgoingRequest.getImp().getFirst();
         assertThat(modifiedImp.getBidfloor()).isEqualTo(convertedPrice);
         assertThat(modifiedImp.getBidfloorcur()).isEqualTo("USD");
     }
@@ -150,7 +150,7 @@ public class AdverxoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode");
     }
 
     @Test
@@ -237,7 +237,7 @@ public class AdverxoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).contains("Unsupported mType 99");
+        assertThat(result.getErrors().getFirst().getMessage()).contains("Unsupported mType 99");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -263,7 +263,7 @@ public class AdverxoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getBid().getAdm()).isEqualTo("Price is 5.55");
     }
 
@@ -289,7 +289,7 @@ public class AdverxoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getValue().getFirst().getBid().getAdm()).isEqualTo(adm);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

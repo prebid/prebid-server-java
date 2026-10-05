@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Smartadserver Adapter Params",
   "description": "A schema which validates params accepted by the Smartadserver adapter",
-
   "type": "object",
   "properties": {
     "siteId": {
@@ -27,9 +26,26 @@
     }
   },
   "dependencies": {
-    "siteId": { "required": ["pageId", "formatId"] },
-    "pageId": { "required": ["siteId", "formatId"] },
-    "formatId": { "required": ["siteId", "pageId"] }
+    "siteId": {
+      "required": [
+        "pageId",
+        "formatId"
+      ]
+    },
+    "pageId": {
+      "required": [
+        "siteId",
+        "formatId"
+      ]
+    },
+    "formatId": {
+      "required": [
+        "siteId",
+        "pageId"
+      ]
+    }
   },
-  "required": ["networkId"]
+  "required": [
+    "networkId"
+  ]
 }

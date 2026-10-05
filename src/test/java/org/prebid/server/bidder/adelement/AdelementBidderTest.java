@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class AdelementBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/?param={{SupplyId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/?param={SupplyId}";
 
     private AdelementBidder adelementBidder;
 
@@ -71,7 +71,7 @@ public class AdelementBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adelementBidder.makeBids(httpCall, null);
@@ -106,9 +106,9 @@ public class AdelementBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

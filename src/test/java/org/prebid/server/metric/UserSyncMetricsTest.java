@@ -13,6 +13,6 @@ public class UserSyncMetricsTest {
         final UserSyncMetrics userSyncMetrics = new UserSyncMetrics(new MetricRegistry(), CounterType.counter);
 
         // when and then
-        assertThat(userSyncMetrics.forBidder("rubicon")).isSameAs(userSyncMetrics.forBidder("rubicon"));
+        assertThat(userSyncMetrics.forBidder("magnite")).isSameAs(userSyncMetrics.forBidder("magnite"));
     }
 }

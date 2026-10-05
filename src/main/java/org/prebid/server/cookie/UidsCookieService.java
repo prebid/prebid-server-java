@@ -5,6 +5,7 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.json.DecodeException;
@@ -352,7 +353,7 @@ public class UidsCookieService {
     }
 
     public String hostCookieUidToSync(RoutingContext routingContext, String cookieFamilyName) {
-        if (!StringUtils.equals(cookieFamilyName, hostCookieFamily)) {
+        if (!Strings.CS.equals(cookieFamilyName, hostCookieFamily)) {
             return null;
         }
 
@@ -366,7 +367,7 @@ public class UidsCookieService {
                 .map(Uids::getUids)
                 .map(uids -> uids.get(cookieFamilyName))
                 .map(UidWithExpiry::getUid)
-                .filter(uid -> StringUtils.equals(hostCookieUid, uid))
+                .filter(uid -> Strings.CS.equals(hostCookieUid, uid))
                 .isPresent();
 
         return inSync ? null : hostCookieUid;

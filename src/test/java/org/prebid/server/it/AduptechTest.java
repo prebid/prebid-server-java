@@ -30,5 +30,4 @@ public class AduptechTest extends IntegrationTest {
         // then
         assertJsonEquals("openrtb2/aduptech/test-auction-aduptech-response.json", response, List.of("aduptech"));
     }
-
 }

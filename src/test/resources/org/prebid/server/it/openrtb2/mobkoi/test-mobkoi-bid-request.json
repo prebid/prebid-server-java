@@ -7,10 +7,10 @@
         "w": 300,
         "h": 250
       },
-      "tagid" : "999999",
+      "tagid": "999999",
       "secure": 1,
       "ext": {
-        "tid" :"${json-unit.any-string}",
+        "tid": "${json-unit.any-string}",
         "bidder": {
           "placementId": "999999"
         }
@@ -48,6 +48,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     }

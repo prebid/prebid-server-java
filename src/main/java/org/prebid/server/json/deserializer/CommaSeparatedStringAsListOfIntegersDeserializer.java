@@ -43,7 +43,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializer extends StdDeseria
                 JsonToken.VALUE_STRING,
                 """
                         Failed to parse field %s to List<Integer> type with a reason: \
-                        Expected comma-separated string.""".formatted(parser.getCurrentName()));
+                        Expected comma-separated string.""".formatted(parser.currentName()));
     }
 
     private static List<Integer> parseList(String value) throws NumberFormatException {
@@ -59,9 +59,9 @@ public class CommaSeparatedStringAsListOfIntegersDeserializer extends StdDeseria
 
         context.reportPropertyInputMismatch(
                 JsonToken.class,
-                parser.getCurrentName(),
+                parser.currentName(),
                 """
                         Failed to parse field %s to List<Integer> type with a reason: \
-                        NumberFormatException %s""".formatted(parser.getCurrentName(), cause));
+                        NumberFormatException %s""".formatted(parser.currentName(), cause));
     }
 }

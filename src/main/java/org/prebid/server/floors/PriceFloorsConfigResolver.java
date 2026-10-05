@@ -100,7 +100,7 @@ public class PriceFloorsConfigResolver {
             return;
         }
 
-        final long maxAgeSec = ObjectUtils.defaultIfNull(fetchConfig.getMaxAgeSec(), DEFAULT_MAX_AGE_SEC_VALUE);
+        final long maxAgeSec = ObjectUtils.getIfNull(fetchConfig.getMaxAgeSec(), DEFAULT_MAX_AGE_SEC_VALUE);
         if (isNotInRange(maxAgeSec, MIN_MAX_AGE_SEC_VALUE, MAX_AGE_SEC_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-age-sec", maxAgeSec));
         }

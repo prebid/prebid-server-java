@@ -95,11 +95,11 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
     private static boolean shouldAdjustBidFloor(BidRequest bidRequest, Account account) {
         final Boolean shouldAdjustBidFloor =
-                ObjectUtils.defaultIfNull(
+                ObjectUtils.getIfNull(
                         shouldAdjustBidFloorByRequest(bidRequest),
                         shouldAdjustBidFloorByAccount(account));
 
-        return ObjectUtils.defaultIfNull(shouldAdjustBidFloor, true);
+        return ObjectUtils.getIfNull(shouldAdjustBidFloor, true);
     }
 
     private static Set<ImpMediaType> retrieveImpMediaTypes(Imp imp) {

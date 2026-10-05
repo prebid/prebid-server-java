@@ -53,7 +53,7 @@ public class AuctionResponseValidatorTest {
         // given
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder()
-                                .bid(List.of(Bid.builder().build()))
+                        .bid(List.of(Bid.builder().build()))
                         .build()))
                 .build();
 

@@ -355,7 +355,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder()
-                                .page("http://www.example.com/test?flipp-content-code=value-test&any=any-value")
+                                .page("http://www.example.com/test?flipp-content-code=value%20test&any=any-value")
                                 .build()),
                 impBuilder -> impBuilder
                         .banner(Banner.builder().format(null).build())
@@ -375,7 +375,7 @@ public class FlippBidderTest extends VertxTest {
                 .flatExtracting(CampaignRequestBody::getPlacements)
                 .extracting(Placement::getProperties)
                 .extracting(Properties::getContentCode)
-                .containsExactly("value-test");
+                .containsExactly("value test");
     }
 
     @Test
@@ -567,7 +567,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -595,7 +595,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -625,7 +625,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -652,7 +652,7 @@ public class FlippBidderTest extends VertxTest {
                 .extracting(CampaignRequestBody::getUser)
                 .extracting(CampaignRequestBodyUser::getKey)
                 .isNotEmpty()
-                .isNotEqualTo("any-key");
+                .doesNotContain("any-key");
     }
 
     @Test
@@ -925,10 +925,6 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity(), extImp -> extImp
                 .options(ExtImpFlippOptions.of(false, null, null))));
 
-        final ObjectNode customData = mapper.createObjectNode()
-                .put("compactHeight", 20)
-                .put("standardHeight", 30);
-
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
                 mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder -> inlineBuilder
                         .contents(singletonList(Content.of(
@@ -1100,8 +1096,8 @@ public class FlippBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(Imp givenImp) {
         return BidRequest.builder()
-                        .device(Device.builder().ip("anyId").build())
-                        .imp(singletonList(givenImp))
+                .device(Device.builder().ip("anyId").build())
+                .imp(singletonList(givenImp))
                 .build();
     }
 
@@ -1115,10 +1111,11 @@ public class FlippBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpBuilder.apply(ExtImpFlipp.builder()
-                                .publisherNameIdentifier("publisherName")
-                                .creativeType("Any")
-                                .zoneIds(List.of(12)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpBuilder.apply(
+                                        ExtImpFlipp.builder()
+                                                .publisherNameIdentifier("publisherName")
+                                                .creativeType("Any")
+                                                .zoneIds(List.of(12)))
                                 .build()))))
                 .build();
     }

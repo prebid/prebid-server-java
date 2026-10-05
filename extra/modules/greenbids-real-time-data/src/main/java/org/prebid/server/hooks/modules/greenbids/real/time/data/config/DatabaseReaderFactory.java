@@ -4,7 +4,6 @@ import com.maxmind.db.Reader;
 import com.maxmind.geoip2.DatabaseReader;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.OpenOptions;
@@ -45,11 +44,10 @@ public class DatabaseReaderFactory implements Initializable {
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
-        downloadAndExtract()
+    public Future<Void> initialize() {
+        return downloadAndExtract()
                 .onSuccess(databaseReaderRef::set)
-                .<Void>mapEmpty()
-                .onComplete(initializePromise);
+                .mapEmpty();
     }
 
     private Future<DatabaseReader> downloadAndExtract() {

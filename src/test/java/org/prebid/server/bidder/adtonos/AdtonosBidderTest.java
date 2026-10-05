@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdtonosBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com?param={PublisherId}";
 
     private final AdtonosBidder target = new AdtonosBidder(ENDPOINT_URL, jacksonMapper);
 

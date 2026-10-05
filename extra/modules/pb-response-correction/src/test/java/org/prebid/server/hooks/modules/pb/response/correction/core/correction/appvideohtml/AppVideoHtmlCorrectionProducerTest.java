@@ -62,5 +62,4 @@ public class AppVideoHtmlCorrectionProducerTest {
     private static Config givenConfig(boolean enabled) {
         return Config.of(true, AppVideoHtmlConfig.of(enabled, null));
     }
-
 }

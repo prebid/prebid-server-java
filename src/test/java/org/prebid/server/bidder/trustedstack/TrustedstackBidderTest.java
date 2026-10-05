@@ -31,7 +31,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class TrustedstackBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.trustedstack.com?src={{PREBID_SERVER_ENDPOINT}}";
+    private static final String ENDPOINT_URL = "https://test.trustedstack.com?src={PREBID_SERVER_ENDPOINT}";
     private static final String EXTERNAL_URL = "external.prebidserver.com";
 
     private final TrustedstackBidder target = new TrustedstackBidder(ENDPOINT_URL, EXTERNAL_URL, jacksonMapper);

@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmatic.ExtImpBidmatic;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,11 +39,11 @@ public class BidmaticBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BidmaticBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -107,7 +107,7 @@ public class BidmaticBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(Integer sourceId) {
-        return endpointUrl + "?source=%d".formatted(sourceId);
+        return endpointUrl.addQueryParam("source", Objects.toString(sourceId)).expand();
     }
 
     @Override

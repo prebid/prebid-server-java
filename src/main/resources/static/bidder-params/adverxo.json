@@ -15,5 +15,8 @@
       "description": "Authentication token provided by Adverxo platform for the AdUnit."
     }
   },
-  "required": ["adUnitId", "auth"]
+  "required": [
+    "adUnitId",
+    "auth"
+  ]
 }

@@ -1,26 +1,26 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import com.iab.openrtb.request.Device;
-import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
-import org.prebid.server.json.JacksonMapper;
+import com.iab.openrtb.request.Device;
+import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.resolver.HeadersResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
-import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.settings.model.Account;
-import io.vertx.core.Future;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 import java.util.Objects;

@@ -15,8 +15,7 @@ public class WeightedRuleTest {
     @Test
     public void processShouldUtilizeRuleFromWeightedList() {
         // given
-        final WeightedList<Rule<Object, Object>> ruleList =
-                (WeightedList<Rule<Object, Object>>) mock(WeightedList.class);
+        final WeightedList<Rule<Object, Object>> ruleList = mock();
         final RuleResult<Object> stub = RuleResult.noAction(new Object());
         given(ruleList.getForSeed(anyInt())).willReturn((left, right) -> stub);
 

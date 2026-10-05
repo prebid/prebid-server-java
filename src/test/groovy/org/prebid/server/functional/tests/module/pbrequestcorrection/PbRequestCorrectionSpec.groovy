@@ -23,7 +23,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     private static final String PREBID_MOBILE = "prebid-mobile"
     private static final String DEVICE_PREBID_MOBILE_PATTERN = "PrebidMobile/"
     private static final String ACCEPTABLE_DEVICE_UA_VERSION_THRESHOLD = PBSUtils.getRandomVersion("0.0", "2.1.5")
-    private static final String ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD = PBSUtils.getRandomVersion("0.0", "2.2.3")
+    private static final String ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD = PBSUtils.getRandomVersion("0.0", "2.2.2")
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
 

@@ -2,7 +2,6 @@ package org.prebid.server.settings.service;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.log.Logger;
@@ -73,15 +72,13 @@ public class S3PeriodicRefreshService implements Initializable {
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
-        fetchStoredDataResult(clock.millis(), MetricName.initialize)
-                .<Void>mapEmpty()
-                .onComplete(initializePromise);
-
+    public Future<Void> initialize() {
         if (refreshPeriod > 0) {
             logger.info("Starting s3 periodic refresh for " + cacheType + " every " + refreshPeriod + " s");
             vertx.setPeriodic(refreshPeriod, ignored -> fetchStoredDataResult(clock.millis(), MetricName.update));
         }
+
+        return fetchStoredDataResult(clock.millis(), MetricName.initialize).mapEmpty();
     }
 
     private Future<StoredDataResult<String>> fetchStoredDataResult(long startTime, MetricName metricName) {

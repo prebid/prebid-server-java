@@ -10,14 +10,19 @@ import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.Instant
+
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
 class AccountSpec extends BaseSpec {
 
     def "PBS should reject request with inactive account"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account": enforceValidAccount as String])
+        given: "Start up time"
+        def start = Instant.now()
+
+        and: "Pbs config with enforce-valid-account"
+        def pbsConfig = ["settings.enforce-valid-account": enforceValidAccount as String]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Inactive account id"
         def accountId = PBSUtils.randomNumber
@@ -34,11 +39,54 @@ class AccountSpec extends BaseSpec {
 
         then: "PBS should reject the entire auction"
         def exception = thrown(PrebidServerException)
+        def warningMessage = "Account $accountId is inactive"
         assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Account $accountId is inactive"
+        assert exception.responseBody == warningMessage
+
+        and: "PBs should emit warning logs"
+        def logsByTime = pbsService.getLogsByTime(start)
+        assert getLogsByText(logsByTime, warningMessage).size() == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         enforceValidAccount << [true, false]
+    }
+
+    def "PBS shouldn't emit warning in logs when reject request with inactive account amd sampling-rate is disabled"() {
+        given: "Start up time"
+        def start = Instant.now()
+
+        and: "Pbs config with logging.sampling-rate"
+        def pbsConfig = ["logging.sampling-rate": "0"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Inactive account id"
+        def accountId = PBSUtils.randomNumber
+        def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.INACTIVE))
+        accountDao.save(account)
+
+        and: "Default basic BidRequest with inactive account id"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = accountId
+        }
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should reject the entire auction"
+        def exception = thrown(PrebidServerException)
+        def warningMessage = "Account $accountId is inactive"
+        assert exception.statusCode == UNAUTHORIZED.code()
+        assert exception.responseBody == warningMessage
+
+        and: "PBs shouldn't emit warning logs"
+        def logsByTime = pbsService.getLogsByTime(start)
+        assert !getLogsByText(logsByTime, warningMessage)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should reject request with unknown account when settings.enforce-valid-account = true"() {

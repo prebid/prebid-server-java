@@ -22,8 +22,8 @@
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
-    "publisher" : {
-      "domain" : "example.com"
+    "publisher": {
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -49,6 +49,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     }

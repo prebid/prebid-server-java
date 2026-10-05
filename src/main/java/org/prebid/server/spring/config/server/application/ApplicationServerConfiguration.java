@@ -39,9 +39,9 @@ import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
+import org.prebid.server.handler.PostVtrackHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
-import org.prebid.server.handler.PostVtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
@@ -56,6 +56,7 @@ import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
@@ -63,9 +64,12 @@ import org.prebid.server.spring.config.server.admin.AdminResourcesBinder;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.http.ParametrizedDecompressionHandler;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
+import org.prebid.server.vertx.verticles.server.application.DeprecatedResource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -166,6 +170,7 @@ public class ApplicationServerConfiguration {
     @Bean
     Router applicationServerRouter(Vertx vertx,
                                    BodyHandler bodyHandler,
+                                   ParametrizedDecompressionHandler parametrizedDecompressionHandler,
                                    NoCacheHandler noCacheHandler,
                                    CorsHandler corsHandler,
                                    List<ApplicationResource> resources,
@@ -174,6 +179,7 @@ public class ApplicationServerConfiguration {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
+        router.route().handler(parametrizedDecompressionHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
 
@@ -197,7 +203,7 @@ public class ApplicationServerConfiguration {
     @Bean
     CorsHandler corsHandler() {
         return CorsHandler.create()
-                .addRelativeOrigin(".*")
+                .addOriginWithRegex(".*")
                 .allowCredentials(true)
                 .allowedHeaders(new HashSet<>(Arrays.asList(
                         HttpUtil.ORIGIN_HEADER.toString(),
@@ -271,6 +277,7 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(value = "video.enable-deprecated-endpoint", havingValue = "true")
     VideoHandler openrtbVideoHandler(
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
@@ -295,6 +302,15 @@ public class ApplicationServerConfiguration {
                 prebidVersionProvider,
                 hookStageExecutor,
                 mapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = "video.enable-deprecated-endpoint", havingValue = "false", matchIfMissing = true)
+    ApplicationResource deprecatedOpenrtbVideoHandler() {
+        return new DeprecatedResource(
+                "The video endpoint is deprecated and will be removed in 5.0."
+                        + " You may re-enable it via [video.enable-deprecated-endpoint]",
+                HttpEndpoint.of(HttpMethod.POST, Endpoint.openrtb2_video.value()));
     }
 
     @Bean

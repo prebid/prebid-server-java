@@ -36,6 +36,8 @@ LIMIT 1
             "metrics.prefix"                             : "prebid",
             "status-response"                            : "ok",
             "gdpr.default-value"                         : "0",
+            "gdpr.vendorlist.v2.http-endpoint-template"  : "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
+            "gdpr.vendorlist.v3.http-endpoint-template"  : "$networkServiceContainer.rootUri/v3/vendor-list.json".toString(),
             "settings.database.account-query"            : DB_ACCOUNT_QUERY,
             "settings.database.stored-requests-query"    : "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impId, impData, 'imp' as dataType FROM stored_imps WHERE impId IN (%IMP_ID_LIST%)",
             "settings.database.amp-stored-requests-query": "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%)",
@@ -48,14 +50,15 @@ LIMIT 1
          "analytics.pubstack.scopeid"                       : scopeId,
          "analytics.pubstack.configuration-refresh-delay-ms": "1000",
          "analytics.pubstack.buffers.size-bytes"            : "1",
-         "analytics.pubstack.timeout-ms"                    : "100"].asImmutable()
+         "analytics.pubstack.timeout-ms"                    : "1000"].asImmutable()
     }
 
     static Map<String, String> getHttpSettingsConfig(String rootUri = networkServiceContainer.rootUri) {
-        ["settings.http.endpoint"         : "$rootUri/stored-requests".toString(),
-         "settings.http.amp-endpoint"     : "$rootUri/amp-stored-requests".toString(),
-         "settings.http.video-endpoint"   : "$rootUri/video-stored-requests".toString(),
-         "settings.http.category-endpoint": "$rootUri/video-categories".toString()].asImmutable()
+        ["settings.http.endpoint"          : "$rootUri/stored-requests".toString(),
+         "settings.http.amp-endpoint"      : "$rootUri/amp-stored-requests".toString(),
+         "settings.http.video-endpoint"    : "$rootUri/video-stored-requests".toString(),
+         "settings.http.rfc3986-compatible": "false",
+         "settings.http.category-endpoint" : "$rootUri/video-categories".toString()].asImmutable()
     }
 
     static Map<String, String> getAdminEndpointConfig() {
@@ -101,6 +104,7 @@ LIMIT 1
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
+
     static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
         ["settings.database.type"                   : "postgres",
          "settings.database.host"                   : postgres.getNetworkAliases().get(0),

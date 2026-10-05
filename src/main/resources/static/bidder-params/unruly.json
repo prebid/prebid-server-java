@@ -13,13 +13,16 @@
       "description": "ID for publisher site"
     }
   },
-
   "oneOf": [
     {
-      "required": ["siteId"]
+      "required": [
+        "siteId"
+      ]
     },
     {
-      "required": ["siteid"]
+      "required": [
+        "siteid"
+      ]
     }
   ]
 }

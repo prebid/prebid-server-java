@@ -25,6 +25,8 @@ gdpr:
       cache-dir: /var/tmp/vendor2
     v3:
       cache-dir: /var/tmp/vendor3
+    live:
+      startup-cache-dir: /var/tmp/vendor3
 admin-endpoints:
   logging-changelevel:
     enabled: true

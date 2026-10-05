@@ -30,5 +30,4 @@ public class BidstackTest extends IntegrationTest {
         assertJsonEquals("openrtb2/bidstack/test-auction-bidstack-response.json", response,
                 singletonList("bidstack"));
     }
-
 }

@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.flatads.ExtImpFlatads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,14 +40,14 @@ public class FlatadsBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpFlatads>> FLATADS_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherID}}";
-    private static final String TOKEN_ID_MACRO = "{{TokenID}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
+    private static final String TOKEN_ID_MACRO = "TokenID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public FlatadsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -81,8 +82,9 @@ public class FlatadsBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpFlatads extImp) {
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getPublisherId())))
-                .replace(TOKEN_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getToken())));
+                .replaceMacro(PUBLISHER_ID_MACRO, StringUtils.defaultString(extImp.getPublisherId()))
+                .replaceMacro(TOKEN_ID_MACRO, StringUtils.defaultString(extImp.getToken()))
+                .expand();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String endpoint) {

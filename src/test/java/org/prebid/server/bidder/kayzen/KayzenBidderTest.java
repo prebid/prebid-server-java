@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class KayzenBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://bids-{{ZoneID}}.bidder.kayzen.io/?exchange={{AccountID}}";
+    private static final String ENDPOINT_URL = "https://bids-{ZoneID}.bidder.kayzen.io/?exchange={AccountID}";
 
     private final KayzenBidder target = new KayzenBidder(ENDPOINT_URL, jacksonMapper);
 

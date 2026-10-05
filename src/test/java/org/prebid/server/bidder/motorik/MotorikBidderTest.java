@@ -38,7 +38,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MotorikBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com?k={{AccountID}}&name={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?k={AccountID}&name={SourceId}";
 
     private final MotorikBidder target = new MotorikBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -62,7 +62,7 @@ public class MotorikBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.getFirst())
+                .extracting(List::getFirst)
                 .extracting(Imp::getExt)
                 .containsOnlyNulls();
 

@@ -37,9 +37,7 @@ public class NobidBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
-        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(request, endpointUrl, mapper)),
-                Collections.emptyList());
+        return Result.withValue(BidderUtil.defaultRequest(request, endpointUrl, mapper));
     }
 
     @Override

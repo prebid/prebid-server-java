@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.displayio.DisplayioImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -40,11 +42,11 @@ public class DisplayioBidder implements Bidder<BidRequest> {
     };
 
     private static final String BIDDER_CURRENCY = "USD";
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
     private static final String X_OPENRTB_VERSION = "2.5";
 
     private final CurrencyConversionService currencyConversionService;
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public DisplayioBidder(CurrencyConversionService currencyConversionService,
@@ -52,7 +54,7 @@ public class DisplayioBidder implements Bidder<BidRequest> {
                            JacksonMapper mapper) {
 
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -104,7 +106,7 @@ public class DisplayioBidder implements Bidder<BidRequest> {
 
         if (BidderUtil.isValidPrice(bidFloor)
                 && StringUtils.isNotBlank(bidFloorCurrency)
-                && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
+                && !Strings.CI.equals(bidFloorCurrency, BIDDER_CURRENCY)) {
             return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY);
         }
 
@@ -132,7 +134,8 @@ public class DisplayioBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(DisplayioImpExt impExt) {
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(impExt.getPublisherId())));
+                .replaceMacro(PUBLISHER_ID_MACRO, StringUtils.defaultString(impExt.getPublisherId()))
+                .expand();
     }
 
     @Override

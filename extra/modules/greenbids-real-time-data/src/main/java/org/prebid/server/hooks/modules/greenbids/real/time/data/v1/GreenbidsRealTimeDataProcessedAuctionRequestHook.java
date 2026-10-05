@@ -11,8 +11,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.auction.model.ImpRejection;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -53,7 +53,7 @@ import java.util.stream.Stream;
 public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids-rtd";
-    private static final String CODE = "greenbids-real-time-data-processed-auction-request";
+    private static final String CODE = "greenbids-real-time-data-processed-auction-request-hook";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
 

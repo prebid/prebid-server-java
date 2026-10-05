@@ -65,6 +65,9 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert bidderRequest.imp[0].banner
         assert bidderRequest.imp[0].audio
 
+        and: "Bidder request shouldn't contain biddercontrol"
+        assert !bidderRequest.ext.prebid.bidderControls
+
         where:
         bidderControls << [
                 new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER)),
@@ -117,6 +120,9 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert bidderRequest.imp[0].banner
         assert !bidderRequest.imp[0].audio
 
+        and: "Bidder request shouldn't contain biddercontrol"
+        assert !bidderRequest.ext.prebid.bidderControls
+
         where:
         bidderControls << [
                 new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER)),
@@ -143,6 +149,9 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.banner
         assert bidderRequest.imp.audio
+
+        and: "Bidder request shouldn't contain biddercontrol"
+        assert !bidderRequest.ext.prebid.bidderControls
 
         where:
         bidderControls << [
@@ -220,6 +229,9 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].banner
         assert !bidderRequest.imp[0].audio
+
+        and: "Bidder request shouldn't contain biddercontrol"
+        assert !bidderRequest.ext.prebid.bidderControls
 
         where:
         bidderControls << [

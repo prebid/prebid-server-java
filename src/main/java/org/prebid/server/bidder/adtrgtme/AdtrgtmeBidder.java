@@ -10,6 +10,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.adtrgtme.ExtImpAdtrgtme;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,11 +40,11 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdtrgtme>> ADTRGTME_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdtrgtmeBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -91,7 +93,10 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(Integer siteId) {
-        return "%s?s=%d&prebid".formatted(endpointUrl, siteId);
+        return endpointUrl
+                .addQueryParam("s", Objects.toString(siteId))
+                .addQueryParam("prebid", StringUtils.EMPTY)
+                .expand();
     }
 
     private MultiMap makeRequestHeaders(Device device) {
@@ -160,5 +165,4 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         }
         throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
-
 }

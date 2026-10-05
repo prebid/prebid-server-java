@@ -35,10 +35,10 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.exitpoint.ExitpointPayloadImpl;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
@@ -461,7 +461,7 @@ public class VideoHandlerTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .debugContext(DebugContext.of(true, false, TraceLevel.verbose))
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_video))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.VIDEO))
                 .build();
 
         return WithPodErrors.of(auctionContext, errors);

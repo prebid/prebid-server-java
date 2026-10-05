@@ -31,7 +31,7 @@ public class RuleTree<T> {
                 case RuleNode.IntermediateNode<T> node -> {
                     final RuleNode<T> result = node.next(pathPart);
                     matches.add(result == null ? WILDCARD_MATCHER : pathPart);
-                    yield ObjectUtils.defaultIfNull(result, node.next(WILDCARD_MATCHER));
+                    yield ObjectUtils.getIfNull(result, node.next(WILDCARD_MATCHER));
                 }
 
                 case RuleNode.LeafNode<T> ignored -> throw new IllegalArgumentException("Argument count mismatch");

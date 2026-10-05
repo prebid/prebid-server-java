@@ -19,9 +19,9 @@
                 "networkName": "test-network"
               }
             },
-            "bidder" : {
-              "trustx" : {
-                "networkName" : "test-network"
+            "bidder": {
+              "trustx": {
+                "networkName": "test-network"
               }
             },
             "origbidcpm": 10

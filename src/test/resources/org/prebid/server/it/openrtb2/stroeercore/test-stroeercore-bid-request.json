@@ -20,7 +20,9 @@
       "id": "imp_id_2",
       "secure": 1,
       "video": {
-        "mimes": ["video/mp4"],
+        "mimes": [
+          "video/mp4"
+        ],
         "w": 300,
         "h": 250
       },
@@ -66,6 +68,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     }

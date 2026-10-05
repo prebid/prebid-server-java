@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.rise.ExtImpRise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,11 +34,11 @@ public class RiseBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpRise>> RISE_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public RiseBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -79,7 +79,7 @@ public class RiseBidder implements Bidder<BidRequest> {
     }
 
     private String resolveUrl(String publisherId) {
-        return endpointUrl + "?publisher_id=" + publisherId;
+        return endpointUrl.addQueryParam("publisher_id", publisherId).expand();
     }
 
     @Override

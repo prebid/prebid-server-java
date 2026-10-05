@@ -9,7 +9,9 @@
           "exp": 300,
           "price": 3.33,
           "adm": "<div>ad</div>",
-          "adomain": ["example.com"],
+          "adomain": [
+            "example.com"
+          ],
           "crid": "creativeId",
           "mtype": 1,
           "ext": {
@@ -20,7 +22,9 @@
               "meta": {
                 "adaptercode": "nativery",
                 "mediaType": "banner",
-                "advertiserDomains": ["example.com"]
+                "advertiserDomains": [
+                  "example.com"
+                ]
               }
             }
           }

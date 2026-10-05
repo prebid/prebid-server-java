@@ -134,7 +134,7 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -149,7 +149,7 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -163,7 +163,6 @@ public class TripleliftBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -178,7 +177,6 @@ public class TripleliftBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenBidExtIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -196,7 +194,6 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(null));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -213,7 +210,6 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(null)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -230,7 +226,6 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(0)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -247,7 +242,6 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(11)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -264,7 +258,6 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(12)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -281,7 +274,6 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(17)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
@@ -302,9 +294,9 @@ public class TripleliftBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,13 +41,13 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String URL_PUBLISHER_ID_MACRO = "PublisherID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdkernelAdnBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -197,7 +198,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpoint(ExtImpAdkernelAdn impExt) {
-        return endpointUrl.replace(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString());
+        return endpointUrl.replaceMacro(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString()).expand();
     }
 
     private static MultiMap headers() {

@@ -23,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.metax.ExtImpMetax;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,14 +37,14 @@ public class MetaxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpMetax>> METAX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String PUBLISHER_ID_MACRO = "{{publisherId}}";
-    private static final String AD_UNIT_MACRO = "{{adUnit}}";
+    private static final String PUBLISHER_ID_MACRO = "publisherId";
+    private static final String AD_UNIT_MACRO = "adUnit";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MetaxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -112,8 +112,9 @@ public class MetaxBidder implements Bidder<BidRequest> {
                 .orElse("0");
 
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, publisherIdAsString)
-                .replace(AD_UNIT_MACRO, adUnitAsString);
+                .replaceMacro(PUBLISHER_ID_MACRO, publisherIdAsString)
+                .replaceMacro(AD_UNIT_MACRO, adUnitAsString)
+                .expand();
     }
 
     @Override

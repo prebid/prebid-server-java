@@ -3,7 +3,6 @@
   "title": "Automatad Adapter Params",
   "description": "A schema which validates params accepted by the Automatad adapter",
   "type": "object",
-
   "properties": {
     "position": {
       "type": "string",

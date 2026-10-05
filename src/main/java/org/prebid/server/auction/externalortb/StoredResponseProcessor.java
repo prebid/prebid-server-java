@@ -11,6 +11,7 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
@@ -224,8 +225,8 @@ public class StoredResponseProcessor {
                                           Map<String, String> idToStoredResponses,
                                           String impId) {
 
-        if (storedResponse instanceof StoredResponse.StoredResponseObject storedResponseObject) {
-            return Collections.singletonList(storedResponseObject.seatBid());
+        if (storedResponse instanceof StoredResponse.StoredResponseObject(SeatBid seatBid)) {
+            return Collections.singletonList(seatBid);
         }
 
         final String storedResponseId = ((StoredResponse.StoredResponseId) storedResponse).id();
@@ -313,7 +314,7 @@ public class StoredResponseProcessor {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final List<Imp> imps = bidRequest.getImp();
-        // Аor now, Stored Bid Response works only for bid requests with single imp
+        // For now, Stored Bid Response works only for bid requests with single imp
         if (imps.size() > 1 || StringUtils.isEmpty(bidderRequest.getStoredResponse())) {
             return auctionParticipation;
         }
@@ -336,7 +337,7 @@ public class StoredResponseProcessor {
     private static BidderBid resolveBidImpId(BidderBid bidderBid, String impId) {
         final Bid bid = bidderBid.getBid();
         final String bidImpId = bid.getImpid();
-        if (!StringUtils.contains(bidImpId, PBS_IMPID_MACRO)) {
+        if (!Strings.CS.contains(bidImpId, PBS_IMPID_MACRO)) {
             return bidderBid;
         }
 
@@ -421,15 +422,15 @@ public class StoredResponseProcessor {
         final boolean nonNullBidderSeatBid = bidderSeatBid != null;
         final String bidCurrency = nonNullBidderSeatBid
                 ? bidderSeatBid.getBids().stream()
-                .map(BidderBid::getBidCurrency)
-                .filter(Objects::nonNull)
-                .findAny()
-                .orElse(DEFAULT_BID_CURRENCY)
+                  .map(BidderBid::getBidCurrency)
+                  .filter(Objects::nonNull)
+                  .findAny()
+                  .orElse(DEFAULT_BID_CURRENCY)
                 : DEFAULT_BID_CURRENCY;
         final List<BidderBid> bidderBids = seatBid != null
                 ? seatBid.getBid().stream()
-                .map(bid -> makeBidderBid(bid, bidCurrency, seatBid.getSeat(), impIdToBidType))
-                .collect(Collectors.toCollection(ArrayList::new))
+                  .map(bid -> makeBidderBid(bid, bidCurrency, seatBid.getSeat(), impIdToBidType))
+                  .collect(Collectors.toCollection(ArrayList::new))
                 : new ArrayList<>();
         if (nonNullBidderSeatBid) {
             bidderBids.addAll(bidderSeatBid.getBids());

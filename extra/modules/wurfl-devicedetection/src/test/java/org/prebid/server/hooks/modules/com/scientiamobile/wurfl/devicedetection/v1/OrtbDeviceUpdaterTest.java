@@ -1,18 +1,18 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.scientiamobile.wurfl.core.exc.VirtualCapabilityNotDefinedException;
-import org.mockito.Mock;
-import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import com.iab.openrtb.request.BidRequest;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import java.math.BigDecimal;
 import java.util.Set;

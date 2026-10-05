@@ -1,6 +1,6 @@
 adapters:
   melozen:
-    endpoint: https://prebid.melozen.com/rtb/v2/bid?publisher_id={{PublisherID}}
+    endpoint: https://prebid.melozen.com/rtb/v2/bid?publisher_id={PublisherID}
     endpoint-compression: gzip
     modifying-vast-xml-allowed: true
     geoscope:

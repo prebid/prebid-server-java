@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config.database;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.net.NetClientOptions;
 import io.vertx.mysqlclient.MySQLBuilder;
 import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.pgclient.PgBuilder;
@@ -50,6 +51,7 @@ public class DatabaseConfiguration {
                 databaseConfigurationProperties.getMaxPreparedStatementCacheSize(),
                 databaseConfigurationProperties.getUser(),
                 databaseConfigurationProperties.getPassword(),
+                databaseConfigurationProperties.getSslMode(),
                 databaseConfigurationProperties.getType());
     }
 
@@ -84,19 +86,21 @@ public class DatabaseConfiguration {
                 .setDatabase(databaseAddress.getDatabaseName())
                 .setUser(connectionPoolSettings.getUser())
                 .setPassword(connectionPoolSettings.getPassword())
-                .setSsl(false)
-                .setTcpKeepAlive(true)
+                .setSslMode(connectionPoolSettings.getSslMode().getMysqlMode())
                 .setCachePreparedStatements(connectionPoolSettings.getEnablePreparedStatementCaching())
-                .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize())
+                .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize());
+
+        final NetClientOptions netClientOptions = new NetClientOptions()
+                .setTcpKeepAlive(true);
+
+        final PoolOptions poolOptions = new PoolOptions()
+                .setMaxSize(connectionPoolSettings.getPoolSize())
                 .setIdleTimeout(connectionPoolSettings.getIdleTimeout())
                 .setIdleTimeoutUnit(TimeUnit.SECONDS);
 
-        final PoolOptions poolOptions = new PoolOptions()
-                .setMaxSize(connectionPoolSettings.getPoolSize());
-
-        return MySQLBuilder
-                .pool()
+        return MySQLBuilder.pool()
                 .with(poolOptions)
+                .with(netClientOptions)
                 .connectingTo(sqlConnectOptions)
                 .using(vertx)
                 .build();
@@ -114,19 +118,21 @@ public class DatabaseConfiguration {
                 .setDatabase(databaseAddress.getDatabaseName())
                 .setUser(connectionPoolSettings.getUser())
                 .setPassword(connectionPoolSettings.getPassword())
-                .setSsl(false)
-                .setTcpKeepAlive(true)
+                .setSslMode(connectionPoolSettings.getSslMode().getPgMode())
                 .setCachePreparedStatements(connectionPoolSettings.getEnablePreparedStatementCaching())
-                .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize())
+                .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize());
+
+        final NetClientOptions netClientOptions = new NetClientOptions()
+                .setTcpKeepAlive(true);
+
+        final PoolOptions poolOptions = new PoolOptions()
+                .setMaxSize(connectionPoolSettings.getPoolSize())
                 .setIdleTimeout(connectionPoolSettings.getIdleTimeout())
                 .setIdleTimeoutUnit(TimeUnit.SECONDS);
 
-        final PoolOptions poolOptions = new PoolOptions()
-                .setMaxSize(connectionPoolSettings.getPoolSize());
-
-        return PgBuilder
-                .pool()
+        return PgBuilder.pool()
                 .with(poolOptions)
+                .with(netClientOptions)
                 .connectingTo(sqlConnectOptions)
                 .using(vertx)
                 .build();
@@ -164,8 +170,7 @@ public class DatabaseConfiguration {
                 metrics,
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
-                circuitBreakerProperties.getClosingIntervalMs(),
-                clock);
+                circuitBreakerProperties.getClosingIntervalMs());
     }
 
     private static BasicDatabaseClient createBasicDatabaseClient(Pool pool,
@@ -175,7 +180,7 @@ public class DatabaseConfiguration {
 
         final BasicDatabaseClient basicDatabaseClient = new BasicDatabaseClient(pool, metrics, clock);
 
-        contextRunner.<Void>runBlocking(promise -> basicDatabaseClient.initialize().onComplete(promise));
+        contextRunner.runBlocking(basicDatabaseClient::initialize);
 
         return basicDatabaseClient;
     }

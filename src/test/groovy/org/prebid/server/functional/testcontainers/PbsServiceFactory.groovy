@@ -4,6 +4,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.SystemProperties
+import org.testcontainers.images.builder.Transferable
 
 import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
 
@@ -19,7 +20,7 @@ class PbsServiceFactory {
         this.networkServiceContainer = networkServiceContainer
     }
 
-    static PrebidServerService getService(Map<String, String> config) {
+    static PrebidServerService getService(Map<String, String> config, Map<String, Transferable> additionalFiles = [:]) {
         if (containers.containsKey(config)) {
             def container = containers.get(config)
             container.refresh()
@@ -33,6 +34,9 @@ class PbsServiceFactory {
                 remove([(container.key): container.value])
             }
             def pbsContainer = new PrebidServerContainer(config)
+            if (!additionalFiles.isEmpty()) {
+                additionalFiles.each { k, v -> pbsContainer.withCopyToContainer(v, k) }
+            }
             pbsContainer.start()
             containers.put(config, pbsContainer)
             return new PrebidServerService(pbsContainer)

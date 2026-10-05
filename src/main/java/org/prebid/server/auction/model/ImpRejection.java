@@ -16,5 +16,4 @@ public class ImpRejection implements Rejection {
     public static ImpRejection of(String impId, BidRejectionReason reason) {
         return ImpRejection.of(null, impId, reason);
     }
-
 }

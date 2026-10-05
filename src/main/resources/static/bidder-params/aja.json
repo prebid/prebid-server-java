@@ -9,5 +9,7 @@
       "description": "Ad spot ID"
     }
   },
-  "required": ["asi"]
+  "required": [
+    "asi"
+  ]
 }

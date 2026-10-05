@@ -31,5 +31,4 @@ public class UndertoneTest extends IntegrationTest {
                 response,
                 singletonList("undertone"));
     }
-
 }

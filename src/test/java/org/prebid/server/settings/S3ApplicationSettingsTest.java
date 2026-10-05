@@ -74,7 +74,7 @@ public class S3ApplicationSettingsTest extends VertxTest {
 
     @AfterEach
     public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+        vertx.close().onComplete(context.succeedingThenComplete());
     }
 
     @Test

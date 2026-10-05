@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidRejection;
+import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -280,5 +280,4 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
                         Bid.builder().id("bid-" + impId).impid(impId).build()).build()).toList(),
                 RESPONSE_REJECTED_INVALID_CREATIVE);
     }
-
 }

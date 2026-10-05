@@ -32,7 +32,7 @@ import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 
 class KueezRtbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/";
+    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/{ConnectionId}";
 
     private final KueezRtbBidder target = new KueezRtbBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -205,9 +205,10 @@ class KueezRtbBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("impId")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, KueezRtbImpExt.of("cid")))))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("impId")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, KueezRtbImpExt.of("cid")))))
                 .build();
     }
 

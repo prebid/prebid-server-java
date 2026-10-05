@@ -7,6 +7,7 @@ import fiftyone.pipeline.engines.Constants;
 import fiftyone.pipeline.engines.services.DataUpdateServiceDefault;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
@@ -150,7 +151,7 @@ public class PipelineBuilder {
             return;
         }
         for (Constants.PerformanceProfiles nextProfile : Constants.PerformanceProfiles.values()) {
-            if (StringUtils.equalsIgnoreCase(nextProfile.name(), profile)) {
+            if (Strings.CI.equals(nextProfile.name(), profile)) {
                 pipelineBuilder.setPerformanceProfile(nextProfile);
                 return;
             }

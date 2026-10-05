@@ -1,0 +1,42 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "test-imp-id",
+          "exp": 300,
+          "price": 1.50,
+          "adm": "test-ad-markup",
+          "crid": "test-creative-id",
+          "w": 300,
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "alliance_gravity"
+              }
+            },
+            "origbidcpm": 1.50,
+            "origbidcur": "USD"
+          }
+        }
+      ],
+      "seat": "alliance_gravity",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "alliance_gravity": "{{ alliance_gravity.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

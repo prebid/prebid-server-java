@@ -13,5 +13,5 @@ adapters:
         - banner
         - video
         - native
-      supported-vendors: []
+      supported-vendors: [ ]
       vendor-id: 0

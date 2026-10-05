@@ -29,6 +29,11 @@ public class Data {
     String name;
 
     /**
+     * Extended video or audio content IDs from the source specified by name.
+     */
+    List<String> cids;
+
+    /**
      * Array of {@link Segment} (Section 3.2.22) objects that contain the actual data
      * values.
      */

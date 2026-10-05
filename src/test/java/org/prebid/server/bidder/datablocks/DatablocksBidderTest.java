@@ -32,7 +32,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class DatablocksBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_TEMPLATE = "https://host.host/{{SourceId}}";
+    private static final String ENDPOINT_TEMPLATE = "https://host.host/{SourceId}";
 
     private final DatablocksBidder target = new DatablocksBidder(ENDPOINT_TEMPLATE, jacksonMapper);
 

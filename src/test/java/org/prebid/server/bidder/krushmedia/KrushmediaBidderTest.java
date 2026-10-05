@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class KrushmediaBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/prebid/bid&key={{AccountID}}";
+    private static final String ENDPOINT_URL = "https://test.com/prebid/bid&key={AccountID}";
 
     private final KrushmediaBidder target = new KrushmediaBidder(ENDPOINT_URL, jacksonMapper);
 

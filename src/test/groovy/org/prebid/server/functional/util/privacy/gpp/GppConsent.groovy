@@ -70,7 +70,7 @@ abstract class GppConsent implements ConsentString {
         US_VA_V1(UsVa.NAME, UsVa.VERSION),         //9
         US_CO_V1(UsCo.NAME, UsCo.VERSION),         //10
         US_UT_V1(UsUt.NAME, UsUt.VERSION),         //11
-        US_CT_V1(UsCt.NAME, UsCt.VERSION),         //12
+        US_CT_V1(UsCt.NAME, UsCt.VERSION)          //12
 
         final String name
         final int version

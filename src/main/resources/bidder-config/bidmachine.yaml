@@ -1,6 +1,6 @@
 adapters:
   bidmachine:
-    endpoint: https://{{Host}}.bidmachine.io/{{PATH}}/{{SELLER_ID}}
+    endpoint: https://{Host}.bidmachine.io/{PATH}/{SELLER_ID}
     meta-info:
       maintainer-email: hi@bidmachine.io
       app-media-types:

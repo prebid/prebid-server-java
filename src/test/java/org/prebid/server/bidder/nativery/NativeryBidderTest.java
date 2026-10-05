@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
@@ -130,7 +131,7 @@ public class NativeryBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final ExtRequest resultingExt = result.getValue().get(0).getPayload().getExt();
+        final ExtRequest resultingExt = result.getValue().getFirst().getPayload().getExt();
 
         assertThat(resultingExt.getProperty("accountId").asText()).isEqualTo("acc-123");
         assertThat(resultingExt.getProperty("nativery").path("widgetId").asText()).isEqualTo("widget1");
@@ -140,7 +141,7 @@ public class NativeryBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
         final ExtRequestPrebidServer server = ExtRequestPrebidServer.of(
-                null, null, null, Endpoint.openrtb2_amp.value());
+                null, null, null, HttpMethod.POST.name(), Endpoint.openrtb2_amp.value());
         final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
                 .server(server)
                 .build();
@@ -261,7 +262,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getType()).isEqualTo(BidType.banner);
         assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
@@ -290,7 +291,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getType()).isEqualTo(BidType.banner);
         assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
@@ -318,7 +319,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getType()).isEqualTo(banner);
         assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
@@ -347,7 +348,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getType()).isEqualTo(BidType.video);
         assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
@@ -376,7 +377,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getType()).isEqualTo(BidType.xNative);
         assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
@@ -435,7 +436,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final BidderBid bidderBid = result.getValue().get(0);
+        final BidderBid bidderBid = result.getValue().getFirst();
         assertThat(bidderBid.getType()).isEqualTo(BidType.xNative);
         assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 

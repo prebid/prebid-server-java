@@ -94,5 +94,4 @@ public class JsonMergerTest extends VertxTest {
         // then
         assertThat(result).isEqualTo(site);
     }
-
 }

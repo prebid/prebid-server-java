@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ 21 ]
+        java: [ 25 ]
         dockerfile-path: [ Dockerfile, Dockerfile-modules ]
         include:
           - dockerfile-path: Dockerfile

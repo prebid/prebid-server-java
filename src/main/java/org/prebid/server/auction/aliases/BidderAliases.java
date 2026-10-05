@@ -4,7 +4,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.Collection;
@@ -72,7 +72,7 @@ public class BidderAliases {
     }
 
     public boolean isSame(String bidder1, String bidder2) {
-        return StringUtils.equalsIgnoreCase(resolveBidder(bidder1), resolveBidder(bidder2));
+        return Strings.CI.equals(resolveBidder(bidder1), resolveBidder(bidder2));
     }
 
     public Integer resolveAliasVendorId(String alias) {

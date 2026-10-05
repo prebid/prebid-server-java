@@ -4,15 +4,19 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
+import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.DoohExt
 import org.prebid.server.functional.model.request.auction.Eid
+import org.prebid.server.functional.model.request.auction.FirstBroadcast
 import org.prebid.server.functional.model.request.auction.Network
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Producer
 import org.prebid.server.functional.model.request.auction.Publisher
 import org.prebid.server.functional.model.request.auction.Qty
+import org.prebid.server.functional.model.request.auction.Realtime
 import org.prebid.server.functional.model.request.auction.RefSettings
 import org.prebid.server.functional.model.request.auction.RefType
 import org.prebid.server.functional.model.request.auction.Refresh
@@ -556,7 +560,7 @@ class OrtbConverterSpec extends BaseSpec {
                 rqddurs = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
-                podid = PBSUtils.randomNumber
+                podid = PBSUtils.randomString
                 podseq = PBSUtils.randomNumber
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
@@ -580,7 +584,7 @@ class OrtbConverterSpec extends BaseSpec {
                 rqddurs = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
-                podid = PBSUtils.randomNumber
+                podid = PBSUtils.randomString
                 podseq = PBSUtils.randomNumber
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
@@ -604,7 +608,7 @@ class OrtbConverterSpec extends BaseSpec {
                 rqddurs = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
-                podid = PBSUtils.randomNumber
+                podid = PBSUtils.randomString
                 podseq = PBSUtils.randomNumber
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
@@ -626,7 +630,7 @@ class OrtbConverterSpec extends BaseSpec {
                 rqddurs = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
-                podid = PBSUtils.randomNumber
+                podid = PBSUtils.randomString
                 podseq = PBSUtils.randomNumber
                 mincpmpersec = BigDecimal.valueOf(1)
                 slotinpod = PBSUtils.randomNumber
@@ -669,6 +673,76 @@ class OrtbConverterSpec extends BaseSpec {
         then: "Bidder request should contain the imp[0].ssai as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ssai == ssaiRandomNumber
+    }
+
+    def "PBS should preserve content metadata for #distributionChannel with ORTB 2.5"() {
+        given: "Content with genre taxonomy, broadcast flags, and extended content identifiers"
+        def content = Content.defaultContent.tap {
+            it.gtax = PBSUtils.getRandomNumber()
+            it.genres = [PBSUtils.randomString, PBSUtils.randomString]
+            it.realtime = PBSUtils.getRandomEnum(Realtime)
+            it.firstBroadcast = PBSUtils.getRandomEnum(FirstBroadcast)
+            it.data = [new Data(id: PBSUtils.randomString, cids: [PBSUtils.randomString, PBSUtils.randomString])]
+        }
+        def bidRequest = BidRequest.getDefaultBidRequest(distributionChannel).tap {
+            it[distributionChannel.value].content = content
+        }
+
+        when: "Sending auction request to PBS"
+        def bidResponse = prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "PBS responds without errors or warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        and: "PBS forwards the content metadata to the bidder unchanged"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def actualContent = (bidderRequest[distributionChannel.value].content as Content)
+        verifyAll(actualContent) {
+            it.gtax == content.gtax
+            it.genres == content.genres
+            it.realtime == content.realtime
+            it.firstBroadcast == content.firstBroadcast
+            it.data == content.data
+        }
+
+        where:
+        distributionChannel << DistributionChannel.values()
+    }
+
+    def "PBS should preserve content metadata for #distributionChannel with ORTB 2.6"() {
+        given: "Content with genre taxonomy, broadcast flags, and extended content identifiers"
+        def content = Content.defaultContent.tap {
+            it.gtax = PBSUtils.getRandomNumber()
+            it.genres = [PBSUtils.randomString, PBSUtils.randomString]
+            it.realtime = PBSUtils.getRandomEnum(Realtime)
+            it.firstBroadcast = PBSUtils.getRandomEnum(FirstBroadcast)
+            it.data = [new Data(id: PBSUtils.randomString, cids: [PBSUtils.randomString, PBSUtils.randomString])]
+        }
+        def bidRequest = BidRequest.getDefaultBidRequest(distributionChannel).tap {
+            it[distributionChannel.value].content = content
+        }
+
+        when: "Sending auction request to PBS"
+        def bidResponse = prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
+
+        then: "PBS responds without errors or warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        and: "PBS forwards the content metadata to the bidder unchanged"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def actualContent = (bidderRequest[distributionChannel.value].content as Content)
+        verifyAll(actualContent) {
+            it.gtax == content.gtax
+            it.genres == content.genres
+            it.realtime == content.realtime
+            it.firstBroadcast == content.firstBroadcast
+            it.data == content.data
+        }
+
+        where:
+        distributionChannel << DistributionChannel.values()
     }
 
     def "PBS shouldn't remove site.content.{channel, network} when bidder doesn't support ortb 2.6"() {

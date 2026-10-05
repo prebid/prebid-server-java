@@ -1,18 +1,15 @@
 package org.prebid.server.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.tomakehurst.wiremock.common.FileSource;
-import com.github.tomakehurst.wiremock.extension.Parameters;
-import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
-import com.github.tomakehurst.wiremock.http.Request;
+import com.github.tomakehurst.wiremock.extension.ResponseTransformerV2;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.junit.jupiter.api.AfterEach;
@@ -272,24 +269,24 @@ public abstract class IntegrationTest extends VertxTest {
         return new BidCacheRequestPattern(json);
     }
 
-    public static class CacheResponseTransformer extends ResponseTransformer {
+    public static class CacheResponseTransformer implements ResponseTransformerV2 {
 
         @Override
         public com.github.tomakehurst.wiremock.http.Response transform(
-                Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files,
-                Parameters parameters) {
+                com.github.tomakehurst.wiremock.http.Response response, ServeEvent serveEvent) {
 
             final String newResponse;
             try {
                 newResponse = cacheResponseFromRequestJson(
-                        request.getBodyAsString(),
-                        parameters.getString("matcherName"));
+                        serveEvent.getRequest().getBodyAsString(),
+                        serveEvent.getTransformerParameters().getString("matcherName"));
             } catch (IOException e) {
                 return com.github.tomakehurst.wiremock.http.Response.response()
                         .body(e.getMessage())
                         .status(500)
                         .build();
             }
+
             return com.github.tomakehurst.wiremock.http.Response.response().body(newResponse).status(200).build();
         }
 
@@ -302,16 +299,5 @@ public abstract class IntegrationTest extends VertxTest {
         public boolean applyGlobally() {
             return false;
         }
-    }
-
-    @Value(staticConstructor = "of")
-    static class BidRequestExecutionParameters {
-        String dealId;
-
-        String body;
-
-        Integer status;
-
-        Long delay;
     }
 }

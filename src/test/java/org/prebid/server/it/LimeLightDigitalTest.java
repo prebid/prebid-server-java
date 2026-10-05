@@ -18,7 +18,7 @@ public class LimeLightDigitalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheLimeLightDigitalBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/limelightDigital-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/limelightDigital-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/limelightDigital/test-limelightDigital-bid-request.json")))
                 .willReturn(aResponse().withBody(

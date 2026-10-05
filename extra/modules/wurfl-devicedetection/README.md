@@ -1,10 +1,10 @@
-## WURFL Device Enrichment Module 
+## WURFL Device Enrichment Module
 
 ### Overview
 
-The **WURFL Device Enrichment Module** for Prebid Server enhances the OpenRTB 2.x payload 
-with comprehensive device detection data powered by **ScientiaMobile**’s WURFL device detection framework. 
-Thanks to WURFL's device knowledge, the module provides accurate and comprehensive device-related information, 
+The **WURFL Device Enrichment Module** for Prebid Server enhances the OpenRTB 2.x payload
+with comprehensive device detection data powered by **ScientiaMobile**’s WURFL device detection framework.
+Thanks to WURFL's device knowledge, the module provides accurate and comprehensive device-related information,
 enabling bidders to make better-informed targeting and optimization decisions.
 
 ### Key features
@@ -12,27 +12,27 @@ enabling bidders to make better-informed targeting and optimization decisions.
 #### Device Field Enrichment:
 
 The WURFL module populates missing or empty fields in ortb2.device with the following data:
- - **make**: Manufacturer of the device (e.g., "Apple", "Samsung").
- - **model**: Device model (e.g., "iPhone 14", "Galaxy S22").
- - **os**: Operating system (e.g., "iOS", "Android").
- - **osv**: Operating system version (e.g., "16.0", "12.0").
- - **h**: Screen height in pixels.
- - **w**: Screen width in pixels.
- - **ppi**: Screen pixels per inch (PPI).
- - **pxratio**: Screen pixel density ratio.
- - **devicetype**: Device type (e.g., mobile, tablet, desktop).
- - **js**: Support for JavaScript, where 0 = no, 1 = yes
- - **Note**: If these fields are already populated in the bid request, the module will not overwrite them.
+
+- **make**: Manufacturer of the device (e.g., "Apple", "Samsung").
+- **model**: Device model (e.g., "iPhone 14", "Galaxy S22").
+- **os**: Operating system (e.g., "iOS", "Android").
+- **osv**: Operating system version (e.g., "16.0", "12.0").
+- **h**: Screen height in pixels.
+- **w**: Screen width in pixels.
+- **ppi**: Screen pixels per inch (PPI).
+- **pxratio**: Screen pixel density ratio.
+- **devicetype**: Device type (e.g., mobile, tablet, desktop).
+- **js**: Support for JavaScript, where 0 = no, 1 = yes
+- **Note**: If these fields are already populated in the bid request, the module will not overwrite them.
 
 #### Publisher-Specific Enrichment:
 
-Device enrichment is selectively enabled for publishers based on their account ID. 
+Device enrichment is selectively enabled for publishers based on their account ID.
 The module identifies publishers through the following fields:
 
 `site.publisher.id` (for web environments).
 `app.publisher.id` (for mobile app environments).
 `dooh.publisher.id` (for digital out-of-home environments).
-
 
 ### Building WURFL Module with a licensed WURFL Onsite Java API
 
@@ -48,10 +48,9 @@ The repository is private and requires authentication: to set it up please check
 
 2 - Change the `artfactId` value in the module's  `pom.xml` from `wurfl-mock` to `wurfl`
 
-3 - Update the `wurfl.version` property value to the latest WURFL Onsite Java API version available. 
+3 - Update the `wurfl.version` property value to the latest WURFL Onsite Java API version available.
 
-
-When the `pom.xml` references the mock API artifact, the module will compile a demo version that returns sample data, 
+When the `pom.xml` references the mock API artifact, the module will compile a demo version that returns sample data,
 allowing basic testing without an WURFL Onsite Java API license.
 
 4 - Build the Prebid Server Java bundle with the WURFL module using the following command:
@@ -124,7 +123,6 @@ hooks:
 | **`update-frequency-in-hours`** | Optional    | Check interval (hours) for downloading updated wurfl file if modified. Defaults to 24 hours       |
 | **`allowed-publisher-ids`**     | Optional    | List of publisher IDs permitted to use the module. Defaults to all publishers.                    |
 
-
 A valid WURFL license must include all the required capabilities for device enrichment.
 
 ### Launching Prebid Server Java with the WURFL Module
@@ -135,11 +133,11 @@ After configuring the module and successfully building the Prebid Server bundle,
 java -jar target/prebid-server-bundle.jar --spring.config.additional-location=sample/configs/prebid-config-with-wurfl.yaml
 ```
 
-This sample configuration contains the module hook basic configuration. 
+This sample configuration contains the module hook basic configuration.
 
 When the server starts, it downloads the WURFL file from the `wurfl-snapshot-url` and loads it into the module.
 
-Sample request data for testing is available in the module's `sample` directory. Using the `auction` endpoint, 
+Sample request data for testing is available in the module's `sample` directory. Using the `auction` endpoint,
 you can observe WURFL-enriched device data in the response.
 
 ### Sample Response

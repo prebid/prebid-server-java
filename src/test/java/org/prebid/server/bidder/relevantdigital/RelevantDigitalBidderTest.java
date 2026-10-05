@@ -56,7 +56,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class RelevantDigitalBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://{{Host}}/pbs";
+    private static final String ENDPOINT_URL = "http://{Host}/pbs";
 
     private final RelevantDigitalBidder target = new RelevantDigitalBidder(ENDPOINT_URL, jacksonMapper);
 

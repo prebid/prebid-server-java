@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +35,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -41,6 +42,7 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -56,8 +58,9 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 @ExtendWith(MockitoExtension.class)
 class MissenaBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/?t={{PublisherID}}";
-    private static final String TEST_PBS_VERSION = "pbs-java/1.0";
+    private static final String ENDPOINT_URL = "https://test-url.com/?t={PublisherID}";
+    private static final String TEST_PBS_VERSION_RECORD = "pbs-java/1.0";
+    private static final String TEST_EXPECTED_VERSION = "prebid-server-java@1.0";
 
     @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyConversionService;
@@ -75,7 +78,7 @@ class MissenaBidderTest extends VertxTest {
                 currencyConversionService,
                 prebidVersionProvider);
 
-        given(prebidVersionProvider.getNameVersionRecord()).willReturn(TEST_PBS_VERSION);
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn(TEST_PBS_VERSION_RECORD);
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willAnswer(invocation -> invocation.getArgument(0));
     }
@@ -83,7 +86,7 @@ class MissenaBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenInvalidImpExt()));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(givenInvalidImpExt())));
 
         // when
         final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -98,20 +101,26 @@ class MissenaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMakeRequestForFirstValidImp() {
         // given
         final ObjectNode settingsNode = mapper.createObjectNode().put("settingKey", "settingValue");
+        final List<Eid> userEids = List.of(Eid.builder()
+                .source("id-source")
+                .uids(List.of(Uid.builder().id("uid").atype(1).build()))
+                .build());
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id("requestId")
+                .test(1)
                 .tmax(500L)
                 .cur(singletonList("USD"))
                 .imp(List.of(
                         givenImp(imp -> imp.id("impId1")
-                                .ext(givenImpExt("apiKey1", "placementId1", "1", List.of("banner"), settingsNode))),
+                                .ext(givenImpExt("apiKey1", "placementId1", "sample1",
+                                        List.of("banner"), settingsNode))),
                         givenImp(imp -> imp.id("impId2")
-                                .ext(givenImpExt("apiKey2", "placementId2", "0", null, null)))))
+                                .ext(givenImpExt("apiKey2", "placementId2", "sample2", null, null)))))
                 .site(Site.builder().page("http://test.com/page").domain("test.com").build())
                 .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
                 .user(User.builder().buyeruid("buyer1")
-                        .ext(ExtUser.builder().consent("consentStr").build()).build())
+                        .ext(ExtUser.builder().consent("consentStr").eids(userEids).build()).build())
                 .source(Source.builder().schain(SupplyChain.of(1, null, null, null)).build())
                 .device(Device.builder().ua("test-ua").ip("123.123.123.123").build())
                 .build();
@@ -121,22 +130,25 @@ class MissenaBidderTest extends VertxTest {
 
         // then
         final MissenaUserParams expectedUserParams = MissenaUserParams.builder()
+                .apiKey("apiKey1")
                 .formats(List.of("banner"))
                 .placement("placementId1")
-                .testMode("1")
+                .sample("sample1")
                 .settings(settingsNode)
                 .build();
 
         final MissenaAdRequest expectedPayload = MissenaAdRequest.builder()
                 .adUnit("impId1")
                 .currency("USD")
+                .debug(true)
+                .userEids(userEids)
                 .floor(BigDecimal.valueOf(0.1))
                 .floorCurrency("USD")
                 .idempotencyKey("requestId")
                 .requestId("requestId")
                 .timeout(500L)
                 .params(expectedUserParams)
-                .version(TEST_PBS_VERSION)
+                .version(TEST_EXPECTED_VERSION)
                 .bidRequest(bidRequest)
                 .build();
 
@@ -150,11 +162,139 @@ class MissenaBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldPassOriginalBidRequestAsOrtb2() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getBidRequest)
+                .isEqualTo(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassUserEidsWhenPresent() {
+        // given
+        final List<Eid> userEids = List.of(Eid.builder()
+                .source("id-source")
+                .uids(List.of(Uid.builder().id("uid").atype(1).build()))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(User.builder().ext(ExtUser.builder().eids(userEids).build()).build()),
+                givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getUserEids)
+                .isEqualTo(userEids);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPassUserEidsWhenUserIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(null),
+                givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getUserEids)
+                .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPassUserEidsWhenEidsAreEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.user(
+                        User.builder().ext(ExtUser.builder().eids(Collections.emptyList()).build()).build()),
+                givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getUserEids)
+                .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDebugWhenTestIsOne() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.test(1),
+                givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getDebug)
+                .isEqualTo(true);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetDebugWhenTestIsNotOne() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.test(0),
+                givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getDebug)
+                .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSendUnknownVersionWhenVersionRecordIsNull() {
+        // given
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn(null);
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(givenImpExt("apiKey"))));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getVersion)
+                .isEqualTo("prebid-server-java@unknown");
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfAllImpsAreInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.ext(givenInvalidImpExt()),
-                imp -> imp.ext(givenInvalidImpExt()));
+                givenImp(imp -> imp.ext(givenInvalidImpExt())),
+                givenImp(imp -> imp.ext(givenInvalidImpExt())));
 
         // when
         final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -169,11 +309,11 @@ class MissenaBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedHeadersWhenDeviceHasIpAndIpv6() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .site(Site.builder().page("http://page.com").build())
-                .device(Device.builder().ua("ua").ip("ip").ipv6("ipv6").build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request
+                        .site(Site.builder().page("http://page.com").build())
+                        .device(Device.builder().ua("ua").ip("ip").ipv6("ipv6").build()),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -195,10 +335,9 @@ class MissenaBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedHeadersWhenDeviceHasIpv6Only() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .device(Device.builder().ip(null).ipv6("ipv6").build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.device(Device.builder().ip(null).ipv6("ipv6").build()),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -244,7 +383,7 @@ class MissenaBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUseCorrectUri() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("testApiKey")));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(givenImpExt("testApiKey"))));
 
         // when
         final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -260,7 +399,7 @@ class MissenaBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<MissenaAdRequest> httpCall = givenHttpCall("invalid");
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("impId1"));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("impId1")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
@@ -281,10 +420,14 @@ class MissenaBidderTest extends VertxTest {
                 .cpm(BigDecimal.TEN)
                 .currency("USD")
                 .ad("adm")
+                .width(320)
+                .height(100)
                 .build();
 
         final BidderCall<MissenaAdRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponse));
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("impId")).toBuilder().id("requestId").build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.id("requestId"),
+                givenImp(imp -> imp.id("impId")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
@@ -298,17 +441,48 @@ class MissenaBidderTest extends VertxTest {
                 .price(BigDecimal.TEN)
                 .adm("adm")
                 .crid("id")
+                .w(320)
+                .h(100)
                 .build();
 
         assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(expectedBid, BidType.banner, "USD"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        final List<Imp> imps = Arrays.stream(impCustomizers)
-                .map(MissenaBidderTest::givenImp)
-                .toList();
-        return BidRequest.builder().imp(imps).cur(singletonList("USD")).build();
+    @Test
+    public void makeBidsShouldReturnBidWithoutSizeWhenResponseHasNoSize() throws JsonProcessingException {
+        // given
+        final MissenaAdResponse bidResponse = MissenaAdResponse.builder()
+                .requestId("id")
+                .cpm(BigDecimal.TEN)
+                .currency("USD")
+                .ad("adm")
+                .build();
+
+        final BidderCall<MissenaAdRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponse));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.id("requestId"),
+                givenImp(imp -> imp.id("impId")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getW, Bid::getH)
+                .containsExactly(tuple(null, null));
+    }
+
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(identity(), imps);
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(List.of(imps)).cur(singletonList("USD"))).build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -326,14 +500,14 @@ class MissenaBidderTest extends VertxTest {
 
     private static ObjectNode givenImpExt(String apiKey,
                                           String placement,
-                                          String testMode,
+                                          String sample,
                                           List<String> formats,
                                           ObjectNode settings) {
 
         final ExtImpMissena extImpMissena = ExtImpMissena.builder()
                 .apiKey(apiKey)
                 .placement(placement)
-                .testMode(testMode)
+                .sample(sample)
                 .formats(formats)
                 .settings(settings)
                 .build();

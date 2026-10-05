@@ -4,7 +4,7 @@
   "description": "A schema to validate params accepted by the AMX adapter",
   "type": "object",
   "properties": {
-    "tagId" : {
+    "tagId": {
       "type": "string",
       "description": "Set a tagId (overrides site.publisher.id, or app.publisher.id)"
     },

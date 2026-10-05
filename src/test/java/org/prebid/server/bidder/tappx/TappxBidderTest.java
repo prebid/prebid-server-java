@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class TappxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{subdomain}}.domain";
+    private static final String ENDPOINT_URL = "https://{subdomain}.domain{/path*}";
 
     private final TappxBidder target = new TappxBidder(ENDPOINT_URL, Clock.systemDefaultZone(), jacksonMapper);
 

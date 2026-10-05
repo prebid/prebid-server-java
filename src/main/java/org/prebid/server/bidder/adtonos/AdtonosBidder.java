@@ -20,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adtonos.ExtImpAdtonos;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,13 +33,13 @@ public class AdtonosBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdtonos>> ADTONOS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdtonosBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -63,7 +63,7 @@ public class AdtonosBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(ExtImpAdtonos extImp) {
-        return endpointUrl.replace(PUBLISHER_ID_MACRO, extImp.getSupplierId());
+        return endpointUrl.replaceMacro(PUBLISHER_ID_MACRO, extImp.getSupplierId()).expand();
     }
 
     @Override

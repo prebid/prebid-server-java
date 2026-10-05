@@ -9,5 +9,7 @@
       "description": "An ID which identifies the publisher"
     }
   },
-  "required": ["publisherId"]
+  "required": [
+    "publisherId"
+  ]
 }

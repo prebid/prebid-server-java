@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class BigoadBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://domain.com/path?{{SspId}}";
+    private static final String ENDPOINT_URL = "https://domain.com/path?{SspId}";
 
     private final BigoadBidder target = new BigoadBidder(ENDPOINT_URL, jacksonMapper);
 

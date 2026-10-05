@@ -37,7 +37,7 @@ import static org.prebid.server.util.HttpUtil.X_OPENRTB_VERSION_HEADER;
 
 public class TradPlusBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_TEMPLATE = "http://{{ZoneID}}/openrtb2?sid={{AccountID}}";
+    private static final String ENDPOINT_TEMPLATE = "http://{ZoneID}/openrtb2?sid={AccountID}";
 
     private final TradPlusBidder target = new TradPlusBidder(ENDPOINT_TEMPLATE, jacksonMapper);
 

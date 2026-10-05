@@ -8,7 +8,6 @@ import org.prebid.server.model.Endpoint;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,7 +19,6 @@ public class SmrtconnectTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromTheSmrtconnect() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smrtconnect-exchange"))
-                .withQueryParam("supply_id", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smrtconnect/test-smrtconnect-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/smrtconnect/test-smrtconnect-bid-response.json"))));
 

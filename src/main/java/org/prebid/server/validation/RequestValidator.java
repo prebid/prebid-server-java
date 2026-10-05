@@ -142,7 +142,7 @@ public class RequestValidator {
                 validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateAlternateBidderCodes(extRequestPrebid.getAlternateBidderCodes(), aliases);
 
-                final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.defaultIfNull(
+                final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.getIfNull(
                         extRequestPrebid.getAlternateBidderCodes(),
                         account == null ? null : account.getAlternateBidderCodes());
 
@@ -690,5 +690,4 @@ public class RequestValidator {
             throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
         }
     }
-
 }

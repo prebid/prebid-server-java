@@ -2,6 +2,7 @@ package org.prebid.server.handler;
 
 import io.vertx.core.Handler;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
@@ -38,7 +39,7 @@ public class ExceptionHandler implements Handler<Throwable> {
 
     private static boolean isConnectionResetException(Throwable exception) {
         return exception instanceof IOException
-                && StringUtils.equals("recvAddress(..) failed: Connection reset by peer", exception.getMessage());
+                && Strings.CS.equals("recvAddress(..) failed: Connection reset by peer", exception.getMessage());
     }
 
     private static String errorMessageFrom(Throwable exception) {

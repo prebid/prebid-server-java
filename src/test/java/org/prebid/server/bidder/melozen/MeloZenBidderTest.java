@@ -51,7 +51,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 @ExtendWith(MockitoExtension.class)
 class MeloZenBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/{{PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/{PublisherID}";
 
     @Mock
     private CurrencyConversionService currencyConversionService;
@@ -408,10 +408,6 @@ class MeloZenBidderTest extends VertxTest {
         return mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder().bid(asList(bids)).build()))
                 .build());
-    }
-
-    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {

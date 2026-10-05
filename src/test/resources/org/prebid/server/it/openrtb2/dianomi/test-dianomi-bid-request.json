@@ -4,7 +4,7 @@
     {
       "id": "imp_id_banner",
       "secure": 1,
-      "tagid" : "12345",
+      "tagid": "12345",
       "banner": {
         "format": [
           {
@@ -55,6 +55,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     },

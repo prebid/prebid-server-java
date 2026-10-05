@@ -55,20 +55,17 @@ public class ThresholdCacheTest {
     @Mock(strictness = LENIENT)
     private ThrottlingThresholdsFactory throttlingThresholdsFactory;
 
-    private Vertx vertx;
-
     private ThresholdCache target;
 
     @BeforeEach
     public void setUp() {
-        vertx = Vertx.vertx();
         target = new ThresholdCache(
                 storage,
                 GCS_BUCKET_NAME,
                 TestBidRequestProvider.MAPPER,
                 cache,
                 THRESHOLD_CACHE_KEY_PREFIX,
-                vertx,
+                Vertx.vertx(),
                 throttlingThresholdsFactory);
     }
 

@@ -72,5 +72,4 @@ public class MabidderBidder implements Bidder<BidRequest> {
                 .adomain(ObjectUtil.getIfNotNull(bidResponse.getMeta(), Meta::getAdDomains))
                 .build();
     }
-
 }

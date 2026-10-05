@@ -67,7 +67,7 @@ public class RuleParser {
         }
 
         parseConfig(accountId, config);
-        return Future.succeededFuture(ObjectUtils.defaultIfNull(cachedRule, PerStageRule.noOp()));
+        return Future.succeededFuture(ObjectUtils.getIfNull(cachedRule, PerStageRule.noOp()));
     }
 
     private Instant getConfigTimestamp(ObjectNode config) {

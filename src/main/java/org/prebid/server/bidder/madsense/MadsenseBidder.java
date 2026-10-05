@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,11 +39,11 @@ public class MadsenseBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpMadsense>> TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MadsenseBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -115,7 +116,7 @@ public class MadsenseBidder implements Bidder<BidRequest> {
     }
 
     private String makeEndpoint(String companyId) {
-        return endpointUrl + "?company_id=" + HttpUtil.encodeUrl(companyId);
+        return endpointUrl.addQueryParam("company_id", companyId).expand();
     }
 
     @Override

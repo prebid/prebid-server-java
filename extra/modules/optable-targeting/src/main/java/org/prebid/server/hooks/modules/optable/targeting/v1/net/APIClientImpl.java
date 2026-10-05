@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.impl.headers.HeadersMultiMap;
+import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.timeout.Timeout;
@@ -15,6 +15,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 import org.prebid.server.validation.ValidationException;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -27,10 +28,10 @@ public class APIClientImpl implements APIClient {
     private static final Logger logger = LoggerFactory.getLogger(APIClientImpl.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
-    private static final String TENANT = "{{TENANT}}";
-    private static final String ORIGIN = "{{ORIGIN}}";
+    private static final String TENANT = "TENANT";
+    private static final String ORIGIN = "ORIGIN";
 
-    private final String endpoint;
+    private final Uri endpoint;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
     private final double logSamplingRate;
@@ -40,7 +41,7 @@ public class APIClientImpl implements APIClient {
                          JacksonMapper mapper,
                          double logSamplingRate) {
 
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Uri.of(endpoint);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
@@ -64,12 +65,13 @@ public class APIClientImpl implements APIClient {
 
     private String resolveEndpoint(String tenant, String origin) {
         return endpoint
-                .replace(TENANT, tenant)
-                .replace(ORIGIN, origin);
+                .replaceMacro(TENANT, tenant)
+                .replaceMacro(ORIGIN, origin)
+                .expand();
     }
 
     private static MultiMap headers(OptableTargetingProperties properties, List<String> ips, String userAgent) {
-        final MultiMap headers = HeadersMultiMap.headers()
+        final MultiMap headers = HttpHeaders.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 
         if (userAgent != null) {

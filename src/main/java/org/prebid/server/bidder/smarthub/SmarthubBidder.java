@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,15 +33,18 @@ import java.util.Objects;
 
 public class SmarthubBidder implements Bidder<BidRequest> {
 
+    private static final String HOST_MACRO = "Host";
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpSmarthub>> SMARTHUB_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
-    public SmarthubBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public SmarthubBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -68,9 +72,11 @@ public class SmarthubBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpSmarthub extImpSmarthub) {
-        return endpointTemplate.replace("{{Host}}", StringUtils.defaultString(extImpSmarthub.getPartnerName()))
-                .replace("{{AccountID}}", extImpSmarthub.getSeat())
-                .replace("{{SourceId}}", extImpSmarthub.getToken());
+        return endpoint
+                .replaceMacro(HOST_MACRO, StringUtils.defaultString(extImpSmarthub.getPartnerName()))
+                .replaceMacro(ACCOUNT_ID_MACRO, extImpSmarthub.getSeat())
+                .replaceMacro(SOURCE_ID_MACRO, extImpSmarthub.getToken())
+                .expand();
     }
 
     @Override

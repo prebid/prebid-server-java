@@ -21,5 +21,7 @@
       "description": "Account ID for charge request"
     }
   },
-  "required" : ["accountId"]
+  "required": [
+    "accountId"
+  ]
 }

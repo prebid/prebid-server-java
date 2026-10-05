@@ -1,6 +1,6 @@
 adapters:
   aax:
-    endpoint: https://prebid.aaxads.com/rtb/pb/aax-prebid?src={{PREBID_SERVER_ENDPOINT}}
+    endpoint: https://prebid.aaxads.com/rtb/pb/aax-prebid?src={PREBID_SERVER_ENDPOINT}
     modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: product@aax.media
@@ -17,6 +17,5 @@ adapters:
     usersync:
       cookie-family-name: aax
       redirect:
-        url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect={{redirect_url}}
-        support-cors: false
+        url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect={redirect_url}
         uid-macro: '<vsid>'

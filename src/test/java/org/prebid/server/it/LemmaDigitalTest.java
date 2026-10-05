@@ -18,7 +18,7 @@ public class LemmaDigitalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheLemmaDigitalBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lemmadigital-exchange/123/312"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lemmadigital-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/lemmaDigital/test-lemmaDigital-bid-request.json")))
                 .willReturn(aResponse().withBody(

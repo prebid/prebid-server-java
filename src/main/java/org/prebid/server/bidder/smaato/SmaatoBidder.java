@@ -20,6 +20,7 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -168,7 +169,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         final ExtRequestPrebidServer server = getIfNotNull(prebid, ExtRequestPrebid::getServer);
         final String endpointName = getIfNotNull(server, ExtRequestPrebidServer::getEndpoint);
 
-        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
+        return Strings.CS.equals(endpointName, Endpoint.openrtb2_video.value());
     }
 
     private List<HttpRequest<BidRequest>> constructPodRequests(BidRequest bidRequest, List<BidderError> errors) {

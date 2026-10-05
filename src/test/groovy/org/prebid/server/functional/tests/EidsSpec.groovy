@@ -18,7 +18,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
@@ -344,7 +344,7 @@ class EidsSpec extends BaseSpec {
 
     def "PBS should pass user.eids to all bidders when any of required eid permissions doesn't match"() {
         given: "Default BidRequest with eids"
-        def eidPermission = EidPermission.getDefaultEidPermission([RUBICON])
+        def eidPermission = EidPermission.getDefaultEidPermission([MAGNITE])
         def userEid = updateEidClosure(Eid.from(eidPermission))
 
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -382,7 +382,7 @@ class EidsSpec extends BaseSpec {
     def "PBS shouldn't pass user.eids to unmatched bidders when eidPermissions fields match user.eids"() {
         given: "Default BidRequest with eids"
         def eidPermissionWithUnmatchedBidder = eidPermission.tap {
-            bidders = [RUBICON]
+            bidders = [MAGNITE]
         }
         def userEid = updateEidClosure(eidPermissionWithUnmatchedBidder)
 
@@ -416,7 +416,7 @@ class EidsSpec extends BaseSpec {
 
     def "PBS should filter only unauthorized eids when multiple eids with different permissions are present"() {
         given: "Default BidRequest with eids"
-        def eidPermissionWithUnmatchedBidder = EidPermission.getDefaultEidPermission([RUBICON])
+        def eidPermissionWithUnmatchedBidder = EidPermission.getDefaultEidPermission([MAGNITE])
         def userEid = Eid.from(eidPermissionWithUnmatchedBidder)
         def properEids = [Eid.defaultEid, Eid.defaultEid]
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -475,7 +475,7 @@ class EidsSpec extends BaseSpec {
         given: "Default BidRequest with eids"
         def userEid = Eid.getDefaultEid()
         def moreSpecificEidPermission = moreSpecificPermissionClosure(userEid).tap {
-            it.bidders = [RUBICON]
+            it.bidders = [MAGNITE]
         }
         def lessSpecificEidPermission = lessSpecificPermissionClosure(userEid).tap {
             it.bidders = [GENERIC]
@@ -513,7 +513,7 @@ class EidsSpec extends BaseSpec {
             it.bidders = [GENERIC]
         }
         def lessSpecificEidPermission = lessSpecificPermissionClosure(userEid).tap {
-            it.bidders = [RUBICON]
+            it.bidders = [MAGNITE]
         }
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(eids: [userEid])
@@ -548,7 +548,7 @@ class EidsSpec extends BaseSpec {
             it.bidders = [GENERIC]
         }
         def restrictingRule = restrictingPermissionClosure(userEid).tap {
-            it.bidders = [RUBICON]
+            it.bidders = [MAGNITE]
         }
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(eids: [userEid])

@@ -9,10 +9,10 @@ import java.math.BigDecimal;
 public class ExtImpConnectAd {
 
     @JsonProperty("networkId")
-    String networkId;
+    Integer networkId;
 
     @JsonProperty("siteId")
-    String siteId;
+    Integer siteId;
 
     @JsonProperty("bidfloor")
     BigDecimal bidFloor;

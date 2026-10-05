@@ -25,5 +25,7 @@
       "description": "Blocked IAB Categories"
     }
   },
-  "required": ["pkey"]
+  "required": [
+    "pkey"
+  ]
 }

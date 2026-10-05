@@ -29,5 +29,7 @@
       "description": "optional minimum acceptable bid, in CPM, USD by default"
     }
   },
-  "required": ["accountId"]
+  "required": [
+    "accountId"
+  ]
 }

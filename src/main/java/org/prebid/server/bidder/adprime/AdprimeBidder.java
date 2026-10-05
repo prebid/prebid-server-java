@@ -108,8 +108,8 @@ public class AdprimeBidder implements Bidder<BidRequest> {
 
         return Objects.nonNull(site) && CollectionUtils.isNotEmpty(keywords)
                 ? site.toBuilder()
-                .keywords(String.join(",", keywords))
-                .build()
+                  .keywords(String.join(",", keywords))
+                  .build()
                 : site;
     }
 
@@ -171,5 +171,4 @@ public class AdprimeBidder implements Bidder<BidRequest> {
                     "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
         };
     }
-
 }

@@ -44,7 +44,7 @@ public class HostVendorTcfDefinerService {
         return gdprHostVendorId == null
                 ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
                 : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(this::toHostVendorTcfResponse);
+                  .map(this::toHostVendorTcfResponse);
     }
 
     private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {

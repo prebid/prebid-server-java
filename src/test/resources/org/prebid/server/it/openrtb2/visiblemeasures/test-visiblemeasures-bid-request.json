@@ -10,8 +10,8 @@
       },
       "ext": {
         "bidder": {
-          "type" : "publisher",
-          "placementId" : "id"
+          "type": "publisher",
+          "placementId": "id"
         }
       }
     }
@@ -49,6 +49,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     }

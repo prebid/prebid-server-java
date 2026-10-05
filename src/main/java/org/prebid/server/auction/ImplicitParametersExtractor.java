@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
@@ -34,7 +35,7 @@ public class ImplicitParametersExtractor {
         final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
                 : StringUtils.trimToNull(request.getHeaders().get(HttpUtil.REFERER_HEADER));
 
-        return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
+        return StringUtils.isNotBlank(url) && !Strings.CS.startsWith(url, "http")
                 ? "http://" + url
                 : url;
     }
@@ -98,8 +99,8 @@ public class ImplicitParametersExtractor {
      * scheme is 'https'. Returns 1 if one of these conditions evaluates to true or null otherwise.
      */
     public Integer secureFrom(HttpRequestContext httpRequest) {
-        return StringUtils.equalsIgnoreCase(httpRequest.getHeaders().get("X-Forwarded-Proto"), "https")
-                || StringUtils.equalsIgnoreCase(httpRequest.getScheme(), "https")
+        return Strings.CI.equals(httpRequest.getHeaders().get("X-Forwarded-Proto"), "https")
+                || Strings.CI.equals(httpRequest.getScheme(), "https")
                 ? 1 : null;
     }
 

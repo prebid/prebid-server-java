@@ -2,7 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.Eid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 
 import java.util.ArrayList;
@@ -75,7 +75,7 @@ public class EidPermissionResolver {
 
     private boolean isBidderAllowed(String bidder, List<String> ruleBidders) {
         return ruleBidders == null || ruleBidders.stream()
-                .anyMatch(allowedBidder -> StringUtils.equalsIgnoreCase(allowedBidder, bidder)
+                .anyMatch(allowedBidder -> Strings.CI.equals(allowedBidder, bidder)
                         || WILDCARD_BIDDER.equals(allowedBidder));
     }
 }

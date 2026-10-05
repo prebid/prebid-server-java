@@ -284,13 +284,13 @@ public class AmpHandler implements ApplicationResource {
         final Map<String, JsonNode> targeting = new HashMap<>(seatBids == null
                 ? Collections.emptyMap()
                 : seatBids.stream()
-                .filter(Objects::nonNull)
-                .filter(seatBid -> seatBid.getBid() != null)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
+                  .filter(Objects::nonNull)
+                  .filter(seatBid -> seatBid.getBid() != null)
+                  .flatMap(seatBid -> seatBid.getBid().stream()
+                                      .filter(Objects::nonNull)
+                                      .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
+                  .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
+                  .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
 
         final Map<String, JsonNode> additionalTargeting = extractAdditionalTargeting(bidResponse);
         targeting.putAll(additionalTargeting);
@@ -370,14 +370,14 @@ public class AmpHandler implements ApplicationResource {
                 conditionalLogger.info(
                         "%s, Referer: %s"
                                 .formatted(message, routingContext.request().headers().get(HttpUtil.REFERER_HEADER)),
-                        100);
+                        logSamplingRate);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = exception.getMessage();
-                conditionalLogger.info(message, 100);
+                conditionalLogger.info(message, logSamplingRate);
 
                 errorMessages = Collections.singletonList(message);
 
@@ -433,7 +433,7 @@ public class AmpHandler implements ApplicationResource {
         }
         if (origin == null) {
             // Just to be safe
-            origin = ObjectUtils.defaultIfNull(routingContext.request().headers().get("Origin"), StringUtils.EMPTY);
+            origin = ObjectUtils.getIfNull(routingContext.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
     }

@@ -39,7 +39,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SilvermobBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://{{Host}}.test/some/path/{{ZoneID}}";
+    private static final String ENDPOINT_URL = "http://{Host}.test/some/path/{ZoneID}";
 
     private final SilvermobBidder target = new SilvermobBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -8,7 +8,6 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -24,10 +23,10 @@ import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,9 +78,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
             };
 
     private final boolean isRfc3986Compatible;
-    private final String endpoint;
-    private final String ampEndpoint;
-    private final String videoEndpoint;
+    private final Uri endpoint;
+    private final Uri ampEndpoint;
+    private final Uri videoEndpoint;
     private final String categoryEndpoint;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
@@ -95,10 +94,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                    JacksonMapper mapper) {
 
         this.isRfc3986Compatible = isRfc3986Compatible;
-        this.endpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(ampEndpoint));
-        this.videoEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(videoEndpoint));
-        this.categoryEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(categoryEndpoint));
+        this.endpoint = Uri.of(endpoint);
+        this.ampEndpoint = Uri.of(ampEndpoint);
+        this.videoEndpoint = Uri.of(videoEndpoint);
+        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -122,24 +121,21 @@ public class HttpApplicationSettings implements ApplicationSettings {
             return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
-        return httpClient.get(accountsRequestUrlFrom(endpoint, accountIds), HttpUtil.headers(), remainingTimeout)
+        return httpClient.get(
+                        accountsRequestUrlFrom(endpoint, accountIds),
+                        HttpUtil.headers(),
+                        remainingTimeout)
                 .map(response -> processAccountsResponse(response, accountIds));
     }
 
-    private String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpoint);
-            if (!accountIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    accountIds.forEach(accountId -> uriBuilder.addParameter("account-id", accountId));
-                } else {
-                    uriBuilder.addParameter("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
-                }
-            }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
+    private String accountsRequestUrlFrom(Uri endpoint, Set<String> accountIds) {
+        final Uri.ParameterizedUri builder = endpoint.parameterized();
+        if (isRfc3986Compatible) {
+            builder.addQueryParam("account-id", accountIds);
+        } else {
+            builder.addQueryParam("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
         }
+        return builder.expand();
     }
 
     private Set<Account> processAccountsResponse(HttpClientResponse httpClientResponse, Set<String> accountIds) {
@@ -188,7 +184,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
-    private Future<StoredDataResult<String>> fetchStoredData(String endpoint,
+    private Future<StoredDataResult<String>> fetchStoredData(Uri endpoint,
                                                              Set<String> requestIds,
                                                              Set<String> impIds,
                                                              Timeout timeout) {
@@ -203,7 +199,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
             return failStoredDataResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
         }
 
-        return httpClient.get(storeRequestUrlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
+        return httpClient.get(
+                        storeRequestUrlFrom(endpoint, requestIds, impIds),
+                        HttpUtil.headers(),
+                        remainingTimeout)
                 .map(response -> processStoredDataResponse(response, requestIds, impIds))
                 .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
     }
@@ -231,27 +230,23 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpoint);
-            if (!requestIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    requestIds.forEach(requestId -> uriBuilder.addParameter("request-id", requestId));
-                } else {
-                    uriBuilder.addParameter("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
-                }
+    private String storeRequestUrlFrom(Uri endpoint, Set<String> requestIds, Set<String> impIds) {
+        final Uri.ParameterizedUri builder = endpoint.parameterized();
+        if (!requestIds.isEmpty()) {
+            if (isRfc3986Compatible) {
+                builder.addQueryParam("request-id", requestIds);
+            } else {
+                builder.addQueryParam("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
             }
-            if (!impIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    impIds.forEach(impId -> uriBuilder.addParameter("imp-id", impId));
-                } else {
-                    uriBuilder.addParameter("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
-                }
-            }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
         }
+        if (!impIds.isEmpty()) {
+            if (isRfc3986Compatible) {
+                builder.addQueryParam("imp-id", impIds);
+            } else {
+                builder.addQueryParam("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
+            }
+        }
+        return builder.expand();
     }
 
     private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,

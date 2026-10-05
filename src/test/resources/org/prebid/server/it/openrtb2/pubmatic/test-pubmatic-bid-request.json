@@ -14,7 +14,6 @@
       "tagid": "slot9",
       "bidfloor": 0.12,
       "ext": {
-        "ae": 1,
         "pmZoneId": "Zone1,Zone2",
         "preference": "sports,movies",
         "dfp_ad_unit_code": "thirdPbAdSlot"

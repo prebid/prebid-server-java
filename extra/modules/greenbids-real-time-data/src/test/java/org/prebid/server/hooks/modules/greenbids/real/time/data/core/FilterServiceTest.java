@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -72,7 +73,7 @@ public class FilterServiceTest {
         final Double threshold = 0.5;
 
         when(onnxModelRunnerMock.runModel(any(String[][].class))).thenReturn(results);
-        when(results.spliterator()).thenReturn(Arrays.asList(createInvalidOnnxItem()).spliterator());
+        when(results.spliterator()).thenReturn(singletonList(createInvalidOnnxItem()).spliterator());
 
         // when & then
         assertThatThrownBy(() -> target.filterBidders(onnxModelRunnerMock, throttlingMessages, threshold))
@@ -114,7 +115,7 @@ public class FilterServiceTest {
         final Double threshold = 0.5;
 
         when(onnxModelRunnerMock.runModel(any(String[][].class))).thenReturn(results);
-        when(results.spliterator()).thenReturn(Arrays.asList(createOnnxItem()).spliterator());
+        when(results.spliterator()).thenReturn(singletonList(createOnnxItem()).spliterator());
         when(onnxTensor.getInfo()).thenReturn(tensorInfo);
         when(tensorInfo.getShape()).thenReturn(new long[]{0});
 

@@ -59,7 +59,7 @@ public class BidderParamValidator {
      *          "audienceNetwork": {
      *              "schema": "..."
      *          },
-     *          "rubicon": {
+     *          "magnite": {
      *              "schema": "...."
      *          }
      *       }

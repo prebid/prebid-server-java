@@ -8,7 +8,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -42,14 +43,14 @@ public class AsoBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String ZONE_MACRO = "{{ZoneID}}";
+    private static final String ZONE_MACRO = "ZoneID";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AsoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -97,7 +98,7 @@ public class AsoBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(Integer zone) {
-        return endpointUrl.replace(ZONE_MACRO, zone.toString());
+        return endpointUrl.replaceMacro(ZONE_MACRO, zone.toString()).expand();
     }
 
     @Override
@@ -140,8 +141,8 @@ public class AsoBidder implements Bidder<BidRequest> {
         final String priceAsString = price != null ? price.toPlainString() : "0";
 
         final Bid modifiedBid = bid.toBuilder()
-                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
-                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .nurl(Strings.CS.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(Strings.CS.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
                 .build();
 
         return BidderBid.of(modifiedBid, mediaType, currency);

@@ -42,6 +42,7 @@ import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
@@ -51,7 +52,6 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -147,7 +147,7 @@ public class Ortb2RequestFactory {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
+    public AuctionContext createAuctionContext(HookHttpEndpoint endpoint, MetricName requestTypeMetric) {
         return AuctionContext.builder()
                 .requestTypeMetric(requestTypeMetric)
                 .prebidErrors(new ArrayList<>())
@@ -315,9 +315,9 @@ public class Ortb2RequestFactory {
         }
 
         return Future.succeededFuture(bidRequest.toBuilder()
-                .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
+                .ext(ObjectUtils.getIfNull(enrichedRequestExt, requestExt))
+                .device(ObjectUtils.getIfNull(enrichedDevice, device))
+                .regs(ObjectUtils.getIfNull(enrichedRegs, regs))
                 .build());
     }
 
@@ -498,12 +498,12 @@ public class Ortb2RequestFactory {
 
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
-        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+        return ObjectUtils.getIfNull(publisherId, StringUtils.EMPTY);
     }
 
     private String resolvePublisherId(Publisher publisher) {
         final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
-        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
+        return ObjectUtils.getIfNull(parentAccountId, publisher.getId());
     }
 
     private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
@@ -558,7 +558,7 @@ public class Ortb2RequestFactory {
         if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);
         } else if (exception instanceof PreBidException) {
-            unknownAccountLogger.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
+            unknownAccountLogger.warn(accountErrorMessage(exception.getMessage(), httpRequest), logSamplingRate);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {}", exception.getMessage());
@@ -725,8 +725,8 @@ public class Ortb2RequestFactory {
         return upperCasedRegion != null && !upperCasedRegion.equals(upperCasedRegionInRequest)
                 ? UpdateResult.updated(upperCasedRegion)
                 : Objects.equals(regionInRequest, upperCasedRegionInRequest)
-                ? UpdateResult.unaltered(regionInRequest)
-                : UpdateResult.updated(upperCasedRegionInRequest);
+                  ? UpdateResult.unaltered(regionInRequest)
+                  : UpdateResult.updated(upperCasedRegionInRequest);
     }
 
     private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {

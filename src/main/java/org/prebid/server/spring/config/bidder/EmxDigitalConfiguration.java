@@ -5,21 +5,17 @@ import org.prebid.server.bidder.emxdigital.EmxDigitalBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import jakarta.validation.constraints.NotBlank;
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/emxdigital.yaml", factory = YamlPropertySourceFactory.class)
 public class EmxDigitalConfiguration {
 
-    private static final String BIDDER_NAME = "emx_digital";
+    private static final String BIDDER_NAME = "emxdigital";
 
     @Bean("emxdigitalConfigurationProperties")
     @ConfigurationProperties("adapters.emxdigital")
@@ -29,12 +25,10 @@ public class EmxDigitalConfiguration {
 
     @Bean
     BidderDeps emxdigitalBidderDeps(BidderConfigurationProperties emxdigitalConfigurationProperties,
-                                    @NotBlank @Value("${external-url}") String externalUrl,
                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(emxdigitalConfigurationProperties)
-                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new EmxDigitalBidder(config.getEndpoint(), mapper))
                 .assemble();
     }

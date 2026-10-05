@@ -18,7 +18,7 @@ public class IionadsTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheiionadsBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/iionads-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/iionads-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/iionads/test-iionads-bid-request.json")))
                 .willReturn(aResponse().withBody(

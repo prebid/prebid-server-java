@@ -158,5 +158,4 @@ public class LoyalBidder implements Bidder<BidRequest> {
                     + bidType.getName() + " for bid.id: '" + bid.getId() + "'");
         };
     }
-
 }

@@ -1,7 +1,6 @@
 package org.prebid.server.bidder;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.util.StreamUtil;
 
@@ -52,7 +51,7 @@ public class UsersyncMethodChooser {
     }
 
     private boolean methodValid(UsersyncMethod usersyncMethod) {
-        return usersyncMethod != null && StringUtils.isNotBlank(usersyncMethod.getUsersyncUrl());
+        return usersyncMethod != null;
     }
 
     private boolean methodAllowed(UsersyncMethod usersyncMethod, String bidder) {

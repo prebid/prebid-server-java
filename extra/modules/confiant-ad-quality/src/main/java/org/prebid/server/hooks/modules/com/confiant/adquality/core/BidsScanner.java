@@ -55,83 +55,50 @@ public class BidsScanner {
     }
 
     public Future<BidsScanResult> submitBids(RedisBidsData bids) {
-        final Promise<BidsScanResult> scanResult = Promise.promise();
-
         final RedisAPI readRedisNodeAPI = this.readRedisNode.getRedisAPI();
-        final boolean shouldSubmit = !isScanDisabled
-                && readRedisNodeAPI != null && !bids.getBresps().isEmpty();
-
-        if (shouldSubmit) {
-            readRedisNodeAPI.get("function_submit_bids", submitHash -> {
-                final Object submitHashResult = submitHash.result();
-                if (submitHashResult != null) {
-                    final List<String> readArgs = List.of(
-                            submitHashResult.toString(),
-                            "0",
-                            toBidsAsJson(bids),
-                            apiKey,
-                            "true");
-
-                    readRedisNodeAPI.evalsha(readArgs, response -> {
-                        if (response.result() != null) {
-                            final BidsScanResult parserResult = redisParser
-                                    .parseBidsScanResult(response.result().toString());
-                            final boolean isAnyRoSkipped = parserResult.getBidScanResults()
-                                    .stream().anyMatch(BidScanResult::isRoSkipped);
-
-                            if (isAnyRoSkipped) {
-                                reSubmitBidsToWriteNode(readArgs, scanResult);
-                            } else {
-                                scanResult.complete(parserResult);
-                            }
-                        } else {
-                            scanResult.complete(getEmptyScanResult());
-                        }
-                    });
-                } else {
-                    scanResult.complete(getEmptyScanResult());
-                }
-            });
-
-            return scanResult.future();
+        if (isScanDisabled || readRedisNodeAPI == null || bids.getBresps().isEmpty()) {
+            return Future.succeededFuture(getEmptyScanResult());
         }
 
-        return Future.succeededFuture(getEmptyScanResult());
+        return readRedisNodeAPI.get("function_submit_bids")
+                .map(Response::toString)
+                .map(response -> List.of(response, "0", toBidsAsJson(bids), apiKey, "true"))
+                .compose(args -> scanBids(args, readRedisNodeAPI))
+                .otherwise(ignored -> getEmptyScanResult());
     }
 
-    private void reSubmitBidsToWriteNode(List<String> readArgs, Promise<BidsScanResult> scanResult) {
-        final RedisAPI writeRedisAPI = this.writeRedisNode.getRedisAPI();
-        if (writeRedisAPI != null) {
-            final List<String> writeArgs = readArgs.stream().limit(4).toList();
-            writeRedisAPI.evalsha(writeArgs, response -> {
-                if (response.result() != null) {
-                    final BidsScanResult parserResult = redisParser
-                            .parseBidsScanResult(response.result().toString());
+    private Future<BidsScanResult> scanBids(List<String> args, RedisAPI redisAPI) {
+        return redisAPI.evalsha(args)
+                .map(Response::toString)
+                .map(redisParser::parseBidsScanResult)
+                .compose(parsedResult -> parsedResult.getBidScanResults()
+                        .stream().anyMatch(BidScanResult::isRoSkipped)
+                        ? reSubmitBidsToWriteNode(args)
+                        : Future.succeededFuture(parsedResult));
+    }
 
-                    scanResult.complete(parserResult);
-                } else {
-                    scanResult.complete(getEmptyScanResult());
-                }
-            });
-        } else {
-            scanResult.complete(getEmptyScanResult());
+    private Future<BidsScanResult> reSubmitBidsToWriteNode(List<String> readArgs) {
+        final RedisAPI writeRedisAPI = this.writeRedisNode.getRedisAPI();
+        if (writeRedisAPI == null) {
+            return Future.succeededFuture(getEmptyScanResult());
         }
+
+        final List<String> writeArgs = readArgs.stream().limit(4).toList();
+        return writeRedisAPI.evalsha(writeArgs)
+                .map(Response::toString)
+                .map(redisParser::parseBidsScanResult);
     }
 
     public Future<Boolean> isScanDisabledFlag() {
         final RedisAPI redisAPI = this.readRedisNode.getRedisAPI();
-        final Promise<Boolean> isDisabled = Promise.promise();
-
-        if (redisAPI != null) {
-            redisAPI.get("scan-disabled", scanDisabledValue -> {
-                final Response scanDisabled = scanDisabledValue.result();
-                isDisabled.complete(scanDisabled != null && "true".equals(scanDisabled.toString()));
-            });
-
-            return isDisabled.future();
+        if (redisAPI == null) {
+            return Future.succeededFuture(true);
         }
 
-        return Future.succeededFuture(true);
+        return redisAPI.get("scan-disabled")
+                .map(Response::toString)
+                .map(Boolean::parseBoolean)
+                .otherwise(false);
     }
 
     private String toBidsAsJson(RedisBidsData bids) {

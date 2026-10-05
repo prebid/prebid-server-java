@@ -29,5 +29,4 @@ public class IqzoneTest extends IntegrationTest {
         // then
         assertJsonEquals("openrtb2/iqzone/test-auction-iqzone-response.json", response, singletonList("iqzone"));
     }
-
 }

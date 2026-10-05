@@ -5,13 +5,20 @@
   "type": "object",
   "properties": {
     "publisher_id": {
-      "type": ["string"],
+      "type": [
+        "string"
+      ],
       "description": "Publisher ID"
     },
     "ad_unit_id": {
-      "type": ["string"],
+      "type": [
+        "string"
+      ],
       "description": "Ad Unit ID"
     }
   },
-  "required": ["publisher_id", "ad_unit_id"]
+  "required": [
+    "publisher_id",
+    "ad_unit_id"
+  ]
 }

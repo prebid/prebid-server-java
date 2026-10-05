@@ -93,7 +93,7 @@ public class VidoomyBidder implements Bidder<BidRequest> {
     }
 
     private static Integer zeroIfFormatMeasureNull(Format format, Function<Format, Integer> measureExtractor) {
-        return ObjectUtils.defaultIfNull(ObjectUtil.getIfNotNull(format, measureExtractor), 0);
+        return ObjectUtils.getIfNull(ObjectUtil.getIfNotNull(format, measureExtractor), 0);
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp) {

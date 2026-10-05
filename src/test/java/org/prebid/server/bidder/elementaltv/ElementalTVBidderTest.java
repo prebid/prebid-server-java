@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class ElementalTVBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://pbs.test.com/some/path/{{AdUnit}}";
+    private static final String ENDPOINT_URL = "https://pbs.test.com/some/path/{AdUnit}";
 
     private final ElementalTVBidder target = new ElementalTVBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -163,10 +163,11 @@ public class ElementalTVBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpElementalTV.of("adUnit")))))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("123")
+                                .banner(Banner.builder().id("banner_id").build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpElementalTV.of("adUnit")))))
                 .build();
     }
 

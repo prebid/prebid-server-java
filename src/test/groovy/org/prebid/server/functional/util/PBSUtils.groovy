@@ -42,6 +42,13 @@ class PBSUtils implements ObjectMapperWrapper {
         roundDecimal(BigDecimal.valueOf(number), DEFAULT_NUMBER_PRECISION)
     }
 
+    static BigDecimal divide(BigDecimal dividend,
+                             BigDecimal divisor,
+                             int scale = 4,
+                             RoundingMode roundingMode = RoundingMode.HALF_EVEN) {
+        dividend.divide(divisor, scale, roundingMode)
+    }
+
     static BigDecimal roundDecimal(BigDecimal number, int decimalPlaces) {
         number.setScale(decimalPlaces, RoundingMode.HALF_EVEN)
     }
@@ -51,7 +58,7 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static String getRandomSpecialChars(int stringLength = 20) {
-        RandomStringUtils.random(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
+        RandomStringUtils.insecure().next(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
     }
 
     static String getRandomStringWithSpecials(int stringLength = 20) {
@@ -144,24 +151,21 @@ class PBSUtils implements ObjectMapperWrapper {
     static String getRandomVersion(String minVersion = "0.0.0", String maxVersion = "99.99.99") {
         def minParts = minVersion.split('\\.').collect { it.toInteger() }
         def maxParts = maxVersion.split('\\.').collect { it.toInteger() }
-        def versionParts = []
+
+        while (minParts.size() < 3) minParts << 0
+        while (maxParts.size() < 3) maxParts << 0
 
         def major = getRandomNumber(minParts[0], maxParts[0])
-        versionParts << major
 
         def minorMin = (major == minParts[0]) ? minParts[1] : 0
         def minorMax = (major == maxParts[0]) ? maxParts[1] : 99
         def minor = getRandomNumber(minorMin, minorMax)
-        versionParts << minor
 
-        if (minParts.size() > 2 || maxParts.size() > 2) {
-            def patchMin = (major == minParts[0] && minor == minParts[1]) ? minParts[2] : 0
-            def patchMax = (major == maxParts[0] && minor == maxParts[1]) ? maxParts[2] : 99
-            def patch = getRandomNumber(patchMin, patchMax)
-            versionParts << patch
-        }
-        def version = versionParts.join('.')
-        return (version >= minVersion && version <= maxVersion) ? version : getRandomVersion(minVersion, maxVersion)
+        def patchMin = (major == minParts[0] && minor == minParts[1]) ? minParts[2] : 0
+        def patchMax = (major == maxParts[0] && minor == maxParts[1]) ? maxParts[2] : 99
+        def patch = getRandomNumber(patchMin, patchMax)
+
+        return "${major}.${minor}.${patch}"
     }
 
     static Boolean isUUID(String str) {

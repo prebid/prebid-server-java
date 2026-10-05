@@ -49,11 +49,6 @@ public class ExtBidResponse {
     Map<String, ExtResponseSyncData> usersync;
 
     /**
-     * Defines the contract for bidresponse.ext.igi
-     */
-    List<ExtIgi> igi;
-
-    /**
      * Defines the contract for bidresponse.ext.prebid
      */
     ExtBidResponsePrebid prebid;

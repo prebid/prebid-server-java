@@ -3,6 +3,7 @@ package org.prebid.server.util;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +17,7 @@ import org.prebid.server.model.HttpRequestContext;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
@@ -35,11 +36,14 @@ public class HttpUtilTest {
 
     @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
+    @Mock(strictness = LENIENT)
+    private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
 
     @BeforeEach
     public void setUp() {
+        given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
     }
 
@@ -131,7 +135,7 @@ public class HttpUtilTest {
     @Test
     public void cookiesAsMapShouldReturnExpectedResult() {
         // given
-        given(routingContext.cookieMap()).willReturn(singletonMap("name", Cookie.cookie("name", "value")));
+        given(httpRequest.cookies()).willReturn(singleton(Cookie.cookie("name", "value")));
 
         // when
         final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);

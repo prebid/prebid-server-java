@@ -14,6 +14,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -30,7 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.melozen.MeloZenImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -45,12 +46,12 @@ public class MeloZenBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, MeloZenImpExt>> TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
     private static final String BIDDER_CURRENCY = "USD";
     private static final String EXT_PREBID = "prebid";
 
     private final CurrencyConversionService currencyConversionService;
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MeloZenBidder(CurrencyConversionService currencyConversionService,
@@ -58,7 +59,7 @@ public class MeloZenBidder implements Bidder<BidRequest> {
                          JacksonMapper mapper) {
 
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpointUrl = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -104,7 +105,7 @@ public class MeloZenBidder implements Bidder<BidRequest> {
 
         if (BidderUtil.isValidPrice(bidFloor)
                 && StringUtils.isNotBlank(bidFloorCurrency)
-                && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
+                && !Strings.CI.equals(bidFloorCurrency, BIDDER_CURRENCY)) {
 
             final BigDecimal convertedFloor = currencyConversionService.convertCurrency(
                     bidFloor,
@@ -120,7 +121,8 @@ public class MeloZenBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(MeloZenImpExt impExt) {
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(impExt.getPubId())));
+                .replaceMacro(PUBLISHER_ID_MACRO, StringUtils.defaultString(impExt.getPubId()))
+                .expand();
     }
 
     private List<Imp> splitImpByMediaType(Imp imp) {

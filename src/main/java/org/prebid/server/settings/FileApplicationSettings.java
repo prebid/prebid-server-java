@@ -8,6 +8,7 @@ import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -103,7 +104,7 @@ public class FileApplicationSettings implements ApplicationSettings {
         return fileSystem.readDirBlocking(dir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(
-                        filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
+                        filepath -> Strings.CS.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
                         filepath -> fileSystem.readFileBlocking(filepath).toString()));
     }
 
@@ -123,7 +124,7 @@ public class FileApplicationSettings implements ApplicationSettings {
                                                                       String profileFilePath,
                                                                       JacksonMapper jacksonMapper) {
 
-        final String profileFileName = StringUtils.removeEnd(new File(profileFilePath).getName(), JSON_SUFFIX);
+        final String profileFileName = Strings.CS.removeEnd(new File(profileFilePath).getName(), JSON_SUFFIX);
         final String[] accountIdAndProfileId = profileFileName.split("-");
         if (accountIdAndProfileId.length != 2) {
             throw new IllegalArgumentException("Invalid name of profile file: " + profileFileName);
@@ -142,7 +143,7 @@ public class FileApplicationSettings implements ApplicationSettings {
         return fileSystem.readDirBlocking(dir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(
-                        filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
+                        filepath -> Strings.CS.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
                         filepath -> parseCategories(filepath, fileSystem.readFileBlocking(filepath), jacksonMapper)));
     }
 

@@ -460,7 +460,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
                 .build();
 
         // when
-        final Future<Void> result = target.processEvent(auctionEvent);
+        target.processEvent(auctionEvent);
 
         // then
         final AgmaEvent expectedEvent = AgmaEvent.builder()
@@ -518,7 +518,7 @@ public class AgmaAnalyticsReporterTest extends VertxTest {
                 .build();
 
         // when
-        final Future<Void> result = target.processEvent(auctionEvent);
+        target.processEvent(auctionEvent);
 
         // then
         final AgmaEvent expectedEvent = AgmaEvent.builder()

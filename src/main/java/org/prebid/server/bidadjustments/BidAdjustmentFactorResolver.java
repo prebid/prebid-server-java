@@ -1,7 +1,7 @@
 package org.prebid.server.bidadjustments;
 
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
@@ -41,7 +41,7 @@ public class BidAdjustmentFactorResolver {
                 .map(type -> type == ImpMediaType.video_instream ? ImpMediaType.video : type)
                 .map(adjustmentFactors::get)
                 .flatMap(factors -> factors.entrySet().stream()
-                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidderCode))
+                        .filter(entry -> Strings.CI.equals(entry.getKey(), bidderCode))
                         .map(Map.Entry::getValue)
                         .findFirst());
     }

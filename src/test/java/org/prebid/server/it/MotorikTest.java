@@ -8,7 +8,6 @@ import org.prebid.server.model.Endpoint;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,8 +19,6 @@ public class MotorikTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromMotorik() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/motorik-exchange"))
-                .withQueryParam("k", equalTo("testAccountId"))
-                .withQueryParam("name", equalTo("testPlacementId"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/motorik/test-motorik-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/motorik/test-motorik-bid-response.json"))));
 

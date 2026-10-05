@@ -22,6 +22,7 @@ import org.prebid.server.proto.openrtb.ext.request.lmkiviads.ExtImpLmKiviAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,14 +36,14 @@ public class LmKiviAdsBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpLmKiviAds>> LMKIVIADS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String HOST_MACRO = "{{Host}}";
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String HOST_MACRO = "Host";
+    private static final String SOURCE_ID_MACRO = "SourceId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public LmKiviAdsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -75,8 +76,9 @@ public class LmKiviAdsBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpLmKiviAds extImpLmKiviads) {
         return endpointUrl
-                .replace(HOST_MACRO, extImpLmKiviads.getEnv())
-                .replace(SOURCE_ID_MACRO, extImpLmKiviads.getPid());
+                .replaceMacro(HOST_MACRO, extImpLmKiviads.getEnv())
+                .replaceMacro(SOURCE_ID_MACRO, extImpLmKiviads.getPid())
+                .expand();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String endpointUrl) {

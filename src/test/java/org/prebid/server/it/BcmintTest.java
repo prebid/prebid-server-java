@@ -8,7 +8,6 @@ import org.prebid.server.model.Endpoint;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,7 +19,6 @@ public class BcmintTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromBcmint() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bcmint-exchange"))
-                .withQueryParam("zid", equalTo("1"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/bcmint/test-bcmint-bid-request.json")))
                 .willReturn(aResponse().withBody(

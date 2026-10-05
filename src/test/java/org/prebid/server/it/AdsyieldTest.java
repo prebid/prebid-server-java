@@ -18,7 +18,7 @@ public class AdsyieldTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheAdsyieldBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adsyield-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adsyield-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/adsyield/test-adsyield-bid-request.json")))
                 .willReturn(aResponse().withBody(

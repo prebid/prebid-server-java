@@ -61,7 +61,8 @@ public class RedisClient {
      */
     private void createRedisClient(Handler<AsyncResult<RedisConnection>> handler, boolean isReconnect) {
         Redis.createClient(vertx, options)
-                .connect(onConnect -> {
+                .connect()
+                .onComplete(onConnect -> {
                     if (onConnect.succeeded()) {
                         connection = onConnect.result();
                         connection.exceptionHandler(e -> {

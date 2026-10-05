@@ -168,5 +168,4 @@ public class TeadsBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage());
         }
     }
-
 }

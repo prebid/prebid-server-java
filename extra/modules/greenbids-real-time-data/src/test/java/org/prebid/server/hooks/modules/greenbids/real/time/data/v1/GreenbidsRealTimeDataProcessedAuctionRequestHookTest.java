@@ -37,7 +37,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.MAPPER;
-import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.getRubiconNode;
+import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.getMagniteNode;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenBidRequest;
 import static org.prebid.server.hooks.modules.greenbids.real.time.data.util.TestBidRequestProvider.givenImpExt;
 
@@ -84,7 +84,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(explorationRate);
 
         given(filterService.filterBidders(any(), any(), any())).willReturn(Map.of("adunitcodevalue",
-                Map.of("rubicon", false, "appnexus", false, "pubmatic", false)));
+                Map.of("magnite", false, "appnexus", false, "pubmatic", false)));
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -100,11 +100,11 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final ResultImpl actualResult = (ResultImpl) actualActivity.results().getFirst();
         final AppliedTo acctualAppliedTo = actualResult.appliedTo();
 
-        assertThat(acctualAppliedTo.bidders()).containsOnly("appnexus", "pubmatic", "rubicon");
+        assertThat(acctualAppliedTo.bidders()).containsOnly("appnexus", "pubmatic", "magnite");
         assertThat(acctualAppliedTo.impIds()).containsOnly("adunitcodevalue");
         assertThat(actualResult.values().get("adunitcodevalue").get("greenbids").get("keptInAuction"))
                 .isEqualTo(MAPPER.createObjectNode()
-                        .put("rubicon", false)
+                        .put("magnite", false)
                         .put("appnexus", false)
                         .put("pubmatic", false));
         assertThat(actualResult.values().get("adunitcodevalue").get("greenbids").get("fingerprint").asText())
@@ -127,7 +127,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         final AuctionInvocationContext invocationContext = givenAuctionInvocationContext(explorationRate);
 
         given(filterService.filterBidders(any(), any(), any())).willReturn(Map.of("adunitcodevalue",
-                Map.of("rubicon", true, "appnexus", false, "pubmatic", false)));
+                Map.of("magnite", true, "appnexus", false, "pubmatic", false)));
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target
@@ -145,7 +145,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
 
         final Imp expectedImp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(givenImpExt(getRubiconNode(), null, null))
+                .ext(givenImpExt(getMagniteNode(), null, null))
                 .build();
         assertThat(resultBidRequest).isEqualTo(givenBidRequest(identity(), List.of(expectedImp)));
 
@@ -157,7 +157,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(acctualAppliedTo.impIds()).containsOnly("adunitcodevalue");
         assertThat(actualResult.values().get("adunitcodevalue").get("greenbids").get("keptInAuction"))
                 .isEqualTo(MAPPER.createObjectNode()
-                        .put("rubicon", true)
+                        .put("magnite", true)
                         .put("appnexus", false)
                         .put("pubmatic", false));
         assertThat(actualResult.values().get("adunitcodevalue").get("greenbids").get("fingerprint").asText())

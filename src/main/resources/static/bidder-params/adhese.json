@@ -21,5 +21,9 @@
       "description": "Target params, as defined in your Adhese setup."
     }
   },
-  "required": ["account", "location", "format"]
+  "required": [
+    "account",
+    "location",
+    "format"
+  ]
 }

@@ -1,7 +1,7 @@
 adapters:
   sparteo:
     endpoint: https://bid.sparteo.com/s2s-auction
-    meta-info: 
+    meta-info:
       maintainer-email: prebid@sparteo.com
       app-media-types:
         - banner
@@ -16,5 +16,4 @@ adapters:
     usersync:
       cookie-family-name: sparteo
       iframe:
-        url: "https://sync.sparteo.com/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&&gpp_sid={{gpp_sid}}&redirect_url={{redirect_url}}"
-        support-cors: true
+        url: "https://sync.sparteo.com/s2s_sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&&gpp_sid={gpp_sid}&redirect_url={redirect_url}"

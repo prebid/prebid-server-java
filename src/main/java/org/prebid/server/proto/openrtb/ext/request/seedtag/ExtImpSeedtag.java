@@ -9,4 +9,10 @@ public class ExtImpSeedtag {
     @JsonProperty("adUnitId")
     String adUnitId;
 
+    @JsonProperty("publisherId")
+    String publisherId;
+
+    @JsonProperty("integrationType")
+    String integrationType;
+
 }

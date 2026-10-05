@@ -11,6 +11,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -81,7 +82,7 @@ public class VungleBidder implements Bidder<BidRequest> {
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         BigDecimal bigDecimal = null;
         if (BidderUtil.isValidPrice(imp.getBidfloor())
-                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BIDDER_CURRENCY)
+                && !Strings.CI.equals(imp.getBidfloorcur(), BIDDER_CURRENCY)
                 && StringUtils.isNotBlank(imp.getBidfloorcur())) {
             bigDecimal = currencyConversionService.convertCurrency(
                     imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);

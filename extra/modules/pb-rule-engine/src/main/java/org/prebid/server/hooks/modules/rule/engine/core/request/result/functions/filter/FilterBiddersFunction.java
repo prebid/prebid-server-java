@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
@@ -55,13 +55,13 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         final List<SeatNonBid> seatNonBid = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            if (granularity instanceof Granularity.Imp(String impId) && !StringUtils.equals(impId, imp.getId())) {
+            if (granularity instanceof Granularity.Imp(String impId) && !Strings.CS.equals(impId, imp.getId())) {
                 updatedImps.add(imp);
                 continue;
             }
 
             switch (filterBidders(imp, config.getBidders(), ifSyncedId, uidsCookie)) {
-                case FilterBiddersResult.NoAction noAction -> updatedImps.add(imp);
+                case FilterBiddersResult.NoAction _ -> updatedImps.add(imp);
 
                 case FilterBiddersResult.Reject reject ->
                         seatNonBid.addAll(toSeatNonBid(imp.getId(), reject.bidders(), rejectionReason));

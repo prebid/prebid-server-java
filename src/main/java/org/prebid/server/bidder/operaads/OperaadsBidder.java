@@ -28,8 +28,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,15 +44,15 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpOperaads>> OPERAADS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherId";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
     private static final String BIDDER_CURRENCY = "USD";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public OperaadsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -179,8 +179,9 @@ public class OperaadsBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpOperaads extImpOperaads) {
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getPublisherId()))
-                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getEndpointId()));
+                .replaceMacro(PUBLISHER_ID_MACRO, extImpOperaads.getPublisherId())
+                .replaceMacro(ACCOUNT_ID_MACRO, extImpOperaads.getEndpointId())
+                .expand();
     }
 
     @Override

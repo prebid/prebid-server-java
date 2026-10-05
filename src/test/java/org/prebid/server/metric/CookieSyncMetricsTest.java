@@ -13,6 +13,6 @@ public class CookieSyncMetricsTest {
         final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(new MetricRegistry(), CounterType.counter);
 
         // when and then
-        assertThat(cookieSyncMetrics.forBidder("rubicon")).isSameAs(cookieSyncMetrics.forBidder("rubicon"));
+        assertThat(cookieSyncMetrics.forBidder("magnite")).isSameAs(cookieSyncMetrics.forBidder("magnite"));
     }
 }

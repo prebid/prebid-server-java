@@ -16,5 +16,4 @@ public class CacheReadMetrics extends UpdatableMetrics {
     private static Function<MetricName, String> nameCreator(String prefix) {
         return metricName -> "%s.read.%s".formatted(prefix, metricName);
     }
-
 }

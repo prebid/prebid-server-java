@@ -9,7 +9,7 @@
           "price": 3.33,
           "crid": "creativeId",
           "adm": "some-test-ad-1",
-          "adomain":[
+          "adomain": [
             "somedomain.com"
           ],
           "w": 300,

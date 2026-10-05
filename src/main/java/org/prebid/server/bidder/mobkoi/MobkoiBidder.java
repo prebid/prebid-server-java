@@ -84,7 +84,7 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         }
 
         throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
-                    + "req.imp[0].ext.Bidder.placementId");
+                + "req.imp[0].ext.Bidder.placementId");
     }
 
     private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
@@ -131,7 +131,7 @@ public class MobkoiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, "mobkoi", bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .toList();
     }
 }

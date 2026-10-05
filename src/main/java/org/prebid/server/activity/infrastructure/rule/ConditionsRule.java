@@ -3,7 +3,7 @@ package org.prebid.server.activity.infrastructure.rule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Value;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
@@ -56,8 +56,8 @@ public final class ConditionsRule extends AbstractMatchRule implements Loggable 
 
     private static boolean matchesGeoCode(GeoCode geoCode, GeoActivityInvocationPayload geoPayload) {
         final String region = geoCode.getRegion();
-        return StringUtils.equalsIgnoreCase(geoCode.getCountry(), geoPayload.country())
-                && (region == null || StringUtils.equalsIgnoreCase(region, geoPayload.region()));
+        return Strings.CI.equals(geoCode.getCountry(), geoPayload.country())
+                && (region == null || Strings.CI.equals(region, geoPayload.region()));
     }
 
     private boolean matchesGpc(ActivityInvocationPayload activityInvocationPayload) {

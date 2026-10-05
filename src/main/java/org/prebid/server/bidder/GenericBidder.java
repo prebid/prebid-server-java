@@ -66,5 +66,4 @@ public class GenericBidder implements Bidder<BidRequest> {
                 .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
                 .toList();
     }
-
 }

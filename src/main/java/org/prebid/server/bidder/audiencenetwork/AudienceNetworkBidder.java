@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienceNetwork;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import javax.crypto.Mac;
 import java.util.ArrayList;
@@ -47,6 +48,9 @@ import java.util.Objects;
 
 public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
+    private static final String PARTNER_MACRO = "partner";
+    private static final String APP_MACRO = "app";
+    private static final String AUCTION_MACRO = "auction";
     private static final TypeReference<ExtPrebid<?, ExtImpAudienceNetwork>> AUDIENCE_NETWORK_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -56,7 +60,7 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final String platformId;
     private final String appSecret;
-    private final String timeoutNotificationUrlTemplate;
+    private final Uri timeoutNotificationUrlTemplate;
     private final JacksonMapper mapper;
 
     public AudienceNetworkBidder(String endpointUrl,
@@ -68,8 +72,7 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");
-        this.timeoutNotificationUrlTemplate = HttpUtil.validateUrl(
-                Objects.requireNonNull(timeoutNotificationUrlTemplate));
+        this.timeoutNotificationUrlTemplate = Uri.of(timeoutNotificationUrlTemplate);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -343,7 +346,11 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(timeoutNotificationUrlTemplate.formatted(platformId, publisherId, requestId))
+                .uri(timeoutNotificationUrlTemplate
+                        .replaceMacro(PARTNER_MACRO, platformId)
+                        .replaceMacro(APP_MACRO, publisherId)
+                        .replaceMacro(AUCTION_MACRO, requestId)
+                        .expand())
                 .build();
     }
 }

@@ -14,13 +14,16 @@ public class ExtRequestPrebidServer {
 
     String datacenter;
 
+    String httpMethod;
+
     String endpoint;
 
-    public ExtRequestPrebidServer with(String endpoint) {
+    public ExtRequestPrebidServer with(String httpMethod, String endpoint) {
         return ExtRequestPrebidServer.of(
                 this.externalUrl,
                 this.gvlId,
                 this.datacenter,
+                httpMethod,
                 endpoint);
     }
 }

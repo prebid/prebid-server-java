@@ -20,6 +20,6 @@ public class VendorIdResolver {
     }
 
     public Integer resolve(String aliasOrBidder) {
-        return aliases != null ? aliases.resolveAliasVendorId(aliasOrBidder) : null;
+        return aliases.resolveAliasVendorId(aliasOrBidder);
     }
 }

@@ -83,6 +83,10 @@ public class AuctionContext {
         return this.toBuilder().bidResponse(bidResponse).build();
     }
 
+    public AuctionContext with(Map<String, BidRejectionTracker> bidRejectionTrackers) {
+        return this.toBuilder().bidRejectionTrackers(bidRejectionTrackers).build();
+    }
+
     public AuctionContext with(List<AuctionParticipation> auctionParticipations) {
         return this.toBuilder().auctionParticipations(auctionParticipations).build();
     }

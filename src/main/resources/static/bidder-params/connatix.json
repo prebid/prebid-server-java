@@ -16,6 +16,8 @@
       "maximum": 1
     }
   },
-    "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }
 

@@ -18,13 +18,14 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.BooleanUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
-import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequestAdUnit;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
+import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequest;
+import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequestAdUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdvertiser;
@@ -1237,7 +1238,8 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getCrid).isEqualTo("creativeId");
                 assertThat(bid).extracting(Bid::getMtype).isEqualTo(1);
                 assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
-                assertThat(bid).extracting(Bid::getAdomain).asList()
+                assertThat(bid).extracting(Bid::getAdomain)
+                        .asInstanceOf(InstanceOfAssertFactories.LIST)
                         .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
                 assertThat(bid).extracting(Bid::getExt).isNull();
             });
@@ -1295,7 +1297,8 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getCrid).isEqualTo("creativeId");
                 assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
                 assertThat(bid).extracting(Bid::getMtype).isEqualTo(4);
-                assertThat(bid).extracting(Bid::getAdomain).asList()
+                assertThat(bid).extracting(Bid::getAdomain)
+                        .asInstanceOf(InstanceOfAssertFactories.LIST)
                         .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
                 assertThat(bid).extracting(Bid::getExt).isNull();
             });
@@ -1316,7 +1319,8 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getCrid).isEqualTo("creativeId");
                 assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
                 assertThat(bid).extracting(Bid::getMtype).isEqualTo(1);
-                assertThat(bid).extracting(Bid::getAdomain).asList()
+                assertThat(bid).extracting(Bid::getAdomain)
+                        .asInstanceOf(InstanceOfAssertFactories.LIST)
                         .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
                 assertThat(bid).extracting(Bid::getExt).isNull();
             });
@@ -1452,7 +1456,8 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getDealid).isEqualTo("dealId");
                 assertThat(bid).extracting(Bid::getCrid).isEqualTo("creativeId");
                 assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
-                assertThat(bid).extracting(Bid::getAdomain).asList()
+                assertThat(bid).extracting(Bid::getAdomain)
+                        .asInstanceOf(InstanceOfAssertFactories.LIST)
                         .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
             });
             assertThat(bidderBid).extracting(BidderBid::getType).isEqualTo(BidType.banner);

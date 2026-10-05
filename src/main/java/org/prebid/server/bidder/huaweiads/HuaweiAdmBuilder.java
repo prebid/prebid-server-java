@@ -79,7 +79,7 @@ public class HuaweiAdmBuilder {
         return switch (creativeType) {
             case VIDEO, VIDEO_TEXT, VIDEO_WITH_PICTURES_TEXT -> buildVideo(adType, content, null);
             case TEXT, BIG_PICTURE, BIG_PICTURE_2, SMALL_PICTURE,
-                    THREE_SMALL_PICTURES_TEXT, ICON_TEXT, GIF -> buildPicture(content);
+                 THREE_SMALL_PICTURES_TEXT, ICON_TEXT, GIF -> buildPicture(content);
             default -> throw new PreBidException("no banner support creativetype");
         };
     }
@@ -162,7 +162,7 @@ public class HuaweiAdmBuilder {
                     final MonitorEventType eventType = MonitorEventType.of(monitor.getEventType());
                     switch (eventType) {
                         case USER_CLOSE, PLAY_START, PLAY_END, PLAY_RESUME,
-                                PLAY_PAUSE, SOUND_CLICK_OFF, SOUND_CLICK_ON ->
+                             PLAY_PAUSE, SOUND_CLICK_OFF, SOUND_CLICK_ON ->
                                 trackingEvents.add(getVastEventTrackingUrls(urls, eventType));
                         case VAST_ERROR -> errorTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
                         case IMP -> dspImpTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
@@ -200,7 +200,7 @@ public class HuaweiAdmBuilder {
     private static String getVastEventTrackingUrls(List<String> urls, MonitorEventType eventType) {
         return urls.stream().map(eventUrl -> eventType == MonitorEventType.USER_CLOSE
                         ? "<Tracking event=\"skip\"><![CDATA[" + eventUrl + "]]></Tracking>"
-                        + "<Tracking event=\"closeLinear\"><![CDATA[" + eventUrl + "]]></Tracking>"
+                          + "<Tracking event=\"closeLinear\"><![CDATA[" + eventUrl + "]]></Tracking>"
                         : "<Tracking event=\"" + eventType.getEvent() + "\"><![CDATA[" + eventUrl + "]]></Tracking>")
                 .collect(Collectors.joining());
     }
@@ -448,8 +448,8 @@ public class HuaweiAdmBuilder {
         final String value = isDataAssetType
                 ? metaData.getDescription()
                 : isDataAssetCtaTextType
-                    ? metaData.getCta()
-                    : null;
+                  ? metaData.getCta()
+                  : null;
 
         return DataObject.builder()
                 .value(decode(value))

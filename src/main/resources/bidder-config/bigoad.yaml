@@ -1,6 +1,6 @@
 adapters:
   bigoad:
-    endpoint: https://api.imotech.tech/Ad/GetAdOut?sspid={{SspId}}
+    endpoint: https://api.imotech.tech/Ad/GetAdOut?sspid={SspId}
     geoscope:
       - USA
       - RUS

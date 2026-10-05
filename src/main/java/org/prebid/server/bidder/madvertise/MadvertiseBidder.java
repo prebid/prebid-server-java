@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,14 +39,14 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static final int ZONE_ID_MIN_LENGTH = 7;
     private static final String X_OPENRTB_VERSION = "2.5";
-    private static final String ZONE_ID_MACRO = "{{ZoneID}}";
+    private static final String ZONE_ID_MACRO = "ZoneID";
     private static final Set<Integer> VIDEO_BID_ATTRS = Set.of(16, 6, 7);
 
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
-    private final String endpointUrl;
 
     public MadvertiseBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -89,7 +90,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, String zoneID) {
-        final String url = endpointUrl.replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(zoneID));
+        final String url = endpointUrl.replaceMacro(ZONE_ID_MACRO, zoneID).expand();
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)

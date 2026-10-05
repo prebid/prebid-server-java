@@ -30,18 +30,18 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mock.Strictness.LENIENT;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.BDDMockito.given;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
@@ -80,8 +80,8 @@ public class ShowheroesBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().page("https://test-example.com").build())
                 .imp(singletonList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
                 .build();
 
         // when
@@ -89,7 +89,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -106,7 +106,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("BidRequest.site.page is required");
+        assertThat(result.getErrors().getFirst().getMessage()).isEqualTo("BidRequest.site.page is required");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -123,7 +123,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("BidRequest.app.bundle is required");
+        assertThat(result.getErrors().getFirst().getMessage()).isEqualTo("BidRequest.app.bundle is required");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -138,7 +138,7 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL);
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo(ENDPOINT_URL);
     }
 
     @Test

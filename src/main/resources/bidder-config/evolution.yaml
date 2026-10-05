@@ -16,10 +16,8 @@ adapters:
     usersync:
       cookie-family-name: e_volution
       redirect:
-        url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://sync.e-volution.ai/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&redirect={redirect_url}
         uid-macro: '[UID]'
       iframe:
-        url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://sync.e-volution.ai/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&redirect={redirect_url}
         uid-macro: '[UID]'

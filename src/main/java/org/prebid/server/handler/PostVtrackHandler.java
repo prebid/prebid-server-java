@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
@@ -141,13 +142,13 @@ public class PostVtrackHandler implements ApplicationResource {
             throw new IllegalArgumentException("'bidder' is required field and can't be empty");
         }
 
-        if (!StringUtils.equals(bidPutObject.getType(), TYPE_XML)) {
+        if (!Strings.CS.equals(bidPutObject.getType(), TYPE_XML)) {
             throw new IllegalArgumentException("vtrack only accepts type xml");
         }
 
         final JsonNode value = bidPutObject.getValue();
         final String valueAsString = value != null ? value.asText() : null;
-        if (!StringUtils.containsIgnoreCase(valueAsString, "<vast")) {
+        if (!Strings.CI.contains(valueAsString, "<vast")) {
             throw new IllegalArgumentException("vtrack content must be vast");
         }
     }
@@ -187,7 +188,7 @@ public class PostVtrackHandler implements ApplicationResource {
             final Integer accountTtl = accountVtrackTtl(account);
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             coreCacheService.cachePutObjects(
-                    vtrackPuts, isEventEnabled, allowedBidders, accountId, accountTtl, integration, timeout)
+                            vtrackPuts, isEventEnabled, allowedBidders, accountId, accountTtl, integration, timeout)
                     .onComplete(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
     }

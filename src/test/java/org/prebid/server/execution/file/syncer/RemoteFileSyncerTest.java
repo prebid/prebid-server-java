@@ -207,7 +207,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(fileSystem, times(2)).exists(eq(FILE_PATH));
         verify(httpClient).request(any());
         verify(fileProcessor).setDataPath(any());
-        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(), any());
+        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any());
         verify(vertx).setPeriodic(eq(UPDATE_INTERVAL), any());
         verifyNoMoreInteractions(httpClient);
     }
@@ -376,9 +376,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
 
-        given(fileSystem.delete(any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException())));
+        given(fileSystem.delete(any())).willReturn(Future.failedFuture(new RuntimeException()));
 
         given(fileProcessor.setDataPath(anyString()))
                 .willReturn(Future.succeededFuture());
@@ -528,7 +526,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(fileSystem, times(1)).exists(eq(FILE_PATH));
         verify(fileSystem, never()).open(any(), any());
         verify(fileSystem, never()).delete(any());
-        verify(fileSystem, never()).move(any(), any(), any(), any());
+        verify(fileSystem, never()).move(any(), any(), any());
         verify(asyncFile, never()).close();
         verify(httpClient, times(1)).request(any());
         verify(httpClientResponse).statusCode();
@@ -546,19 +544,6 @@ public class RemoteFileSyncerTest extends VertxTest {
         given(vertx.setPeriodic(eq(UPDATE_INTERVAL), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(123L, 123L, 1))
                 .willReturn(123L);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int index) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(index)).handle(obj);
-            return inv.getMock();
-        };
-    }
-
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return withSelfAndPassObjectToHandler(obj, 1);
     }
 
     @SuppressWarnings("unchecked")

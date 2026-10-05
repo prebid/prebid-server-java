@@ -8,7 +8,6 @@ class UserSyncInfo {
 
     String url
     Type type
-    Boolean supportCORS
 
     enum Type {
 

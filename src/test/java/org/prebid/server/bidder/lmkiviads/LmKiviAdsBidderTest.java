@@ -32,7 +32,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class LmKiviAdsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/test?param={{Host}}?second={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.com/test?param={Host}?second={SourceId}";
 
     private final LmKiviAdsBidder target = new LmKiviAdsBidder(ENDPOINT_URL, jacksonMapper);
 

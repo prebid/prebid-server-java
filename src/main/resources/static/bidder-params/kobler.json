@@ -3,7 +3,6 @@
   "title": "Kobler Adapter Params",
   "description": "A schema which validates params accepted by the Kobler adapter",
   "type": "object",
-
   "properties": {
     "test": {
       "type": "boolean",

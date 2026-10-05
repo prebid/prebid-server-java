@@ -3,9 +3,15 @@ adapters:
     endpoint: http://fast.nexx360.io/prebid-server
     endpoint-compression: gzip
     aliases:
-      1accord: ~
-      easybid: ~
-      prismassp: ~
+      1accord:
+        meta-info:
+          vendor-id: 0
+      easybid:
+        meta-info:
+          vendor-id: 0
+      prismassp:
+        meta-info:
+          vendor-id: 0
       ybidder:
         enabled: false
         meta-info:
@@ -28,10 +34,8 @@ adapters:
     usersync:
       cookie-family-name: nexx360
       redirect:
-        url: https://fast.nexx360.io/usermatchredir/redirect?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gppsid={{gpp_sid}}&redir={{redirect_url}}
-        support-cors: false
+        url: https://fast.nexx360.io/usermatchredir/redirect?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gppsid={gpp_sid}&redir={redirect_url}
         uid-macro: '$UID'
       iframe:
-        url: https://fast.nexx360.io/usermatchredir/iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
-        support-cors: false
+        url: https://fast.nexx360.io/usermatchredir/iframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
         uid-macro: '$UID'

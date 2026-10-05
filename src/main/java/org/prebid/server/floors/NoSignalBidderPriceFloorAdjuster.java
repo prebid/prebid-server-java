@@ -4,7 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
@@ -68,7 +68,7 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
     }
 
     private static boolean isNoSignalBidder(String bidder, List<String> noSignalBidders) {
-        return noSignalBidders.stream().anyMatch(noSignalBidder -> StringUtils.equalsIgnoreCase(noSignalBidder, bidder))
+        return noSignalBidders.stream().anyMatch(noSignalBidder -> Strings.CI.equals(noSignalBidder, bidder))
                 || noSignalBidders.contains(ALL_BIDDERS);
     }
 }
