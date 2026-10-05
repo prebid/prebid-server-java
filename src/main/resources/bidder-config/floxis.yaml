@@ -4,6 +4,18 @@ adapters:
     endpoint-compression: gzip
     ortb-version: "2.6"
     modifying-vast-xml-allowed: false
+    aliases:
+      adapex:
+        enabled: false
+        endpoint: https://hb.adapex.io/pbs?seat={SeatId}
+        meta-info:
+          vendor-id: 1609
+        usersync:
+          enabled: true
+          cookie-family-name: adapex
+          redirect:
+            url: "https://sync.adapex.io/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&gpp={gpp}&gpp_sid={gpp_sid}&us_privacy={us_privacy}&dest={redirect_url}"
+            uid-macro: "${USER_ID}"
     meta-info:
       maintainer-email: prebid@floxis.tech
       app-media-types:

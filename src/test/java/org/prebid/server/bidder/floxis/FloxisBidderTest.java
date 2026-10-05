@@ -172,6 +172,49 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldIgnoreRegionAndPartnerWhenAliasEndpointDeclaresNoHostMacro() {
+        // given
+        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "eu", "acme")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://hb.adapex.io/pbs?seat=abc");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRouteOnceWhenImpsDifferOnlyInRegionAndPartnerOnAliasEndpoint() {
+        // given
+        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", jacksonMapper);
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-a", "eu"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-a", "apac", "acme"))),
+                        givenImp(imp -> imp.id("imp-3").ext(givenImpExt("seat-b", "eu")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getUri, request -> request.getPayload().getImp().stream()
+                        .map(Imp::getId)
+                        .toList())
+                .containsExactly(
+                        tuple("https://hb.adapex.io/pbs?seat=seat-a", asList("imp-1", "imp-2")),
+                        tuple("https://hb.adapex.io/pbs?seat=seat-b", singletonList("imp-3")));
+    }
+
+    @Test
     public void makeHttpRequestsShouldRouteOnceAndForwardAllImpsWhenSeatAndRegionMatch() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
