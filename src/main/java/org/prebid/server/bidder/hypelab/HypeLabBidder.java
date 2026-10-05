@@ -83,9 +83,6 @@ public class HypeLabBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    // The HypeLab exchange resolves the property and placement from
-    // imp.ext.bidder.property_slug / placement_slug, so the params must be
-    // forwarded in the outgoing request.
     private Imp makeOutgoingImp(Imp imp, ExtImpHypeLab extImp) {
         final String pbsVersion = pbsVersion();
 
@@ -112,9 +109,6 @@ public class HypeLabBidder implements Bidder<BidRequest> {
         return extImp;
     }
 
-    // Sets ext.source and ext.provider_version, which the HypeLab exchange
-    // requires to identify the integration type and version of the caller
-    // (its bidding logic differs between prebid and SDK traffic).
     private ExtRequest makeOutgoingRequestExt(ExtRequest ext) {
         final ExtRequest outgoingExt = ext != null ? ExtRequest.of(ext.getPrebid()) : ExtRequest.empty();
         if (ext != null) {
@@ -168,8 +162,6 @@ public class HypeLabBidder implements Bidder<BidRequest> {
         }
     }
 
-    // The HypeLab exchange sets mtype on every bid, so no markup or imp-based
-    // fallback is needed to resolve the media type.
     private static BidType resolveBidType(Bid bid) {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
