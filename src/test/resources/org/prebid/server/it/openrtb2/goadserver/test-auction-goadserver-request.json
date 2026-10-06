@@ -1,0 +1,25 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "goadserver": {
+          "host": "ads.example.com",
+          "token": "test-token",
+          "subid": "sports"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
