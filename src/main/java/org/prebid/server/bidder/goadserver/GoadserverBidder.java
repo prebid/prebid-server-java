@@ -27,7 +27,6 @@ import org.prebid.server.proto.openrtb.ext.request.goadserver.ExtImpGoadserver;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -35,15 +34,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 /**
- * GoAdserver is a self-hosted, multi-tenant ad server. Every deployment runs under its own domain, so the
- * endpoint host and the publisher token are per-impression params. Impressions are grouped by (host, token)
- * and each group is sent to https://{host}/openrtb2/auction with the token in site.publisher.id.
+ * GoAdserver is a self-hosted, multi-tenant ad server. All requests go to one fixed GoAdserver gateway, which
+ * routes each to the publisher's deployment by the publisher token. Impressions are grouped by token and each
+ * group is sent with its token in site.publisher.id.
  */
 public class GoadserverBidder implements Bidder<BidRequest> {
 
@@ -51,19 +48,14 @@ public class GoadserverBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String HOST_MACRO = "Host";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final String DSA_FIELD = "dsa";
 
-    // A bare hostname only: no scheme, port, path or userinfo, and no IP literal.
-    private static final Pattern HOST_PATTERN =
-            Pattern.compile("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$");
-
-    private final Uri endpointUrl;
+    private final String endpointUrl;
     private final JacksonMapper mapper;
 
     public GoadserverBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = Uri.of(endpointUrl);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -74,20 +66,19 @@ public class GoadserverBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final Map<GroupKey, List<Imp>> impsByGroup = new LinkedHashMap<>();
+        final Map<String, List<Imp>> impsByToken = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpGoadserver extImp = parseImpExt(imp);
-                final GroupKey key = new GroupKey(normalizeHost(extImp.getHost(), imp.getId()),
-                        validateToken(extImp.getToken(), imp.getId()));
-                impsByGroup.computeIfAbsent(key, _ -> new ArrayList<>()).add(modifyImp(imp, extImp));
+                final String token = validateToken(extImp.getToken(), imp.getId());
+                impsByToken.computeIfAbsent(token, _ -> new ArrayList<>()).add(modifyImp(imp, extImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = impsByGroup.entrySet().stream()
+        final List<HttpRequest<BidRequest>> httpRequests = impsByToken.entrySet().stream()
                 .map(entry -> makeHttpRequest(request, entry.getKey(), entry.getValue()))
                 .toList();
 
@@ -108,19 +99,11 @@ public class GoadserverBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static String normalizeHost(String host, String impId) {
-        final String normalized = StringUtils.trimToEmpty(host).toLowerCase(Locale.ROOT);
-        if (!HOST_PATTERN.matcher(normalized).matches()) {
-            throw new PreBidException("imp %s: invalid host".formatted(impId));
-        }
-        return normalized;
-    }
-
     private static String validateToken(String token, String impId) {
         if (StringUtils.isBlank(token)) {
             throw new PreBidException("imp %s: missing token".formatted(impId));
         }
-        return token;
+        return token.trim();
     }
 
     private Imp modifyImp(Imp imp, ExtImpGoadserver extImp) {
@@ -144,16 +127,16 @@ public class GoadserverBidder implements Bidder<BidRequest> {
         return impExt;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, GroupKey key, List<Imp> imps) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String token, List<Imp> imps) {
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(imps)
-                .site(modifySite(request.getSite(), key.token()))
+                .site(modifySite(request.getSite(), token))
                 .build();
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
-        return BidderUtil.defaultRequest(outgoingRequest, headers, resolveEndpoint(key.host()), mapper);
+        return BidderUtil.defaultRequest(outgoingRequest, headers, endpointUrl, mapper);
     }
 
     private static Site modifySite(Site site, String token) {
@@ -162,10 +145,6 @@ public class GoadserverBidder implements Bidder<BidRequest> {
                 ? publisher.toBuilder().id(token).build()
                 : Publisher.builder().id(token).build();
         return site.toBuilder().publisher(modifiedPublisher).build();
-    }
-
-    private String resolveEndpoint(String host) {
-        return endpointUrl.replaceMacro(HOST_MACRO, host).expand();
     }
 
     @Override
@@ -237,8 +216,5 @@ public class GoadserverBidder implements Bidder<BidRequest> {
         final ObjectNode modifiedExt = mapper.mapper().createObjectNode();
         modifiedExt.set(DSA_FIELD, dsa);
         return modifiedExt;
-    }
-
-    private record GroupKey(String host, String token) {
     }
 }

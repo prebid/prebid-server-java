@@ -27,6 +27,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -38,7 +39,7 @@ import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 
 public class GoadserverBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{Host}/openrtb2/auction";
+    private static final String ENDPOINT_URL = "https://pbs.goadserver.com/openrtb2/auction";
 
     private final GoadserverBidder target = new GoadserverBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -61,13 +62,12 @@ public class GoadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldGroupImpsByHostAndToken() {
+    public void makeHttpRequestsShouldGroupImpsByToken() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp("imp1", identity()),
-                givenImp("imp2", ext -> ExtImpGoadserver.of("ads.other.example", "tokB", null, null)),
-                givenImp("imp3", identity()),
-                givenImp("imp4", ext -> ExtImpGoadserver.of("ADS.Example.com", "tokC", null, null)));
+                givenImp("imp2", ext -> ExtImpGoadserver.of("tokB", null, null)),
+                givenImp("imp3", identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -75,12 +75,11 @@ public class GoadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(HttpRequest::getUri, request -> request.getImpIds().stream().sorted().toList(),
+                .extracting(HttpRequest::getUri, HttpRequest::getImpIds,
                         request -> request.getPayload().getSite().getPublisher().getId())
                 .containsExactly(
-                        tuple("https://ads.example.com/openrtb2/auction", List.of("imp1", "imp3"), "tok123"),
-                        tuple("https://ads.other.example/openrtb2/auction", List.of("imp2"), "tokB"),
-                        tuple("https://ads.example.com/openrtb2/auction", List.of("imp4"), "tokC"));
+                        tuple(ENDPOINT_URL, Set.of("imp1", "imp3"), "tok123"),
+                        tuple(ENDPOINT_URL, Set.of("imp2"), "tokB"));
     }
 
     @Test
@@ -121,9 +120,9 @@ public class GoadserverBidderTest extends VertxTest {
     public void makeHttpRequestsShouldApplyFloorOnlyWhenImpHasNone() {
         // given
         final Imp withoutFloor = givenImp("imp1",
-                ext -> ExtImpGoadserver.of("ads.example.com", "tok123", new BigDecimal("0.5"), null));
+                ext -> ExtImpGoadserver.of("tok123", new BigDecimal("0.5"), null));
         final Imp withFloor = givenImp("imp2",
-                ext -> ExtImpGoadserver.of("ads.example.com", "tok123", new BigDecimal("0.5"), null))
+                ext -> ExtImpGoadserver.of("tok123", new BigDecimal("0.5"), null))
                 .toBuilder().bidfloor(new BigDecimal("1.2")).bidfloorcur("EUR").build();
 
         // when
@@ -144,9 +143,9 @@ public class GoadserverBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReplaceImpExtWithSubid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp("imp1", ext -> ExtImpGoadserver.of("ads.example.com", "tok123", null,
+                givenImp("imp1", ext -> ExtImpGoadserver.of("tok123", null,
                         TextNode.valueOf("sports"))),
-                givenImp("imp2", ext -> ExtImpGoadserver.of("ads.example.com", "tok123", null,
+                givenImp("imp2", ext -> ExtImpGoadserver.of("tok123", null,
                         IntNode.valueOf(42))),
                 givenImp("imp3", identity()));
 
@@ -162,35 +161,10 @@ public class GoadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldRejectUnsafeHosts() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp("imp1", ext -> ExtImpGoadserver.of("evil.example/path?x=1", "tok", null, null)),
-                givenImp("imp2", ext -> ExtImpGoadserver.of("ads.example.com:8080", "tok", null, null)),
-                givenImp("imp3", ext -> ExtImpGoadserver.of("user@ads.example.com", "tok", null, null)),
-                givenImp("imp4", ext -> ExtImpGoadserver.of("203.0.113.42", "tok", null, null)),
-                givenImp("imp5", ext -> ExtImpGoadserver.of("https://ads.example.com", "tok", null, null)),
-                givenImp("imp6", ext -> ExtImpGoadserver.of(null, "tok", null, null)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(
-                badInput("imp imp1: invalid host"),
-                badInput("imp imp2: invalid host"),
-                badInput("imp imp3: invalid host"),
-                badInput("imp imp4: invalid host"),
-                badInput("imp imp5: invalid host"),
-                badInput("imp imp6: invalid host"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorForMissingTokenAndKeepValidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp("imp1", ext -> ExtImpGoadserver.of("ads.example.com", " ", null, null)),
+                givenImp("imp1", ext -> ExtImpGoadserver.of(" ", null, null)),
                 givenImp("imp2", identity()));
 
         // when
@@ -369,7 +343,7 @@ public class GoadserverBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(String impId, UnaryOperator<ExtImpGoadserver> extCustomizer) {
-        final ExtImpGoadserver ext = extCustomizer.apply(ExtImpGoadserver.of("ads.example.com", "tok123", null, null));
+        final ExtImpGoadserver ext = extCustomizer.apply(ExtImpGoadserver.of("tok123", null, null));
         return Imp.builder()
                 .id(impId)
                 .banner(Banner.builder().w(300).h(250).build())

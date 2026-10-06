@@ -9,7 +9,6 @@
       },
       "ext": {
         "goadserver": {
-          "host": "ads.example.com",
           "token": "test-token",
           "subid": "sports"
         }

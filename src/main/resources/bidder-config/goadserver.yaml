@@ -1,6 +1,6 @@
 adapters:
   goadserver:
-    endpoint: https://{Host}/openrtb2/auction
+    endpoint: https://pbs.goadserver.com/openrtb2/auction
     meta-info:
       maintainer-email: support@goadserver.com
       app-media-types:
