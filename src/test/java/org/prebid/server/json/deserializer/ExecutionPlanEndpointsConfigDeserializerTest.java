@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.prebid.server.hooks.execution.model.HookHttpEndpoint.GET_AUCTION;
 import static org.prebid.server.hooks.execution.model.HookHttpEndpoint.POST_AUCTION;
 
 public class ExecutionPlanEndpointsConfigDeserializerTest extends VertxTest {
@@ -138,8 +139,9 @@ public class ExecutionPlanEndpointsConfigDeserializerTest extends VertxTest {
         final ExecutionPlan result = mapper.readValue(executionPlan, ExecutionPlan.class);
 
         // then
-        assertThat(result.getEndpoints()).containsExactlyInAnyOrderEntriesOf(
-                Map.of(POST_AUCTION, givenEndpointExecutionPlan(POST_AUCTION.toString())));
+        assertThat(result.getEndpoints()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                POST_AUCTION, givenEndpointExecutionPlan(POST_AUCTION.toString()),
+                GET_AUCTION, givenEndpointExecutionPlan(POST_AUCTION.endpoint().value())));
     }
 
     private static Map<HookHttpEndpoint, EndpointExecutionPlan> allEndpoints() {

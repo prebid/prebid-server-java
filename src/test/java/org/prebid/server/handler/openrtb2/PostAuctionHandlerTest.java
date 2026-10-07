@@ -27,7 +27,7 @@ import org.prebid.server.auction.SkippedAuctionService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.PostAuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.BlocklistedAppException;
@@ -112,10 +112,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-public class AuctionHandlerTest extends VertxTest {
+public class PostAuctionHandlerTest extends VertxTest {
 
     @Mock
-    private AuctionRequestFactory auctionRequestFactory;
+    private PostAuctionRequestFactory auctionRequestFactory;
     @Mock
     private ExchangeService exchangeService;
     @Mock(strictness = LENIENT)
@@ -135,7 +135,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
 
-    private AuctionHandler target;
+    private PostAuctionHandler target;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -174,7 +174,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        target = new AuctionHandler(
+        target = new PostAuctionHandler(
                 0.01,
                 auctionRequestFactory,
                 exchangeService,
@@ -1256,8 +1256,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
-        return auctionContextCustomizer.apply(auctionContextBuilder)
-                .build();
+        return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
 
     private static HttpRequestContext givenHttpContext() {
