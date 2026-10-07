@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.CacheProperties;
@@ -42,7 +43,7 @@ public class CachedAPIClient implements APIClient {
         return cache.get(createCachingKey(tenant, origin, ips, query, true))
                 .recover(ignore -> apiClient.getTargeting(properties, query, ips, userAgent, timeout)
                         .recover(throwable -> isCircuitBreakerEnabled
-                                ? Future.succeededFuture(new TargetingResult(null, null))
+                                ? Future.succeededFuture(new TargetingResult(null, null, null))
                                 : Future.failedFuture(throwable))
                         .compose(result -> cache.put(
                                         createCachingKey(tenant, origin, ips, query, false),
@@ -53,12 +54,19 @@ public class CachedAPIClient implements APIClient {
     }
 
     private String createCachingKey(String tenant, String origin, List<String> ips, Query query, boolean encodeQuery) {
-        return "%s:%s:%s:%s".formatted(
+        return "%s:%s:%s:%s:%s:%s".formatted(
                 tenant,
                 origin,
-                ips.getFirst(),
+                CollectionUtils.isNotEmpty(ips) ? ips.getFirst() : null,
                 encodeQuery
                         ? URLEncoder.encode(query.getIds(), StandardCharsets.UTF_8)
-                        : query.getIds());
+                        : query.getIds(),
+                encodeQuery && query.getHid() != null
+                        ? URLEncoder.encode(query.getHid(), StandardCharsets.UTF_8)
+                        : query.getHid(),
+                encodeQuery && query.getHidAttributes() != null
+                        ? URLEncoder.encode(query.getHidAttributes(), StandardCharsets.UTF_8)
+                        : query.getHidAttributes()
+                );
     }
 }
