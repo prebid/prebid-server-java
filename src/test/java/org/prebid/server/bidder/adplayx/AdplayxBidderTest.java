@@ -108,12 +108,13 @@ public class AdplayxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListWhenResponseIsNull() {
+    public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, null);
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp_id").banner(Banner.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();

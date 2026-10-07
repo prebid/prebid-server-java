@@ -90,9 +90,6 @@ public class AdplayxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        if (httpCall.getResponse().getBody() == null) {
-            return Result.of(Collections.emptyList(), errors);
-        }
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<Imp> imps = httpCall.getRequest().getPayload().getImp();
