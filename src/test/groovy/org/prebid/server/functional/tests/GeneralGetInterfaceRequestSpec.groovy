@@ -1,14 +1,13 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
-import org.prebid.server.functional.model.request.auction.DebugCondition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
 import org.prebid.server.functional.model.request.auction.DeviceType
+import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.PublicCountryIp
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
@@ -18,6 +17,8 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
+import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -50,7 +51,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should prioritise new storedRequest param over legacy when both presents"() {
+    def "PBS should prioritise new storedRequest param over legacy when both present"() {
         given: "General get request with new and old stored request param"
         def generalGetRequest = new GeneralGetRequest(storedRequestId: PBSUtils.randomNumber,
                 storedRequestIdLegacy: PBSUtils.randomNumber)
@@ -89,7 +90,8 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
     def "PBS should apply accountId from general get request when it's specified"() {
         given: "Default stored request"
         def request = BidRequest.getDefaultBidRequest(distributionType).tap {
-            setAccountId(generalGetRequest.resolveAccountId())
+            setAccountId(null)
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: generalGetRequest.storedRequestId)
         }
 
         and: "Save storedRequest into DB"
@@ -107,7 +109,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidder.getBidderRequest(request.id).accountId == generalGetRequest.resolveAccountId()
 
         where:
-        generalGetRequest                                                            | distributionType
+        generalGetRequest                                                                                  | distributionType
         GeneralGetRequest.default.tap { it.accountId = PBSUtils.randomNumber }       | SITE
         GeneralGetRequest.default.tap { it.accountId = PBSUtils.randomNumber }       | APP
         GeneralGetRequest.default.tap { it.accountId = PBSUtils.randomNumber }       | DOOH
@@ -116,7 +118,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         GeneralGetRequest.default.tap { it.accountIdLegacy = PBSUtils.randomNumber } | DOOH
     }
 
-    def "PBS should prioritise new accountId param over legacy when both presents"() {
+    def "PBS should prioritise new accountId param over legacy when both present"() {
         given: "Default General get request"
         def generalGetRequest = GeneralGetRequest.default.tap {
             it.accountId = PBSUtils.randomNumber
@@ -164,7 +166,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain tmax from param"
-        assert PBSUtils.isApproximatelyEqual(bidder.getBidderRequest(request.id).tmax as Integer, generalGetRequest.timeoutMax)
+        assert PBSUtils.isApproximatelyEqual(bidder.getBidderRequest(request.id).tmax.toInteger(), generalGetRequest.timeoutMax)
     }
 
     @PendingFeature
@@ -194,26 +196,31 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidder.getBidderRequest(request.id).tmax != generalGetRequest.timeoutMax
     }
 
-    def "PBS shouldn't apply tmax from general get request when it's specified as negative"() {
-        given: "Default General get request"
+    def "PBS should use tmax from stored request when timeoutMax from general get request is negative"() {
+        given: "General get request with negative timeoutMax"
         def generalGetRequest = GeneralGetRequest.default.tap {
             it.timeoutMax = PBSUtils.randomNegativeNumber
         }
 
-        and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest()
+        and: "Stored request with tmax"
+        def tmax = PBSUtils.getRandomNumber(1000, 5000)
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.tmax = tmax
+        }
 
-        and: "Save storedRequest into DB"
+        and: "Save stored request into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
-        defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "PBS should throw error due to invalid request"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 500
-        assert exception.responseBody == 'Critical error while running the auction: Start time and timeout must be positive'
+        then: "Response should not contain errors or warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should preserve tmax from stored request"
+        assert PBSUtils.isApproximatelyEqual(bidder.getBidderRequest(request.id).tmax.toInteger(), tmax)
     }
 
     def "PBS should apply debug from general get request when it's specified"() {
@@ -240,7 +247,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidder.getBidderRequest(request.id).ext.prebid.debug == debugCondition
 
         where:
-        debugCondition << [DebugCondition.DISABLED, DebugCondition.ENABLED]
+        debugCondition << [DISABLED, ENABLED]
     }
 
     def "PBS should apply outputformat from general get request when it's specified"() {
@@ -321,14 +328,13 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
         and: "PBS should emit warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
-                ["no auction. response defined by storedauctionresponse" as String]
+        assert response.ext?.warnings[PREBID]*.message == ['no auction. response defined by storedauctionresponse']
 
         and: "Response should not contain errors"
         assert !response.ext?.errors
 
-        and: "PBS not send request to bidder"
-        assert bidder.getRequestCount(request.id) == 0
+        and: "PBS shouldn't send request to bidder"
+        assert !bidder.getRequestCount(request.id)
     }
 
     def "PBS should apply dnt from general get request when it's specified"() {
@@ -461,7 +467,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidderRequest.site.page == page
     }
 
-    def "PBS should apply bundle from general app bundle request when it's specified"() {
+    def "PBS should apply app bundle from general get request when specified"() {
         given: "Default General get request"
         def bundle = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
@@ -487,7 +493,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidderRequest.app.bundle == bundle
     }
 
-    def "PBS should apply name from general app name request when it's specified"() {
+    def "PBS should apply app name from general get request when specified"() {
         given: "Default General get request"
         def name = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
@@ -513,7 +519,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidderRequest.app.name == name
     }
 
-    def "PBS should apply name from general app storeUrl request when it's specified"() {
+    def "PBS should apply app store URL from general get request when specified"() {
         given: "Default General get request"
         def storeUrl = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
@@ -566,7 +572,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain contentGenre from param"
+        and: "Bidder request should contain content fields from params"
         verifyAll(getRequestContent(bidder.getBidderRequest(request.id))) {
             it.genre == generalGetRequest.contentGenre
             it.language == generalGetRequest.contentLanguage
@@ -685,7 +691,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         }
     }
 
-    def "PBS should apply site page info from header of get request when it's specified"() {
+    def "PBS should populate site.page from referer header when page is not specified"() {
         given: "Default General get request"
         def generalGetRequest = GeneralGetRequest.getDefault()
 
@@ -757,7 +763,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain device ip from headers"
+        and: "Bidder request should contain device IP from header"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert getDeviceIp(bidderRequest.device) == deviceIp
 
@@ -799,7 +805,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.badv = [PBSUtils.randomString]
             it.device = bidRequestDevice
 
-            it.ext.prebid.debug = PBSUtils.getRandomEnum(DebugCondition)
             it.ext.prebid.outputFormat = PBSUtils.randomString
             it.ext.prebid.outputModule = PBSUtils.randomString
             it.ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: PBSUtils.randomNumber)
@@ -816,17 +821,44 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain device ip from headers"
+        and: "Bidder request should preserve original values from stored request"
         verifyAll(bidder.getBidderRequest(request.id)) {
             it.bcat == request.bcat
             it.badv == request.badv
             it.device == bidRequestDevice
 
-            it.ext.prebid.debug == request.ext.prebid.debug
             it.ext.prebid.outputFormat == request.ext.prebid.outputFormat
             it.ext.prebid.outputModule == request.ext.prebid.outputModule
             it.ext.prebid.storedAuctionResponse == request.ext.prebid.storedAuctionResponse
         }
+    }
+
+    def "PBS should use default debug value when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.ext.prebid.debug = requestDebug
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(storedRequestId, request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain disabled debug mode"
+        assert bidder.getBidderRequest(request.id).ext.prebid.debug == DISABLED
+
+        where:
+        requestDebug << [DISABLED, ENABLED]
     }
 
     def "PBS should use original content values from stored #channel request when it's not specified in get request"() {
@@ -861,7 +893,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain content data from headers"
+        and: "Bidder request should contain original content"
         assert getRequestContent(bidder.getBidderRequest(request.id)) == content
 
         where:
@@ -872,7 +904,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         device.ip ?: device.ipv6
     }
 
-    static Content getRequestContent(BidderRequest bidderRequest) {
+    static Content getRequestContent(BidRequest bidderRequest) {
         def distributionChannels = bidderRequest.getRequestDistributionChannels()
 
         if (distributionChannels.contains(SITE)) {

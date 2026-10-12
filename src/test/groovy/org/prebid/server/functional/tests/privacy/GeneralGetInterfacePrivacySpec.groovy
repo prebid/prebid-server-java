@@ -15,7 +15,7 @@ import org.prebid.server.functional.model.request.get.GeneralGetRequest
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
