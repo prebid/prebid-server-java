@@ -997,7 +997,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain seatBid"
         assert response.seatbid.bid.flatten().size() == 1
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Response shouldn't contain error"
@@ -1039,7 +1039,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain seatBid"
         assert response.seatbid.bid.flatten().size() == 1
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Response shouldn't contain error"
@@ -1075,7 +1075,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain seatBid"
         assert response.seatbid.bid.flatten().size() == 1
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Response shouldn't contain error"
@@ -1164,7 +1164,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain seatBid"
         assert response.seatbid.bid.flatten().size() == 1
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Response shouldn't contain error"
@@ -1311,7 +1311,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "Response should contain adapter code"
         assert response.seatbid.bid.ext.prebid.meta.adapterCode.flatten() == [BidderName.GENERIC]
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequest(bidRequest.id)
     }
 
@@ -1385,7 +1385,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
 
         cleanup: "Stop and remove pbs container"
@@ -1439,7 +1439,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
 
         cleanup: "Stop and remove pbs container"
@@ -1476,7 +1476,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS_UPPER_CASE.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
     }
 
@@ -1536,7 +1536,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS_UPPER_CASE.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
     }
 
@@ -1577,7 +1577,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
 
         cleanup: "Stop and remove pbs container"
@@ -1621,7 +1621,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
 
         cleanup: "Stop and remove pbs container"
@@ -1661,7 +1661,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(AMX.value)
 
-        and: "Bidder request should be valid"
+        and: "PBS should preform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
 
         cleanup: "Stop and remove pbs container"
