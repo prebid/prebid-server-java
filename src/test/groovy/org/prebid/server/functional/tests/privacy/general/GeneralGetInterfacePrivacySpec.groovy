@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.general
 
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.PurposeConfig
@@ -12,10 +12,12 @@ import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
+import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
@@ -41,7 +43,9 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def consentValue = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
-                .build().toString()
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
+                .build()
+                .toString()
         def generalGetRequest = (consentGeneralRequest(consentValue) as GeneralGetRequest).tap {
             it.storedRequestId = PBSUtils.randomNumber
         }
@@ -78,7 +82,9 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def consentValue = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
-                .build().toString()
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
+                .build()
+                .toString()
         def generalGetRequest = (consentGeneralRequest(consentValue) as GeneralGetRequest).tap {
             it.storedRequestId = PBSUtils.randomNumber
             it.consentType = TCF_1
@@ -247,7 +253,8 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         }
 
         and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest().tap {
+        def consentValue = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
+        def request = getGdprBidRequest(consentValue).tap {
             setAccountId(accountId as String)
         }
 
@@ -443,7 +450,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
 
         and: "Default stored request"
         def userForRequest = User.defaultUser.tap {
-            it.consent = new TcfConsent.Builder().build().toString()
+            it.consent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build().toString()
             it.ext = new UserExt(consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString))
         }
         def regsForRequest = new Regs().tap {
@@ -480,7 +487,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
 
     def "PBS should properly process privacy functionality when it's required"() {
         given: "Default General get request"
-        def consentValue = new TcfConsent.Builder().build().toString()
+        def consentValue = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build().toString()
         def accountId = PBSUtils.randomNumber.toString()
         def generalGetRequest = (consentGeneralRequest(consentValue) as GeneralGetRequest).tap {
             it.storedRequestId = PBSUtils.randomNumber
@@ -504,6 +511,9 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
         def account = getAccountWithGdpr(request.accountId, accountGdprConfig)
         accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
