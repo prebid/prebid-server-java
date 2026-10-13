@@ -1,0 +1,34 @@
+# The endpoint is itself a Prebid Server, so this bidder is disabled by default:
+# enabled on that server, a stored request naming ocm would call itself.
+# To use it, set `adapters.ocm.enabled: true` in the application config
+# (or ADAPTERS_OCM_ENABLED=true).
+adapters:
+  ocm:
+    enabled: false
+    ortb-version: "2.6"
+    endpoint: https://pbam.orangeclickmedia.com/openrtb2/auction
+    endpoint-compression: gzip
+    geoscope:
+      - global
+    ortb:
+      multiformat-supported: true
+    meta-info:
+      maintainer-email: devs-subs@orangeclickmedia.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1148
+    usersync:
+      cookie-family-name: ocm
+      redirect:
+        url: https://pbam.orangeclickmedia.com/usersync/redirect?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
+        uid-macro: '$UID'
+      iframe:
+        url: https://pbam.orangeclickmedia.com/usersync/iframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
+        uid-macro: '$UID'

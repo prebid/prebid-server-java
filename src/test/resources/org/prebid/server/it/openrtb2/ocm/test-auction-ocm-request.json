@@ -1,0 +1,51 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "ocm": {
+          "publisherId": "ocm-test-publisher",
+          "placementId": "ocm-test-placement"
+        }
+      }
+    }
+  ],
+  "user": {
+    "ext": {
+      "prebid": {
+        "buyeruids": {
+          "ocm": "ocm-test-uid"
+        }
+      }
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "bidderparams": {
+        "ocm": {
+          "publisherId": "ocm-test-publisher"
+        }
+      },
+      "bidadjustmentfactors": {
+        "ocm": 1
+      },
+      "aliases": {
+        "myocm": "ocm"
+      },
+      "aliasgvlids": {
+        "myocm": 1148
+      }
+    }
+  }
+}
