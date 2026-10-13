@@ -47,6 +47,7 @@ class GeneralGetRequest {
     @JsonProperty("sarid")
     String storedAuctionResponseId
 
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<String> mimes
 
     @JsonProperty("w")

@@ -109,7 +109,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert bidder.getBidderRequest(request.id).accountId == generalGetRequest.resolveAccountId()
 
         where:
-        generalGetRequest                                                                                  | distributionType
+        generalGetRequest                                                            | distributionType
         GeneralGetRequest.default.tap { it.accountId = PBSUtils.randomNumber }       | SITE
         GeneralGetRequest.default.tap { it.accountId = PBSUtils.randomNumber }       | APP
         GeneralGetRequest.default.tap { it.accountId = PBSUtils.randomNumber }       | DOOH

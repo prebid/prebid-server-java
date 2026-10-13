@@ -369,25 +369,11 @@ class PrebidServerService implements ObjectMapperWrapper {
                 .get(AMP.value)
     }
 
-    private Response getAuction(
-            GeneralGetRequest request,
-            Map<String, String> headers = [:],
-            boolean commaSeparateCollections = true) {
-
-        Map<String, Object> params = toMap(request)
-
-        if (commaSeparateCollections) {
-            params = joinCollectionValues(params)
-        }
-
+    private Response getAuction(GeneralGetRequest request, Map<String, String> headers = [:]) {
         given(requestSpecification)
                 .headers(headers)
-                .queryParams(params)
+                .queryParams(toMap(request))
                 .get(AUCTION.value)
-    }
-
-    private static Map<String, Object> joinCollectionValues(Map<String, Object> params) {
-        params.collectEntries { k, v -> [(k): v instanceof Collection ? v.join(',') : v] }
     }
 
     private void checkResponseStatusCode(Response response, int statusCode = 200) {

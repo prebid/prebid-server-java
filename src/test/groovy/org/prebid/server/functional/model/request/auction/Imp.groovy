@@ -115,5 +115,4 @@ class Imp {
     Object getSingleMediaTypeData() {
         return banner ?: video ?: nativeObj ?: audio
     }
-
 }
