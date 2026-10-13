@@ -15,37 +15,10 @@
       }
     }
   ],
-  "user": {
-    "ext": {
-      "prebid": {
-        "buyeruids": {
-          "ocm": "ocm-test-uid"
-        }
-      }
-    }
-  },
   "tmax": 5000,
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "bidderparams": {
-        "ocm": {
-          "publisherId": "ocm-test-publisher"
-        }
-      },
-      "bidadjustmentfactors": {
-        "ocm": 1
-      },
-      "aliases": {
-        "myocm": "ocm"
-      },
-      "aliasgvlids": {
-        "myocm": 1148
-      }
     }
   }
 }

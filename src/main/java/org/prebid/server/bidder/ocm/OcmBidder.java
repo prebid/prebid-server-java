@@ -195,12 +195,12 @@ public class OcmBidder implements Bidder<BidRequest> {
 
         return request.toBuilder()
                 .imp(modifiedImps)
-                .site(modifySite(request.getSite(), publisherId))
-                .app(modifyApp(request.getApp(), publisherId))
-                .dooh(modifyDooh(request.getDooh(), publisherId))
                 .user(modifyUser(request.getUser()))
                 .tmax(reduceTmax(request.getTmax(), tmaxBufferMs))
                 .ext(withoutHostOnlyData(request.getExt()))
+                .site(modifySite(request.getSite(), publisherId))
+                .app(modifyApp(request.getApp(), publisherId))
+                .dooh(modifyDooh(request.getDooh(), publisherId))
                 .build();
     }
 
