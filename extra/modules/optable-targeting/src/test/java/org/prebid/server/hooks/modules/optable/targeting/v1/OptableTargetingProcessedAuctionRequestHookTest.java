@@ -579,28 +579,6 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 .extracting(InvocationResult::errors).isNull();
     }
 
-    @Test
-    void callShouldReturnUpdateWhenTrafficSourceIsInvalid() {
-        // given
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setShouldSkipEnrichment(true);
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-    }
-
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {
         return givenAccountConfig("key", "tenant", "origin", cacheEnabled);
     }

@@ -138,11 +138,6 @@ public class OptableTargetingFlowResolver {
             ModuleContext moduleContext,
             OptableTargetingProperties properties) {
 
-        if (moduleContext.isShouldSkipEnrichment()) {
-            moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
-            return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
-        }
-
         final Account account = invocationContext.auctionContext().getAccount();
         final boolean hasRawAuctionRequestHook = hooksExecutionPlan.hasRawAuctionRequestHook(account);
         final boolean hasBidderRequestHook = hooksExecutionPlan.hasBidderRequestHook(account);
