@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class YahooAdsBidder implements Bidder<BidRequest> {
 
@@ -48,6 +49,9 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static final String OPENRTB_VERSION = "2.6";
     private static final String GPP_PROPERTY = "gpp";
     private static final String GPP_SID_PROPERTY = "gpp_sid";
+
+    private static final Pattern VAST_MARKUP =
+            Pattern.compile("<\\s*VAST[\\s/>]", Pattern.CASE_INSENSITIVE);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -284,14 +288,28 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static BidType getBidType(Bid bid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(bid.getImpid())) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                return null;
+                return resolveBidType(bid, imp);
             }
         }
         throw new PreBidException("Unknown ad unit code '%s'".formatted(bid.getImpid()));
+    }
+
+    private static BidType resolveBidType(Bid bid, Imp imp) {
+        final Integer mtype = bid.getMtype();
+        if (mtype != null && mtype != 0) {
+            return switch (mtype) {
+                case 1 -> BidType.banner;
+                case 2 -> BidType.video;
+                default -> null;
+            };
+        }
+        if (imp.getVideo() != null && (imp.getBanner() == null || isVast(bid.getAdm()))) {
+            return BidType.video;
+        }
+        return imp.getBanner() != null ? BidType.banner : null;
+    }
+
+    private static boolean isVast(String adm) {
+        return StringUtils.isNotEmpty(adm) && VAST_MARKUP.matcher(adm).find();
     }
 }
