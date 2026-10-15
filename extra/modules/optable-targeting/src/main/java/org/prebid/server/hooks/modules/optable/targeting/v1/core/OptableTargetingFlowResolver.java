@@ -9,7 +9,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -32,7 +31,7 @@ public class OptableTargetingFlowResolver {
     private static final String PREBID_STORED_REQUEST_PATH = "/prebid/storedrequest";
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
-            LoggerFactory.getLogger(OptableTargetingProcessedAuctionRequestHook.class));
+            LoggerFactory.getLogger(OptableTargetingFlowResolver.class));
 
     private static final String AUCTION_NOT_PROPERLY_CONFIGURED =
             "Account not properly configured: tenant and/or origin is missing.";
