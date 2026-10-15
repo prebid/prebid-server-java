@@ -7,9 +7,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.elementaltv.model.ElementalTVResponseAdsExt;
@@ -30,7 +30,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -107,10 +106,10 @@ public class ElementalTVBidder implements Bidder<BidRequest> {
             final Map<String, BidType> impTypes = getImpTypes(bidRequest);
             final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                     .filter(Objects::nonNull)
-                    .map(SeatBid::getBid)
-                    .filter(Objects::nonNull)
-                    .flatMap(Collection::stream)
-                    .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
+                    .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                            .filter(Objects::nonNull)
+                            .map(bid -> BidderBid.of(
+                                seatBid.getSeat(), createBid(bid, impTypes, bidResponse.getCur()))))
                     .toList();
             return Result.withValues(bidderBids);
         } catch (PreBidException e) {

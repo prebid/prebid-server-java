@@ -32,7 +32,6 @@ import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -181,10 +180,10 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         return seatbid.stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(imps, currency, bid))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                createBidderBid(imps, currency, bid))))
                 .toList();
     }
 

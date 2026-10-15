@@ -3,7 +3,6 @@ package org.prebid.server.bidder;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -15,7 +14,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,10 +58,11 @@ public class GenericBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
+                .filter(seatBid -> CollectionUtils.isNotEmpty(seatBid.getBid()))
+                .flatMap(seatBid -> seatBid.getBid().stream()
                 .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
+                    .map(bid -> BidderBid.of(
+                            seatBid.getSeat(), bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur())))
                 .toList();
     }
 }

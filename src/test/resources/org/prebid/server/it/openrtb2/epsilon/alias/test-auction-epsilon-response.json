@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "conversant"
+                "adaptercode": "conversant",
+                "seat": "seatId4"
               }
             },
             "origbidcpm": 5.0

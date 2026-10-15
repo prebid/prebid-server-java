@@ -121,19 +121,21 @@ public class AdheseBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final Optional<Bid> optionalBid = getBid(bidResponse);
+            final Optional<SeatBid> optionalSeatBid = getSeatBid(bidResponse);
 
-            if (optionalBid.isEmpty()) {
+            if (optionalSeatBid.isEmpty()) {
                 return Result.empty();
             }
 
-            final Bid bid = optionalBid.get();
+            final SeatBid seatBid = optionalSeatBid.get();
+            final Bid bid = seatBid.getBid().stream().filter(Objects::nonNull).findFirst().orElseThrow();
             final AdheseOriginData originData = toAdheseOriginData(bid.getExt().get("adhese"));
             final Bid modifiedBid = bid.toBuilder()
                     .ext(mapper.mapper().valueToTree(originData)) // unwrap from "adhese"
                     .build();
 
-            final BidderBid bidderBid = BidderBid.of(modifiedBid, getBidType(bidRequest), bidResponse.getCur());
+            final BidderBid bidderBid = BidderBid.of(
+                    seatBid.getSeat(), modifiedBid, getBidType(bidRequest), bidResponse.getCur());
 
             return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
@@ -141,14 +143,14 @@ public class AdheseBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Optional<Bid> getBid(BidResponse bidResponse) {
+    private static Optional<SeatBid> getSeatBid(BidResponse bidResponse) {
         return Optional.ofNullable(bidResponse)
                 .map(BidResponse::getSeatbid)
                 .stream()
                 .flatMap(Collection::stream)
-                .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
+                .filter(seatBid -> CollectionUtils.isNotEmpty(seatBid.getBid()))
+                .filter(seatBid -> seatBid.getBid().stream().anyMatch(Objects::nonNull))
                 .findFirst();
     }
 

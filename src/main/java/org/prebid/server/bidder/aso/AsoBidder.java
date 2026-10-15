@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
@@ -28,7 +27,6 @@ import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -122,15 +120,14 @@ public class AsoBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+    private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         final BidType mediaType = getMediaType(bid, errors);
 
         if (mediaType == null) {
@@ -145,7 +142,7 @@ public class AsoBidder implements Bidder<BidRequest> {
                 .adm(Strings.CS.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
                 .build();
 
-        return BidderBid.of(modifiedBid, mediaType, currency);
+        return BidderBid.of(originalSeat, modifiedBid, mediaType, currency);
     }
 
     private BidType getMediaType(Bid bid, List<BidderError> errors) {
@@ -160,4 +157,5 @@ public class AsoBidder implements Bidder<BidRequest> {
             return null;
         }
     }
+
 }

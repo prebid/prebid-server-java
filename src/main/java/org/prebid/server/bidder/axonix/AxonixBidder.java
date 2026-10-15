@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
@@ -24,7 +23,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -87,12 +85,12 @@ public class AxonixBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(resolveMacros(bid), getMediaType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(
+                                seatBid.getSeat(), resolveMacros(bid),
+                                getMediaType(bid.getImpid(), bidRequest.getImp()),
+                                bidResponse.getCur())))
                 .toList();
     }
 

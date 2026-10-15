@@ -34,7 +34,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -265,19 +264,18 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur()))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur(), seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, String originalSeat) {
         final BidType bidType = getBidType(bid, imps);
         return bidType != null
-                ? BidderBid.of(bid, bidType, currency)
+                ? BidderBid.of(originalSeat, bid, bidType, currency)
                 : null;
     }
 

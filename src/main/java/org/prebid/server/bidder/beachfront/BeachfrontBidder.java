@@ -16,6 +16,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -509,13 +510,18 @@ public class BeachfrontBidder implements Bidder<Void> {
             return Collections.emptyList();
         }
 
-        final List<Bid> bids = bidResponse.getSeatbid().getFirst().getBid();
+        final SeatBid seatBid = bidResponse.getSeatbid().getFirst();
+        if (seatBid == null || CollectionUtils.isEmpty(seatBid.getBid())) {
+            return Collections.emptyList();
+        }
+        final List<Bid> bids = seatBid.getBid();
         final List<Bid> updatedBids = httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)
                 ? updateNurlVideoBids(bids, videoRequest.getRequest().getImp())
                 : updateVideoBids(bids);
 
         return updatedBids.stream()
-                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(seatBid.getSeat(), bid, BidType.video, bidResponse.getCur()))
                 .toList();
     }
 
@@ -565,7 +571,8 @@ public class BeachfrontBidder implements Bidder<Void> {
         final String primaryCategory = CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : null;
 
         final Bid resolvedBid = bid.toBuilder().ext(resolveBidExt(duration, primaryCategory)).build();
-        return BidderBid.of(resolvedBid, bidderBid.getType(), bidderBid.getBidCurrency());
+        return BidderBid.of(
+                bidderBid.getOriginalSeat(), resolvedBid, bidderBid.getType(), bidderBid.getBidCurrency());
     }
 
     private static Integer resolveDuration(ObjectNode bidExt) {

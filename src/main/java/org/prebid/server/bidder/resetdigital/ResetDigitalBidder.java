@@ -137,8 +137,8 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
                 .orElseGet(() -> getBidType(bid, imp));
 
         return StringUtils.isNotBlank(seat)
-                ? BidderBid.of(bid, bidType, seat, currency)
-                : BidderBid.of(bid, bidType, currency);
+                ? BidderBid.of(seat, bid, bidType, seat, currency)
+                : BidderBid.of(seat, bid, bidType, currency);
     }
 
     private static BidType getBidType(Bid bid) {

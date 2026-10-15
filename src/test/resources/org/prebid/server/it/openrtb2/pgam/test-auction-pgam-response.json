@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "pgam"
+                "adaptercode": "pgam",
+                "seat": "adtelligent"
               }
             },
             "origbidcpm": 8.43
