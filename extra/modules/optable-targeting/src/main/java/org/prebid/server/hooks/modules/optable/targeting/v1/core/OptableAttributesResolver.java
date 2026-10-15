@@ -102,6 +102,7 @@ public class OptableAttributesResolver {
                     .map(HttpRequestContext::getHeaders)
                     .map(it -> it.get(X_FORWARDED_FOR_HEADER))
                     .map(it -> it.split(X_FORWARDED_FOR_HEADER_DELIMITER))
+                    .filter(it -> it.length > 0)
                     .map(it -> it[0])
                     .ifPresent(result::add);
         }

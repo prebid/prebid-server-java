@@ -94,7 +94,7 @@ public class OptableBidderRequestHook implements BidderRequestHook {
     }
 
     private static long calcExecutionTime(ModuleContext moduleContext) {
-        final long startTime = moduleContext.getCallTargetingAPITimestamp();
+        final long startTime = moduleContext.getOptableTargetingStartTimestamp();
         return startTime > 0 ? System.currentTimeMillis() - startTime : 0;
     }
 

@@ -203,7 +203,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 100);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 100);
         moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(invocationContext.bidder()).thenReturn("bidder1");
@@ -238,7 +238,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 100);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 100);
         moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(invocationContext.bidder()).thenReturn("bidder1");
@@ -266,7 +266,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 100);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 100);
         moduleContext.setOptableTargetingCall(Future.succeededFuture(targetingResult));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(invocationContext.bidder()).thenReturn("bidder1");
@@ -284,7 +284,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 100);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 100);
         moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(invocationContext.bidder()).thenReturn("bidder1");
@@ -302,7 +302,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 50);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 50);
         moduleContext.setOptableTargetingCall(Future.succeededFuture(givenEmptyTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(invocationContext.bidder()).thenReturn("bidder1");
@@ -329,7 +329,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 50);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 50);
         moduleContext.setOptableTargetingCall(
                 Future.failedFuture(new RuntimeException("targeting service error")));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
@@ -356,7 +356,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContextWithProperties(
                 givenPropertiesWithPerBidderEnrichmentEnabled());
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 500);
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis() - 500);
         moduleContext.setOptableTargetingCall(
                 Future.failedFuture(new TimeoutException("Timeout has been exceeded")));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);

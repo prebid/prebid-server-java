@@ -23,11 +23,11 @@ public class ModuleContext {
 
     private long optableTargetingExecutionTime;
 
+    private long optableTargetingStartTimestamp;
+
     private boolean isEarlyNetworkCallEnabled = false;
 
     private Future<TargetingResult> optableTargetingCall;
-
-    private long callTargetingAPITimestamp;
 
     private Set<String> biddersToEnrich;
 
@@ -44,8 +44,12 @@ public class ModuleContext {
         return moduleContext != null ? moduleContext : new ModuleContext();
     }
 
-    public void failWithExecutionTime(long executionTime) {
-        setOptableTargetingExecutionTime(executionTime);
+    public void recordTargetingExecutionTime() {
+        optableTargetingExecutionTime = System.currentTimeMillis() - optableTargetingStartTimestamp;
+    }
+
+    public void failAndRecordExecutionTime() {
+        recordTargetingExecutionTime();
         setEnrichRequestStatus(EnrichmentStatus.failure());
     }
 

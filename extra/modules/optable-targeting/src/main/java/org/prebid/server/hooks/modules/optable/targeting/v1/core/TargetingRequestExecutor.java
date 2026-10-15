@@ -50,18 +50,14 @@ public class TargetingRequestExecutor {
         final BidRequest bidRequest = applyActivityRestrictions(payload.bidRequest(), invocationContext);
 
         final Timeout timeout = apiTimeout == null
-                ? getHookTimeout(invocationContext)
-                : timeoutFactory.create(getHookTimeout(invocationContext).remaining() + apiTimeout);
+                ? invocationContext.timeout()
+                : timeoutFactory.create(invocationContext.timeout().remaining() + apiTimeout);
         final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
                 properties.getTimeout(),
                 logSamplingRate);
 
         return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout);
-    }
-
-    private static Timeout getHookTimeout(AuctionInvocationContext invocationContext) {
-        return invocationContext.timeout();
     }
 
     private BidRequest applyActivityRestrictions(BidRequest bidRequest,

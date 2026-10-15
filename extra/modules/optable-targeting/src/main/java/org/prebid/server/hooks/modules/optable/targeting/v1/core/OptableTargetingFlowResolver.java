@@ -151,17 +151,17 @@ public class OptableTargetingFlowResolver {
                 : resolvePreEarlyNetworkCall(auctionRequestPayload, invocationContext, moduleContext, properties);
 
         if (optableTargetingCall == null) {
-            moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
+            moduleContext.failAndRecordExecutionTime();
             return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
         }
 
         return optableTargetingCall
                 .compose(targetingResult -> {
-                    moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
+                    moduleContext.recordTargetingExecutionTime();
                     return enrichPayload(targetingResult, moduleContext, properties);
                 })
                 .recover(throwable -> {
-                    moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
+                    moduleContext.failAndRecordExecutionTime();
                     return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
                 });
     }
@@ -185,22 +185,17 @@ public class OptableTargetingFlowResolver {
         return moduleContext.getOptableTargetingCall();
     }
 
-    private static long calcAPICallExecutionTime(ModuleContext moduleContext) {
-        return System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp();
-    }
-
     private Future<TargetingResult> resolvePreEarlyNetworkCall(
             AuctionRequestPayload payload,
             AuctionInvocationContext invocationContext,
             ModuleContext moduleContext,
             OptableTargetingProperties properties) {
 
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis());
         if (!PropertiesValidator.isValid(properties)) {
             conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
 
-            moduleContext.failWithExecutionTime(
-                    System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
+            moduleContext.failAndRecordExecutionTime();
             return Future.failedFuture(AUCTION_NOT_PROPERLY_CONFIGURED);
         }
 

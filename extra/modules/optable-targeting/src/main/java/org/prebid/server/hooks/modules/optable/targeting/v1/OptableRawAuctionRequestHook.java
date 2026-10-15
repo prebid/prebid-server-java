@@ -47,15 +47,14 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final ModuleContext moduleContext = new ModuleContext();
         moduleContext.setEarlyNetworkCallEnabled(true);
-        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis());
         moduleContext.setOptableTargetingProperties(properties);
 
         if (!PropertiesValidator.isValid(properties)) {
             conditionalLogger.error(
                     "Account not properly configured: tenant and/or origin is missing.", logSamplingRate);
 
-            moduleContext.failWithExecutionTime(
-                    System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
+            moduleContext.failAndRecordExecutionTime();
 
             return update(AuctionRequestCleaner.instance(), moduleContext);
         }
