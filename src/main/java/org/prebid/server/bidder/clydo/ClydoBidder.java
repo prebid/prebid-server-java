@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.prebid.server.bidder.Bidder;
@@ -145,11 +144,10 @@ public class ClydoBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid, impIdToBidTypeMap), bidResponse.getCur()))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(
+                        seatBid.getSeat(), bid, resolveBidType(bid, impIdToBidTypeMap), bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 

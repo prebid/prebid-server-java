@@ -7,7 +7,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -26,7 +25,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -112,16 +110,14 @@ public class ApacdexBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> constructBidderBid(bid, bidResponse.getCur(), errors))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> constructBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid constructBidderBid(Bid bid, String currency, List<BidderError> errors) {
+    private BidderBid constructBidderBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         final JsonNode extNode = bid.getExt();
         final JsonNode bidTypeNode = extNode != null ? extNode.at(BID_TYPE_POINTER) : null;
 
@@ -133,7 +129,7 @@ public class ApacdexBidder implements Bidder<BidRequest> {
 
         final BidType bidType = parseBidType(bidTypeNode, errors);
         return bidType != null
-                ? BidderBid.of(bid, parseBidType(bidTypeNode, errors), currency)
+                ? BidderBid.of(originalSeat, bid, parseBidType(bidTypeNode, errors), currency)
                 : null;
     }
 
@@ -145,4 +141,5 @@ public class ApacdexBidder implements Bidder<BidRequest> {
             return null;
         }
     }
+
 }

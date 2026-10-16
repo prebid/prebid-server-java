@@ -87,11 +87,14 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            for (Bid bid : seatBid.getBid()) {
+        for (SeatBid seatBid : CollectionUtils.emptyIfNull(bidResponse.getSeatbid())) {
+            for (Bid bid : CollectionUtils.emptyIfNull(seatBid == null ? null : seatBid.getBid())) {
+                if (seatBid == null || bid == null) {
+                    continue;
+                }
                 final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
                 if (bidType == BidType.banner || bidType == BidType.video) {
-                    final BidderBid bidderBid = BidderBid.of(bid, bidType, bidResponse.getCur());
+                    final BidderBid bidderBid = BidderBid.of(seatBid.getSeat(), bid, bidType, bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 }
             }

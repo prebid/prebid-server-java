@@ -27,4 +27,5 @@ class Meta {
     String rendererUrl
     RendererData rendererData
     List<String> secondaryCategoryIdList
+    String seat
 }

@@ -18,7 +18,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "openweb"
+                "adaptercode": "openweb",
+                "seat": "seatId00"
               }
             }
           }

@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -22,7 +21,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -93,15 +91,15 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> constructBidderBid(bid, bidResponse, errors))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> constructBidderBid(bid, bidResponse, errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
+    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors,
+            String originalSeat) {
         final JsonNode extNode = bid.getExt();
         final JsonNode typeNode = isNotEmptyOrMissedNode(extNode) ? extNode.at("/prebid/type") : null;
 
@@ -110,7 +108,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        return BidderBid.of(bid, resolveBidType(typeNode), bidResponse.getCur());
+        return BidderBid.of(originalSeat, bid, resolveBidType(typeNode), bidResponse.getCur());
     }
 
     private static boolean isNotEmptyOrMissedNode(JsonNode node) {
@@ -122,4 +120,5 @@ public class BidscubeBidder implements Bidder<BidRequest> {
                 ? BidType.banner
                 : mapper.mapper().convertValue(bidType, BidType.class);
     }
+
 }

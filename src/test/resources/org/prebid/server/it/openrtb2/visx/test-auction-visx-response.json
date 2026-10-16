@@ -19,7 +19,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "visx"
+                "adaptercode": "visx",
+                "seat": "51"
               }
             },
             "origbidcpm": 0.5

@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.avocet.model.AvocetBidExtension;
 import org.prebid.server.bidder.avocet.model.AvocetResponseExt;
@@ -54,8 +55,17 @@ public class AvocetBidder implements Bidder<BidRequest> {
 
         final List<BidderBid> bidderBids = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.of(bidderBids, errors);
+        }
         for (SeatBid seatBid : bidResponse.getSeatbid()) {
+            if (seatBid == null || CollectionUtils.isEmpty(seatBid.getBid())) {
+                continue;
+            }
             for (Bid bid : seatBid.getBid()) {
+                if (bid == null) {
+                    continue;
+                }
                 final BidType bidType;
                 try {
                     bidType = getBidType(bid);
@@ -63,7 +73,7 @@ public class AvocetBidder implements Bidder<BidRequest> {
                     errors.add(BidderError.badServerResponse(e.getMessage()));
                     continue;
                 }
-                bidderBids.add(BidderBid.of(bid, bidType, bidResponse.getCur()));
+                bidderBids.add(BidderBid.of(seatBid.getSeat(), bid, bidType, bidResponse.getCur()));
             }
         }
         return Result.of(bidderBids, errors);

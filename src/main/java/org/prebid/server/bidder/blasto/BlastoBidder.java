@@ -138,7 +138,8 @@ public class BlastoBidder implements Bidder<BidRequest> {
 
         return seatBid.getBid().stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_CURRENCY))
+                .map(bid -> BidderBid.of(
+                        seatBid.getSeat(), bid, resolveBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_CURRENCY))
                 .toList();
     }
 

@@ -14,7 +14,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "ix"
+                "adaptercode": "ix",
+                "seat": "seatId6"
               }
             },
             "origbidcpm": 4.7

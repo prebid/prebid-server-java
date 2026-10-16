@@ -23,6 +23,8 @@ public class BidInfo {
 
     String seat;
 
+    String originalSeat;
+
     BidType bidType;
 
     CacheInfo cacheInfo;

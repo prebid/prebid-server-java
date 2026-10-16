@@ -16,7 +16,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "sovrn"
+                "adaptercode": "sovrn",
+                "seat": "seatId13"
               }
             },
             "origbidcpm": 5.78

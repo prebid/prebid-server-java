@@ -76,17 +76,20 @@ public class BliinkBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        return Optional.ofNullable(bidResponse.getSeatbid().getFirst())
+        final SeatBid seatBid = bidResponse.getSeatbid().getFirst();
+        return Optional.ofNullable(seatBid)
                 .map(SeatBid::getBid)
                 .orElseGet(Collections::emptyList)
                 .stream()
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .map(bid -> makeBidderBid(
+                        bid, bidRequest.getImp(), bidResponse.getCur(), errors, seatBid.getSeat()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors,
+                                           String originalSeat) {
         final BidType bidType;
         try {
             bidType = getBidType(bid.getImpid(), imps);
@@ -95,7 +98,7 @@ public class BliinkBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        return BidderBid.of(bid, bidType, currency);
+        return BidderBid.of(originalSeat, bid, bidType, currency);
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

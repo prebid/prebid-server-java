@@ -4,7 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -24,7 +23,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.List;
@@ -144,18 +142,16 @@ public class AduptechBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         try {
-            return BidderBid.of(bid, getBidType(bid.getMtype()), currency);
+            return BidderBid.of(originalSeat, bid, getBidType(bid.getMtype()), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -169,4 +165,5 @@ public class AduptechBidder implements Bidder<BidRequest> {
             case null, default -> throw new PreBidException("Unknown markup type: " + markupType);
         };
     }
+
 }
