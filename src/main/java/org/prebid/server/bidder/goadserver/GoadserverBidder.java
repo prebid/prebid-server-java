@@ -3,6 +3,7 @@ package org.prebid.server.bidder.goadserver;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -40,7 +41,7 @@ import java.util.Objects;
 /**
  * GoAdserver is a self-hosted, multi-tenant ad server. All requests go to one fixed GoAdserver gateway, which
  * routes each to the publisher's deployment by the publisher token. Impressions are grouped by token and each
- * group is sent with its token in site.publisher.id.
+ * group is sent with its token in site.publisher.id, or app.publisher.id for in-app requests.
  */
 public class GoadserverBidder implements Bidder<BidRequest> {
 
@@ -61,8 +62,8 @@ public class GoadserverBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (request.getSite() == null) {
-            return Result.withError(BidderError.badInput("goadserver supports site requests only"));
+        if (request.getSite() == null && request.getApp() == null) {
+            return Result.withError(BidderError.badInput("goadserver needs a site or an app object"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -128,10 +129,13 @@ public class GoadserverBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String token, List<Imp> imps) {
-        final BidRequest outgoingRequest = request.toBuilder()
-                .imp(imps)
-                .site(modifySite(request.getSite(), token))
-                .build();
+        final BidRequest.BidRequestBuilder builder = request.toBuilder().imp(imps);
+        if (request.getSite() != null) {
+            builder.site(modifySite(request.getSite(), token));
+        } else {
+            builder.app(modifyApp(request.getApp(), token));
+        }
+        final BidRequest outgoingRequest = builder.build();
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
@@ -140,11 +144,17 @@ public class GoadserverBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site, String token) {
-        final Publisher publisher = site.getPublisher();
-        final Publisher modifiedPublisher = publisher != null
+        return site.toBuilder().publisher(withToken(site.getPublisher(), token)).build();
+    }
+
+    private static App modifyApp(App app, String token) {
+        return app.toBuilder().publisher(withToken(app.getPublisher(), token)).build();
+    }
+
+    private static Publisher withToken(Publisher publisher, String token) {
+        return publisher != null
                 ? publisher.toBuilder().id(token).build()
                 : Publisher.builder().id(token).build();
-        return site.toBuilder().publisher(modifiedPublisher).build();
     }
 
     @Override

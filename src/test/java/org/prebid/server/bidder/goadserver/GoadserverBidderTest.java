@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -49,7 +50,7 @@ public class GoadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenSiteIsAbsent() {
+    public void makeHttpRequestsShouldReturnErrorWhenSiteAndAppAreAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.site(null), givenImp("imp1", identity()));
 
@@ -58,7 +59,49 @@ public class GoadserverBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(badInput("goadserver supports site requests only"));
+        assertThat(result.getErrors()).containsExactly(badInput("goadserver needs a site or an app object"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPutTokenOnAppPublisherForAppRequests() {
+        // given
+        final App app = App.builder()
+                .bundle("com.example.trails")
+                .publisher(Publisher.builder().id("pbs-account").name("Example Apps").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(null).app(app),
+                givenImp("imp1", identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite, BidRequest::getApp)
+                .containsExactly(tuple(null, App.builder()
+                        .bundle("com.example.trails")
+                        .publisher(Publisher.builder().id("tok123").name("Example Apps").build())
+                        .build()));
+        assertThat(app.getPublisher().getId()).isEqualTo("pbs-account");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateAppPublisherWhenAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(null).app(App.builder().bundle("com.example.trails").build()),
+                givenImp("imp1", identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(request -> request.getPayload().getApp().getPublisher())
+                .containsExactly(Publisher.builder().id("tok123").build());
     }
 
     @Test
