@@ -329,6 +329,47 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
+    void callShouldSkipEnrichmentAndCleanRequestWhenTrafficSourceIsInvalid() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyNetworkCallEnabled(true);
+        moduleContext.setEarlyCallInitializationCompleted(false);
+
+        final BidRequest bidRequestWithoutTrafficSource = givenBidRequest(
+                bidRequestCustomizer -> bidRequestCustomizer.site(null).app(null));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout, Account.builder().id("accountId").build())
+                        .toBuilder()
+                        .bidRequest(bidRequestWithoutTrafficSource)
+                        .build());
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
+        assertThat(result.payloadUpdate()).isNotNull();
+        assertThat(moduleContext.isShouldSkipEnrichment()).isTrue();
+        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+        assertThat(moduleContext.getBiddersToEnrich()).isNull();
+        assertThat(moduleContext.getOptableTargetingCall()).isNull();
+
+        final BidRequest bidRequest = result.payloadUpdate()
+                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
+                .bidRequest();
+        assertThat(bidRequest.getUser().getExt().getProperty("optable")).isNull();
+    }
+
+    @Test
     void callShouldRetryEarlyNetworkCallInitializationWhenResolvedRequestStillHasStoredImps() {
         // given
         final ModuleContext moduleContext = new ModuleContext();

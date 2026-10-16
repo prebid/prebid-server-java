@@ -4,11 +4,14 @@ import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
@@ -41,8 +44,17 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
             if (moduleContext.isEarlyCallInitializationCompleted()) {
                 return success(moduleContext);
             } else {
+                if (!PropertiesValidator.isTrafficSourceValid(
+                        invocationContext.auctionContext().getBidRequest(), properties)) {
+
+                    moduleContext.setShouldSkipEnrichment(true);
+                    moduleContext.setEarlyCallInitializationCompleted(false);
+
+                    return update(AuctionRequestCleaner.instance(), moduleContext);
+                }
+
                 return optableTargetingFlowResolver.resolveAsyncOptableTargetingFlow(
-                        moduleContext, auctionRequestPayload, invocationContext, properties, true);
+                        moduleContext, auctionRequestPayload, invocationContext, properties);
             }
         }
 
@@ -55,6 +67,19 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    public static Future<InvocationResult<AuctionRequestPayload>> update(
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+            ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());
     }

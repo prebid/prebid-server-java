@@ -18,9 +18,6 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
@@ -57,7 +54,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void resolveAsyncOptableTargetingFlowShouldProceedWhenBidRequestHasNoStoredRequestAndNoStoredImps() {
+    public void resolveAsyncOptableTargetingFlowShouldProceedWhenBidRequestIsValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
@@ -69,7 +66,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
-                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), false);
+                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false));
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -83,62 +80,6 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
         assertThat(moduleContext.getOptableTargetingCall()).isSameAs(targetingResultFuture);
         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
-    }
-
-    @Test
-    public void resolveAsyncOptableTargetingFlowShouldDeferWhenBidRequestReferencesStoredRequest() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(request -> request
-                .imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA")))))
-                .ext(givenStoredRequestExt()));
-        givenInvocationContext(bidRequest);
-        final ModuleContext moduleContext = new ModuleContext();
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
-                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), false);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNull();
-        assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
-        assertThat(moduleContext.getBiddersToEnrich()).isNull();
-        assertThat(moduleContext.getOptableTargetingCall()).isNull();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
-    }
-
-    @Test
-    public void resolveAsyncOptableTargetingFlowShouldDeferWhenAnyImpReferencesStoredImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
-                givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))),
-                givenImp(imp -> imp.ext(givenStoredImpExt())))));
-        givenInvocationContext(bidRequest);
-        final ModuleContext moduleContext = new ModuleContext();
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
-                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), false);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNull();
-        assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
-        assertThat(moduleContext.getBiddersToEnrich()).isNull();
-        assertThat(moduleContext.getOptableTargetingCall()).isNull();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
     }
 
     @Test
@@ -152,7 +93,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
-                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), false);
+                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false));
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -170,67 +111,6 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         final AuctionRequestPayload cleanedPayload = result.payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequestWithUser(givenUser())));
         assertThat(cleanedPayload.bidRequest().getUser().getExt().getProperty("optable")).isNull();
-    }
-
-    @Test
-    public void resolveAsyncOptableTargetingFlowShouldCleanRequestWhenProcessedStageCallHasNoBiddersToEnrich() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
-                givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
-        givenInvocationContext(bidRequest);
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of());
-        final ModuleContext moduleContext = new ModuleContext();
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
-                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), true);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNotNull();
-        assertThat(moduleContext.getBiddersToEnrich()).isNull();
-        assertThat(moduleContext.getOptableTargetingCall()).isNull();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
-
-        final AuctionRequestPayload cleanedPayload = result.payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequestWithUser(givenUser())));
-        assertThat(cleanedPayload.bidRequest().getUser().getExt().getProperty("optable")).isNull();
-    }
-
-    @Test
-    public void resolveAsyncOptableTargetingFlowShouldProceedWhenProcessedStageCallHasStoredRequestAndStoredImps() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(request -> request
-                .imp(List.of(givenImp(imp -> imp.ext(givenResolvedStoredImpExt("bidderA")))))
-                .ext(givenStoredRequestExt()));
-        givenInvocationContext(bidRequest);
-        final Future<TargetingResult> targetingResultFuture = Future.succeededFuture(givenTargetingResult());
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
-        when(targetingRequestExecutor.makeRequest(any(), any(), any(), any())).thenReturn(targetingResultFuture);
-        final ModuleContext moduleContext = new ModuleContext();
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
-                moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false), true);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNotNull();
-        assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
-        assertThat(moduleContext.getOptableTargetingCall()).isSameAs(targetingResultFuture);
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
     }
 
     private void givenInvocationContext(BidRequest bidRequest) {
@@ -239,11 +119,5 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
                         .bidRequest(bidRequest)
                         .account(Account.builder().id("accountId").build())
                         .build());
-    }
-
-    private ExtRequest givenStoredRequestExt() {
-        return ExtRequest.of(ExtRequestPrebid.builder()
-                .storedrequest(ExtStoredRequest.of("storedRequestId"))
-                .build());
     }
 }

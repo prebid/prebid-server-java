@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -17,13 +19,19 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
+import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 
 public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
             LoggerFactory.getLogger(OptableRawAuctionRequestHook.class));
+
+    private static final String PREBID_STORED_REQUEST_PATH = "/prebid/storedrequest";
 
     public static final String CODE = "optable-targeting-raw-auction-request-hook";
 
@@ -59,8 +67,34 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
             return update(AuctionRequestCleaner.instance(), moduleContext);
         }
 
+        final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
+        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)
+                || hasStoredRequest(bidRequest)
+                || hasStoredImps(bidRequest)) {
+
+            moduleContext.setEarlyCallInitializationCompleted(false);
+
+            return success(moduleContext);
+        }
+
         return optableTargetingFlowResolver.resolveAsyncOptableTargetingFlow(
-                moduleContext, payload, invocationContext, properties, false);
+                moduleContext, payload, invocationContext, properties);
+    }
+
+    private static boolean hasStoredImps(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getImp())
+                .stream()
+                .flatMap(Collection::stream)
+                .map(Imp::getExt)
+                .filter(Objects::nonNull)
+                .anyMatch(impExt -> impExt.at(PREBID_STORED_REQUEST_PATH).isObject());
+    }
+
+    private static boolean hasStoredRequest(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getStoredrequest)
+                .isPresent();
     }
 
     public static Future<InvocationResult<AuctionRequestPayload>> update(

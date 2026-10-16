@@ -29,6 +29,9 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 
 import java.util.List;
 import java.util.Set;
@@ -270,5 +273,57 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                     });
                     vertxTestContext.completeNow();
                 });
+    }
+
+    @SneakyThrows
+    @Test
+    public void shouldNotInjectEarlyNetworkCallToModuleContextWhenBidRequestReferencesStoredRequest(
+            VertxTestContext vertxTestContext) {
+
+        // given
+        when(invocationContext.accountConfig())
+                .thenReturn(givenAccountConfig("key", "tenant", "origin", true));
+        final BidRequest bidRequestWithStoredRequest = givenBidRequest(request -> request
+                .imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA")))))
+                .ext(givenStoredRequestExt()));
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout)
+                        .toBuilder()
+                        .bidRequest(bidRequestWithStoredRequest)
+                        .build());
+        when(auctionRequestPayload.bidRequest()).thenReturn(bidRequestWithStoredRequest);
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> result =
+                target.call(auctionRequestPayload, invocationContext);
+
+        // then
+        assertThat(result).isNotNull();
+        result.map(res -> (ModuleContext) res.moduleContext())
+                .onComplete(cxt -> {
+                    vertxTestContext.verify(() -> {
+                        final ModuleContext moduleContext = cxt.result();
+                        assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
+                        assertThat(moduleContext.getOptableTargetingCall()).isNull();
+                        assertThat(moduleContext.getBiddersToEnrich()).isNull();
+                        assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+
+                        final InvocationResult<AuctionRequestPayload> invocationResult = result.result();
+                        assertThat(invocationResult).isNotNull()
+                                .returns(InvocationStatus.success, InvocationResult::status)
+                                .returns(InvocationAction.no_action, InvocationResult::action)
+                                .extracting(InvocationResult::errors).isNull();
+                        assertThat(invocationResult.payloadUpdate()).isNull();
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    private ExtRequest givenStoredRequestExt() {
+        return ExtRequest.of(ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of("storedRequestId"))
+                .build());
     }
 }

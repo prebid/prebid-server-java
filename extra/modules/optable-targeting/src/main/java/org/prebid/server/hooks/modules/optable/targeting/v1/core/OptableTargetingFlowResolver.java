@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
@@ -17,18 +16,12 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 
-import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 public class OptableTargetingFlowResolver {
-
-    private static final String PREBID_STORED_REQUEST_PATH = "/prebid/storedrequest";
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
             LoggerFactory.getLogger(OptableTargetingFlowResolver.class));
@@ -56,18 +49,12 @@ public class OptableTargetingFlowResolver {
             ModuleContext moduleContext,
             AuctionRequestPayload payload,
             AuctionInvocationContext invocationContext,
-            OptableTargetingProperties properties,
-            boolean cleanRequestOnFail) {
+            OptableTargetingProperties properties) {
 
         final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
-        if (!isTrafficSourceValid(moduleContext, properties, cleanRequestOnFail, bidRequest)
-                || hasStoredRequestOrImps(moduleContext, cleanRequestOnFail, bidRequest)) {
-            return noEnrichment(cleanRequestOnFail, moduleContext);
-        }
-
         final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
         if (CollectionUtils.isEmpty(biddersToEnrich)) {
-            return noEnrichment(true, moduleContext);
+            return update(AuctionRequestCleaner.instance(), moduleContext);
         }
         moduleContext.setBiddersToEnrich(biddersToEnrich);
         final Account account = invocationContext.auctionContext().getAccount();
@@ -84,49 +71,6 @@ public class OptableTargetingFlowResolver {
 
         return update(AuctionRequestCleaner.instance(), moduleContext);
     }
-
-    private static boolean hasStoredRequestOrImps(ModuleContext moduleContext,
-                                                  boolean cleanRequestOnFail,
-                                                  BidRequest bidRequest) {
-
-        if (!cleanRequestOnFail && ((hasStoredRequest(bidRequest) || hasStoredImps(bidRequest)))) {
-            moduleContext.setEarlyCallInitializationCompleted(false);
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isTrafficSourceValid(ModuleContext moduleContext,
-                                                OptableTargetingProperties properties,
-                                                boolean cleanRequestOnFail,
-                                                BidRequest bidRequest) {
-
-        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
-            if (cleanRequestOnFail) {
-                moduleContext.setShouldSkipEnrichment(true);
-            }
-            moduleContext.setEarlyCallInitializationCompleted(false);
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean hasStoredImps(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getImp())
-                .stream()
-                .flatMap(Collection::stream)
-                .map(Imp::getExt)
-                .filter(Objects::nonNull)
-                .anyMatch(impExt -> impExt.at(PREBID_STORED_REQUEST_PATH).isObject());
-    }
-
-    private static boolean hasStoredRequest(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getExt())
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getStoredrequest)
-                .isPresent();
-    }
-
 
     /**
      * @deprecated This call is deprecated and will be removed in a future release.
@@ -241,13 +185,5 @@ public class OptableTargetingFlowResolver {
                         .action(InvocationAction.no_action)
                         .moduleContext(moduleContext)
                         .build());
-    }
-
-    private static Future<InvocationResult<AuctionRequestPayload>> noEnrichment(
-            boolean cleanRequest, ModuleContext moduleContext) {
-
-        return cleanRequest
-                ? update(AuctionRequestCleaner.instance(), moduleContext)
-                : success(moduleContext);
     }
 }
