@@ -555,6 +555,80 @@ public class FloxisBidderTest extends VertxTest {
                         "unable to find impression no-such-imp for bid"));
     }
 
+    @Test
+    public void makeBidsShouldRejectUnknownImpWhenMTypePresent() throws Exception {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidResponse bidResponse = givenBidResponse(Bid.builder().impid("unknown").mtype(1).build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("unable to find impression unknown for bid"));
+    }
+
+    @Test
+    public void makeBidsShouldRejectUnknownImpWhenMTypeZero() throws Exception {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidResponse bidResponse = givenBidResponse(Bid.builder().impid("unknown").mtype(0).build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("unable to find impression unknown for bid"));
+    }
+
+    @Test
+    public void makeBidsShouldRejectOtherSeatImpWhenMTypePresent() throws Exception {
+        assertBidsMatchOutboundRequest(1);
+    }
+
+    @Test
+    public void makeBidsShouldRejectOtherSeatImpWhenMTypeZero() throws Exception {
+        assertBidsMatchOutboundRequest(0);
+    }
+
+    private void assertBidsMatchOutboundRequest(int mtype) throws Exception {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-1", "eu"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-2", "eu")))))
+                .build();
+        final List<HttpRequest<BidRequest>> httpRequests = target.makeHttpRequests(bidRequest).getValue();
+        assertThat(httpRequests).hasSize(2);
+        assertThat(httpRequests.getFirst().getPayload().getImp()).extracting(Imp::getId)
+                .containsExactly("imp-1");
+        final BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(asList(
+                                Bid.builder().impid("imp-1").mtype(mtype).build(),
+                                Bid.builder().impid("imp-2").mtype(mtype).build()))
+                        .build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
+                httpRequests.getFirst(), HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(bidderBid -> bidderBid.getBid().getImpid())
+                .containsExactly("imp-1");
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("unable to find impression imp-2 for bid"));
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return BidRequest.builder()
                 .id("req-1")

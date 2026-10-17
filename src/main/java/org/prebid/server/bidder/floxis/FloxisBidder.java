@@ -117,7 +117,8 @@ public class FloxisBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-            final List<BidderBid> bidderBids = extractBids(bidResponse, bidRequest.getImp(), errors);
+            final List<Imp> imps = httpCall.getRequest().getPayload().getImp();
+            final List<BidderBid> bidderBids = extractBids(bidResponse, imps, errors);
             return Result.of(bidderBids, errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -150,6 +151,12 @@ public class FloxisBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getMediaTypeForBid(List<Imp> imps, Bid bid) {
+        final Imp imp = imps.stream()
+                .filter(currentImp -> Objects.equals(currentImp.getId(), bid.getImpid()))
+                .findFirst()
+                .orElseThrow(() -> new PreBidException(
+                        "unable to find impression %s for bid".formatted(bid.getImpid())));
+
         final Integer mtype = bid.getMtype();
         if (mtype != null && mtype != 0) {
             return switch (mtype) {
@@ -161,12 +168,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
                         "unsupported bid.mtype %d for impression %s".formatted(mtype, bid.getImpid()));
             };
         }
-
-        final Imp imp = imps.stream()
-                .filter(currentImp -> Objects.equals(currentImp.getId(), bid.getImpid()))
-                .findFirst()
-                .orElseThrow(() -> new PreBidException(
-                        "unable to find impression %s for bid".formatted(bid.getImpid())));
 
         if (countFormats(imp) != 1) {
             throw new PreBidException(
