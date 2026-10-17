@@ -124,6 +124,7 @@ public class AkceloBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))

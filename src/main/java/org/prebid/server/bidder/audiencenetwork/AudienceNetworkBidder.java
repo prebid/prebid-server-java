@@ -279,6 +279,7 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                         .map(bid -> toBidderBid(bid, imps, bidResponse.getCur(), errors, seatBid.getSeat())))

@@ -101,6 +101,7 @@ public class ColossusBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors, seatBid.getSeat())))

@@ -187,6 +187,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> bid.toBuilder().impid(bid.getId()).build())

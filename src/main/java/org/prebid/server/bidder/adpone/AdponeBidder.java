@@ -72,6 +72,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(seatBid.getSeat(), bid, BidType.banner, bidResponse.getCur())))

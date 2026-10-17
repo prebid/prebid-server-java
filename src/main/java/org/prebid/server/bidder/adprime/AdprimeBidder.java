@@ -136,6 +136,7 @@ public class AdprimeBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))

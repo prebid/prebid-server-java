@@ -124,6 +124,7 @@ public class AfrontBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(

@@ -104,6 +104,7 @@ public class BraveBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .limit(1)
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(
