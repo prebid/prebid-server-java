@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
@@ -60,6 +61,9 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     @Mock(strictness = Mock.Strictness.LENIENT)
     private UserFpdActivityMask userFpdActivityMask;
 
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private IpAddressHelper ipAddressHelper;
+
     @Mock
     private AuctionRequestPayload auctionRequestPayload;
 
@@ -84,11 +88,13 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
 
     @BeforeEach
     void setUp() {
+        when(userFpdActivityMask.maskUser(any(), anyBoolean(), anyBoolean()))
+                .thenAnswer(answer -> answer.getArgument(0));
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         targetingRequestExecutor = new TargetingRequestExecutor(
-                optableTargeting, userFpdActivityMask, timeoutFactory, 0.01);
+                optableTargeting, userFpdActivityMask, timeoutFactory, ipAddressHelper, 0.01);
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver, givenFlowResolver(ExecutionPlan.empty()));
 

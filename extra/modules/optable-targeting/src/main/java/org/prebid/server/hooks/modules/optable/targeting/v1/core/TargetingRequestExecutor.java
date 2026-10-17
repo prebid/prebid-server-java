@@ -11,6 +11,7 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
@@ -29,17 +30,20 @@ public class TargetingRequestExecutor {
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
     private final TimeoutFactory timeoutFactory;
+    private final IpAddressHelper ipAddressHelper;
     private final double logSamplingRate;
 
     public TargetingRequestExecutor(OptableTargeting optableTargeting,
                                     UserFpdActivityMask userFpdActivityMask,
                                     TimeoutFactory timeoutFactory,
+                                    IpAddressHelper ipAddressHelper,
                                     double logSamplingRate) {
 
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
         this.timeoutFactory = ObjectUtils.requireNonEmpty(timeoutFactory);
         this.logSamplingRate = logSamplingRate;
+        this.ipAddressHelper = ipAddressHelper;
     }
 
     public Future<TargetingResult> makeRequest(AuctionRequestPayload payload,
@@ -54,8 +58,10 @@ public class TargetingRequestExecutor {
                 : timeoutFactory.create(invocationContext.timeout().remaining() + apiTimeout);
         final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
+                bidRequest,
                 properties.getTimeout(),
-                logSamplingRate);
+                logSamplingRate,
+                ipAddressHelper);
 
         return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout);
     }

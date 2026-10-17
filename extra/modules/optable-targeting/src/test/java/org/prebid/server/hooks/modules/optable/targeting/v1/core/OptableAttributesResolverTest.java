@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.App;
@@ -30,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,12 +50,19 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @Mock(strictness = LENIENT)
     private GppContext gppContext;
 
+    @Mock(strictness = LENIENT)
+    private ActivityInfrastructure activityInfrastructure;
+
+    @Mock(strictness = LENIENT)
+    private IpAddressHelper ipAddressHelper;
+
     @Mock
     private OptableTargetingProperties properties;
 
     @BeforeEach
     public void setUp() {
         when(properties.getTimeout()).thenReturn(100L);
+        when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
     }
 
     @Test
@@ -59,12 +71,12 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final GppModel gppModel = mock();
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext =
-                givenAuctionContext(givenBidRequestWithGdprORTB26(true, "consent"), tcfContext, gppContext);
+        final BidRequest bidRequest = givenBidRequestWithGdprORTB26(true, "consent");
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -78,12 +90,12 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final GppModel gppModel = mock();
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext =
-                givenAuctionContext(givenBidRequestWithGdprORTB25(true, "consent"), tcfContext, gppContext);
+        final BidRequest bidRequest = givenBidRequestWithGdprORTB25(true, "consent");
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -99,11 +111,12 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         when(tcfContext.getConsentString()).thenReturn("consent");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -119,11 +132,12 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         when(tcfContext.getConsentString()).thenReturn("consent");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -146,7 +160,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -161,7 +175,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -176,7 +190,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -191,7 +205,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -209,7 +223,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -219,12 +233,13 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @Test
     public void shouldResolveIpFromXForwardedForHeaderWhenDeviceIpsAreAbsent() {
         // given
+        final BidRequest bidRequest = givenBidRequest();
         final AuctionContext auctionContext =
-                givenAuctionContextWithHeaders(givenBidRequest(), Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4"));
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4"));
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
@@ -234,17 +249,108 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @Test
     public void shouldResolveFirstIpFromXForwardedForHeaderWhenItContainsMultipleIps() {
         // given
+        final BidRequest bidRequest = givenBidRequest();
         final AuctionContext auctionContext =
-                givenAuctionContextWithHeaders(givenBidRequest(),
-                        Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4, 5.6.7.8"));
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4, 5.6.7.8"));
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout(), 0.01);
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
 
         // then
         assertThat(result).isNotNull()
                 .returns(List.of("1.2.3.4"), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldNotMaskIpFromXForwardedForHeaderWhenTransmitUfpdIsAllowed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4"));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of("1.2.3.4"), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldMaskIpv4FromXForwardedForHeaderWhenTransmitUfpdIsNotAllowed() {
+        // given
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).thenReturn(false);
+        when(ipAddressHelper.maskIpv4("1.2.3.4")).thenReturn("1.2.3.0");
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4"));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of("1.2.3.0"), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldAnonymizeIpv6FromXForwardedForHeaderWhenTransmitUfpdIsNotAllowed() {
+        // given
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).thenReturn(false);
+        when(ipAddressHelper.anonymizeIpv6("2001:db8::1")).thenReturn("2001:db8::");
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "2001:db8::1"));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of("2001:db8::"), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldResolveIpsFromMaskedDeviceRatherThanFromAuctionContextBidRequest() {
+        // given
+        final BidRequest rawBidRequest = BidRequest.builder()
+                .device(Device.builder().ip("1.2.3.4").ipv6("2001:db8::1").ua("userAgent").build())
+                .build();
+        final AuctionContext auctionContext = givenAuctionContext(rawBidRequest, tcfContext, gppContext);
+        final BidRequest maskedBidRequest = rawBidRequest.toBuilder()
+                .device(Device.builder().ip("1.2.3.0").ua("userAgent").build())
+                .build();
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, maskedBidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of("1.2.3.0"), OptableAttributes::getIps)
+                .returns("userAgent", OptableAttributes::getUserAgent);
+    }
+
+    @Test
+    public void shouldNotResolveId5SignatureWhenMaskedUserExtIsDropped() {
+        // given
+        final BidRequest rawBidRequest = givenBidRequestWithId5Signature("signature");
+        final AuctionContext auctionContext = givenAuctionContext(rawBidRequest, tcfContext, gppContext);
+        final BidRequest maskedBidRequest = rawBidRequest.toBuilder()
+                .user(null)
+                .build();
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, maskedBidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(null, OptableAttributes::getId5Signature);
     }
 
     private BidRequest givenBidRequestWithId5Signature(String signature) {
@@ -302,6 +408,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .httpRequest(givenHttpRequestContext(headers))
+                .activityInfrastructure(activityInfrastructure)
                 .build();
     }
 }

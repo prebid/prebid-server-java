@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.PbcStorageService;
@@ -101,9 +102,11 @@ public class OptableTargetingConfig {
     TargetingRequestExecutor targetingRequestExecutor(OptableTargeting optableTargeting,
                                                       UserFpdActivityMask userFpdActivityMask,
                                                       TimeoutFactory timeoutFactory,
+                                                      IpAddressHelper ipAddressHelper,
                                                       @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
-        return new TargetingRequestExecutor(optableTargeting, userFpdActivityMask, timeoutFactory, logSamplingRate);
+        return new TargetingRequestExecutor(
+                optableTargeting, userFpdActivityMask, timeoutFactory, ipAddressHelper, logSamplingRate);
     }
 
     @Bean
