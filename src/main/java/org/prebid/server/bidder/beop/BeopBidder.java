@@ -97,6 +97,7 @@ public class BeopBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))

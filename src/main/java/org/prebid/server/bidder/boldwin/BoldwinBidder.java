@@ -118,6 +118,7 @@ public class BoldwinBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(seatBid.getSeat(), bid, getBidType(bid), bidResponse.getCur())))

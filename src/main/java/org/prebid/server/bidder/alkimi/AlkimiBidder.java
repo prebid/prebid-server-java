@@ -106,6 +106,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> resolveBidderBid(bidResponse.getCur(), bidRequest.getImp(), bid, seatBid.getSeat())))

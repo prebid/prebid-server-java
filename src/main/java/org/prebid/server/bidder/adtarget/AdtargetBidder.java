@@ -141,6 +141,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     private static List<BidderBid> createBiddersBid(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, imps, bidResponse.getCur(), errors, seatBid.getSeat())))
