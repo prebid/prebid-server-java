@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
@@ -21,8 +22,10 @@ import java.util.Optional;
 public class AnalyticTagsResolver {
 
     private static final String ACTIVITY_ENRICH_REQUEST = "optable-enrich-request";
+    private static final String ACTIVITY_ENRICH_BIDDER_REQUEST = "optable-enrich-bidder-request";
     private static final String ACTIVITY_ENRICH_RESPONSE = "optable-enrich-response";
     private static final String STATUS_EXECUTION_TIME = "execution-time";
+    private static final String STATUS_OUTCOME = "outcome";
     private static final String STATUS_REASON = "reason";
 
     private AnalyticTagsResolver() {
@@ -33,6 +36,26 @@ public class AnalyticTagsResolver {
                 ACTIVITY_ENRICH_REQUEST,
                 toEnrichmentStatusValue(moduleContext.getEnrichRequestStatus()),
                 toResults(STATUS_EXECUTION_TIME, String.valueOf(moduleContext.getOptableTargetingExecutionTime())))));
+    }
+
+    public static Tags toBidderEnrichRequestAnalyticTags(String bidder,
+                                                           String outcome,
+                                                           long executionTime) {
+
+        final ObjectNode values = ObjectMapperProvider.mapper().createObjectNode()
+                .put(STATUS_OUTCOME, outcome)
+                .put(STATUS_EXECUTION_TIME, String.valueOf(executionTime));
+
+        return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
+                ACTIVITY_ENRICH_BIDDER_REQUEST,
+                "enriched".equals(outcome) ? Status.SUCCESS.getValue() : Status.FAIL.getValue(),
+                Collections.singletonList(ResultImpl.of(
+                        null,
+                        values,
+                        AppliedToImpl.builder()
+                                .bidders(Collections.singletonList(bidder))
+                                .request(true)
+                                .build())))));
     }
 
     public static Tags toEnrichResponseAnalyticTags(ModuleContext moduleContext) {

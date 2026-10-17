@@ -13,10 +13,16 @@ Targeting API endpoint is configurable per publisher.
 
 ### Execution Plan
 
-This module runs at two stages:
+The module uses four hooks, all of which are required:
 
-* Processed Auction Request: to enrich `user.eids` and `user.data`.
-* Auction Response: to inject ad server targeting.
+* Raw Auction Request: starts the Optable API call early, without blocking the auction.
+* Processed Auction Request: starts the call for requests that rely on stored requests (see below).
+* Bidder Request: awaits the API response and enriches each bidder request with `user.eids` and `user.data`.
+* Auction Response: injects ad server targeting.
+
+Stored requests and stored imps are merged after the Raw Auction Request stage. When the bidders or `site`/`app` are
+not known at that stage (f.e. Prebid Mobile SDK traffic, where they live in the stored request), the Processed Auction
+Request hook starts the call on the merged request instead. Without it such requests are not enriched.
 
 We recommend defining the execution plan in the account config so the module is only invoked for specific accounts. See
 below for an example.
@@ -27,10 +33,8 @@ There is no host-company level config for this module.
 
 ### Account-Level Config
 
-To start using current module in PBS-Java you have to enable module and add
-`optable-targeting-processed-auction-request-hook` and `optable-targeting-auction-response-hook` into hooks execution
-plan inside your config file:
-Here's a general template for the account config used in PBS-Java:
+To start using the module in PBS-Java you have to enable it and add the hooks into the execution plan in your config
+file. Here's the recommended configuration:
 
 ```yaml
 hooks:
@@ -41,14 +45,40 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
+            "raw-auction-request": {
+              "groups": [
+                {
+                  "timeout": 50,
+                  "hook-sequence": [
+                    {
+                      "module-code": "optable-targeting",
+                      "hook-impl-code": "optable-targeting-raw-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            },
             "processed-auction-request": {
               "groups": [
                 {
-                  "timeout": 100,
+                  "timeout": 50,
                   "hook-sequence": [
                     {
                       "module-code": "optable-targeting",
                       "hook-impl-code": "optable-targeting-processed-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            },
+            "bidder-request": {
+              "groups": [
+                {
+                  "timeout": 50,
+                  "hook-sequence": [
+                    {
+                      "module-code": "optable-targeting",
+                      "hook-impl-code": "optable-targeting-bidder-request-hook"
                     }
                   ]
                 }
@@ -84,6 +114,15 @@ Sample module enablement configuration in JSON and YAML formats:
       "api-endpoint": "endpoint",
       "api-key": "key",
       "timeout": 50,
+      "enrichment-percentage": 100,
+      "bidder-enrichment-percentages": {
+        "appnexus": 75,
+        "rubicon": 75,
+        "pubmatic": 100,
+        "criteo": 0
+      },
+      "enrich-web": true,
+      "enrich-app": true,
       "ppid-mapping": {
         "pubcid.org": "c"
       },
@@ -99,24 +138,41 @@ Sample module enablement configuration in JSON and YAML formats:
       api-endpoint: endpoint
       api-key: key
       timeout: 50
+      enrichment-percentage: 100
+      bidder-enrichment-percentages:
+        appnexus: 75
+        rubicon: 75
+        pubmatic: 100
+        criteo: 0
+      enrich-web: true
+      enrich-app: true
       ppid-mapping: {
         "pubcid.org": "c"
       }
       adserver-targeting: false
 ```
 
+### Migrating from legacy configuration
+
+Previous versions used only the `processed-auction-request` hook (with `auction-response`), which made the API call
+and enriched the whole request synchronously, blocking the auction. To migrate, keep that hook and add the
+`raw-auction-request` and `bidder-request` hooks as shown above. With them in the plan, the processed hook no longer
+blocks; without them, it keeps the legacy synchronous behavior.
+
 ### Timeout considerations
 
-The timeout value specified in the execution plan for the `processed-auction-request` hook is very important to be
-picked such that the hook has enough time to make a roundtrip to Optable Targeting Edge API over HTTP.
+The `bidder-request` hook timeout is the budget for the API call started in the `raw-auction-request` or
+`processed-auction-request` stage. The call runs in parallel with the rest of the auction, so the actual wait at the
+`bidder-request` stage is usually much shorter than the full roundtrip. The `raw-auction-request` and
+`processed-auction-request` hook timeouts only cover validation and sampling and can be kept short.
 
 **Note:** Do not confuse hook timeout value with the module timeout parameter which is optional. The hook timeout value
 would depend on the cloud/region where the PBS instance is hosted and the latency to reach the Optable's servers. This
 will need to be verified experimentally upon deployment.
 
 The timeout value for the `auction-response` can be set to 10 ms - usually it will be sub-millisecond time as there are
-no HTTP calls made in this hook - Optable-specific keywords are cached on the `processed-auction-request` stage and
-retrieved from the module invocation context later.
+no HTTP calls made in this hook - Optable-specific keywords are cached on earlier stages and retrieved from the module
+invocation context later.
 
 ## Module Configuration Parameters for PBS-Java
 
@@ -133,14 +189,19 @@ would result in this nesting in the JSON configuration:
 }
 ```
 
-| Param Name         | Required | Type    | Default  value | Description                                                                                                                                                                                                                                                                                                                                                                                                                |
-|:-------------------|:---------|:--------|:---------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| api-endpoint       | yes      | string  | none           | Optable Targeting Edge API endpoint URL, required                                                                                                                                                                                                                                                                                                                                                                          |
-| api-key            | no       | string  | none           | If the API is protected with a key - this param needs to be specified to be sent in the auth header                                                                                                                                                                                                                                                                                                                        |
-| ppid-mapping       | no       | map     | none           | This specifies PPID source (`user.ext.eids[].source`) to a custom identifier prefix mapping, f.e. `{"example.com" : "c"}`. See the section on ID Mapping below for more detail.                                                                                                                                                                                                                                            |
-| adserver-targeting | no       | boolean | false          | If set to true - will add the Optable-specific adserver targeting keywords into the PBS response for every `seatbid[].bid[].ext.prebid.targeting`                                                                                                                                                                                                                                                                          |
-| timeout            | no       | integer | false          | A soft timeout (in ms) sent as a hint to the Targeting API endpoint to  limit the request times to Optable's external tokenizer services                                                                                                                                                                                                                                                                                   |
-| id-prefix-order    | no       | string  | none           | An optional string of comma separated id prefixes that prioritizes and specifies the order in which ids are provided to Targeting API in a query string. F.e. "c,c1,id5" will guarantee that Targeting API will see id=c:...,c1:...,id5:... if these ids are provided.  id-prefixes not mentioned in this list will be added in arbitrary order after the priority prefix ids. This affects Targeting API processing logic |
+| Param Name                     | Required | Type    | Default value | Description                                                                                                                                                                                                                                                                                                                                                                                                                |
+|:-------------------------------|:---------|:--------|:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| api-endpoint                   | yes      | string  | none          | Optable Targeting Edge API endpoint URL, required                                                                                                                                                                                                                                                                                                                                                                          |
+| api-key                        | no       | string  | none          | If the API is protected with a key - this param needs to be specified to be sent in the auth header                                                                                                                                                                                                                                                                                                                        |
+| ppid-mapping                   | no       | map     | none          | This specifies PPID source (`user.ext.eids[].source`) to a custom identifier prefix mapping, f.e. `{"example.com" : "c"}`. See the section on ID Mapping below for more detail.                                                                                                                                                                                                                                            |
+| adserver-targeting             | no       | boolean | false         | If set to true - will add the Optable-specific adserver targeting keywords into the PBS response for every `seatbid[].bid[].ext.prebid.targeting`                                                                                                                                                                                                                                                                          |
+| timeout                        | no       | integer | none          | A soft timeout (in ms) sent as a hint to the Targeting API endpoint to limit the request times to Optable's external tokenizer services                                                                                                                                                                                                                                                                                    |
+| id-prefix-order                | no       | string  | none          | An optional string of comma separated id prefixes that prioritizes and specifies the order in which ids are provided to Targeting API in a query string. F.e. "c,c1,id5" will guarantee that Targeting API will see id=c:...,c1:...,id5:... if these ids are provided. id-prefixes not mentioned in this list will be added in arbitrary order after the priority prefix ids. This affects Targeting API processing logic  |
+| hid-prefixes                   | no       | string  | none          | An optional string of comma separated id prefixes that should additionally be sent to the Targeting API as resolver hints in `hid=prefix:value` query parameters. See the section on Resolver Hints (hid) below for more detail.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| enrichment-percentage          | no       | integer | 100           | Default percentage (0-100) of bid requests per bidder that will receive enrichment data. Set to 100 to enrich all requests, 0 to disable enrichment by default.                                                                                                                                                                                                                                                            |
+| bidder-enrichment-percentages  | no       | map     | none          | Per-bidder overrides for `enrichment-percentage`. Keys are bidder names, values are percentages (0-100). F.e. `{"appnexus": 75, "criteo": 0}` enriches 75% of appnexus requests and none for criteo. Bidders not listed in this map fall back to the default `enrichment-percentage` (100% unless overridden).                                                                                                              |
+| enrich-web                     | no       | boolean | true          | Whether to enrich web traffic (requests with a `site` object).                                                                                                                                                                                                                                                                                                                                                             |
+| enrich-app                     | no       | boolean | true          | Whether to enrich app traffic (requests with an `app` object).                                                                                                                                                                                                                                                                                                                                                             |
 
 ## ID Mapping
 
@@ -172,8 +233,8 @@ on identifier types. Targeting API accepts multiple id parameters - and their or
 
 ### Optable input erasure
 
-**Note**: `user.ext.optable.email`, `.phone`, `.zip`, `.vid` fields will be removed by the module from the original
-OpenRTB request before being sent to bidders.
+**Note**: `user.ext.optable.email`, `.phone`, `.zip`, `.vid` and `.id5_signature` fields will be removed by the module
+from the original OpenRTB request before being sent to bidders.
 
 ### Publisher Provided IDs (PPID) Mapping
 
@@ -195,6 +256,52 @@ ppid-mapping: {"id5-sync.com": "c1"}
 ```
 
 This will lead to id5 ID supplied as `id=c1:...` to the Targeting API.
+
+### Resolver Hints (`hid`)
+
+In addition to the regular `id=prefix:value` parameters, the module can forward selected identifiers to the Targeting
+API as resolver hints using the `hid=prefix:value` query parameter form. The set of prefixes that should be sent as
+`hid` is configured via the `hid-prefixes` parameter, which accepts a comma-separated list of prefix names, f.e.:
+
+```yaml
+hid-prefixes: "c, i6"
+```
+
+## Targeting API Query Attributes
+
+In addition to the identifier parameters, the module forwards the following attributes as query string parameters to
+the Targeting API:
+
+| Attribute        | Source                                                                                                                                     |
+|------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `gdpr`           | `1` if GDPR applies to the request, `0` otherwise.                                                                                         |
+| `gdpr_consent`   | TCF consent string, sent when available and the consent is valid.                                                                          |
+| `gpp`            | GPP string, sent when available in the resolved GPP context.                                                                               |
+| `gpp_sid`        | Comma-separated list of active GPP section IDs (limited to the first two), sent when the set is non-empty.                                 |
+| `timeout`        | Soft timeout hint (in ms, suffixed with `ms`), sent when the module-level `timeout` property is configured.                                |
+| `osdk`           | Always set to `prebid-server`, identifying the caller.                                                                                     |
+| `bundle`         | App bundle identifier, URL-encoded. Sent when the incoming request has an `app` object (`request.app.bundle`) and the bundle is non-empty. |
+| `ver`            | App version, URL-encoded. Sent only when `bundle` is non-empty and `request.app.ver` is present and non-empty.                             |
+| `id5_signature`  | ID5 signature, URL-encoded. Sent when the resolved `user.ext.optable.id5_signature` is present in the incoming request                     |
+
+### App bundle and version
+
+For app traffic (requests with an `app` object) the module forwards the application's bundle identifier as the
+`bundle=` query parameter and, when available, its version as `ver=`. Both values are URL-encoded. The `ver` parameter
+is only sent when `bundle` is present and non-empty; requests with a version but no bundle will not produce either
+parameter.
+
+### ID5 signature
+
+The ID5 signature is propagated to the Targeting API in two ways:
+
+1. **Request-side signature**: when the incoming OpenRTB request carries `user.ext.optable.id5_signature`, that value
+   is sent to the Targeting API as the `id5_signature=` query parameter.
+2. **Response-side signature**: when the Targeting API response contains refs with an ID5 signature, the module
+   resolves the signature through the matching optable-eid and propagates it back into the request context, where it
+   is later injected into the bid response (`ext.prebid.passthrough.optable.id5_signature`) for downstream use.
+
+The `id5_signature` field is also part of the Optable input erasure, see above.
 
 ## Analytics Tags
 

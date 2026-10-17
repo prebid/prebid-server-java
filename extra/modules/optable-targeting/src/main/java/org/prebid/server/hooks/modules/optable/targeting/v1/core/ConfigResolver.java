@@ -24,6 +24,11 @@ public class ConfigResolver {
     }
 
     public OptableTargetingProperties resolve(ObjectNode configNode) {
+        // an account may have the hooks in its execution plan without any module config of its own
+        if (configNode == null) {
+            return globalProperties;
+        }
+
         final JsonNode mergedNode = jsonMerger.merge(configNode, globalPropertiesObjectNode);
         return parse(mergedNode).orElse(globalProperties);
     }
