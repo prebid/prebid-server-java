@@ -157,7 +157,6 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                     vertxTestContext.verify(() -> {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
-                        assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
                         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
                     });
                     vertxTestContext.completeNow();
@@ -273,7 +272,6 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
                         assertThat(moduleContext.getBiddersToEnrich()).isNull();
-                        assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
                         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
                     });
                     vertxTestContext.completeNow();
@@ -312,7 +310,6 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         assertThat(moduleContext.isShouldSkipEnrichment()).isFalse();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
                         assertThat(moduleContext.getBiddersToEnrich()).isNull();
-                        assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
                         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
 
                         final InvocationResult<AuctionRequestPayload> invocationResult = result.result();

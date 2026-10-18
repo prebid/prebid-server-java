@@ -54,7 +54,6 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setEarlyNetworkCallEnabled(true);
         moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis());
         moduleContext.setOptableTargetingProperties(properties);
 

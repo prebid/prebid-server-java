@@ -61,7 +61,7 @@ accounts:
                       "hook-sequence": [
                         {
                           "module-code": "optable-targeting",
-                          "hook-impl-code": "optable-targeting-processed-auction-request-hook"
+                           "hook-impl-code": "optable-targeting-async-processed-auction-request-hook"
                         }
                       ]
                     }

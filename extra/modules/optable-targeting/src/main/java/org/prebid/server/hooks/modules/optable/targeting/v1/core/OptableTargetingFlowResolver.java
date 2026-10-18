@@ -83,23 +83,11 @@ public class OptableTargetingFlowResolver {
             OptableTargetingProperties properties) {
 
         final Account account = invocationContext.auctionContext().getAccount();
-        final boolean hasRawAuctionRequestHook = hooksExecutionPlan.hasRawAuctionRequestHook(account);
-        final boolean hasBidderRequestHook = hooksExecutionPlan.hasBidderRequestHook(account);
-
-        if (hasRawAuctionRequestHook && hasBidderRequestHook) {
+        if (hooksExecutionPlan.hasBidderRequestHook(account)) {
             return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
         }
 
-        final Future<TargetingResult> optableTargetingCall = hasRawAuctionRequestHook
-                ? resolveEarlyNetworkCall(moduleContext)
-                : resolvePreEarlyNetworkCall(auctionRequestPayload, invocationContext, moduleContext, properties);
-
-        if (optableTargetingCall == null) {
-            moduleContext.failAndRecordExecutionTime();
-            return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
-        }
-
-        return optableTargetingCall
+        return resolvePreEarlyNetworkCall(auctionRequestPayload, invocationContext, moduleContext, properties)
                 .compose(targetingResult -> {
                     moduleContext.recordTargetingExecutionTime();
                     return enrichPayload(targetingResult, moduleContext, properties);
@@ -123,10 +111,6 @@ public class OptableTargetingFlowResolver {
                 AuctionRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
 
         return updateWithAnalytics(payloadUpdate, moduleContext);
-    }
-
-    private Future<TargetingResult> resolveEarlyNetworkCall(ModuleContext moduleContext) {
-        return moduleContext.getOptableTargetingCall();
     }
 
     private Future<TargetingResult> resolvePreEarlyNetworkCall(
@@ -173,16 +157,6 @@ public class OptableTargetingFlowResolver {
                         .action(InvocationAction.update)
                         .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .payloadUpdate(payloadUpdate)
-                        .moduleContext(moduleContext)
-                        .build());
-    }
-
-    public static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
-
-        return Future.succeededFuture(
-                InvocationResultImpl.<AuctionRequestPayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.no_action)
                         .moduleContext(moduleContext)
                         .build());
     }

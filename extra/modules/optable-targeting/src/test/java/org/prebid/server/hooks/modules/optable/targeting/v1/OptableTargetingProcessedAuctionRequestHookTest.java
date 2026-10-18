@@ -27,7 +27,6 @@ import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -43,13 +42,13 @@ import org.prebid.server.settings.model.Account;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("deprecation")
 @ExtendWith(MockitoExtension.class)
 class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
 
@@ -223,278 +222,11 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    void callShouldReturnResultWithNoActionWhenEarlyOptableCallIsEnabledAndInitialized() {
-        // given
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setEarlyNetworkCallEnabled(true);
-        moduleContext.setEarlyCallInitializationCompleted(true);
-        target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                givenFlowResolver(givenExecutionPlan(true, false)));
-        when(optableTargeting.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(givenTargetingResult()));
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        moduleContext.setOptableTargetingCall(
-                targetingRequestExecutor.makeRequest(
-                        auctionRequestPayload,
-                        invocationContext,
-                        givenOptableTargetingProperties("key", "tenant", "origin", false),
-                        null));
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNull();
-        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
-        assertThat(moduleContext.getOptableTargetingCall().succeeded()).isTrue();
-    }
-
-    @Test
-    void callShouldRetryEarlyNetworkCallInitializationWhenItWasNotCompletedOnRawAuctionRequestHookStep() {
-        // given
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setEarlyNetworkCallEnabled(true);
-        moduleContext.setEarlyCallInitializationCompleted(false);
-
-        final TargetingResult targetingResult = givenTargetingResult();
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(targetingResult));
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.analyticsTags()).isNull();
-        assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
-        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
-        assertThat(moduleContext.getOptableTargetingCall().succeeded()).isTrue();
-        assertThat(moduleContext.getOptableTargetingCall().result()).isSameAs(targetingResult);
-
-        final BidRequest bidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest();
-        assertThat(bidRequest.getUser().getEids()).isNull();
-        assertThat(bidRequest.getUser().getData()).isNull();
-    }
-
-    @Test
-    void callShouldCleanRequestWhenNoBiddersToEnrich() {
-        // given
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setEarlyNetworkCallEnabled(true);
-        moduleContext.setEarlyCallInitializationCompleted(false);
-
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of());
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNotNull();
-        final ObjectNode optable = (ObjectNode) result.payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest()
-                .getUser().getExt().getProperty("optable");
-        assertThat(optable).isNull();
-        assertThat(moduleContext.getOptableTargetingCall()).isNull();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
-    }
-
-    @Test
-    void callShouldSkipEnrichmentAndCleanRequestWhenTrafficSourceIsInvalid() {
-        // given
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setEarlyNetworkCallEnabled(true);
-        moduleContext.setEarlyCallInitializationCompleted(false);
-
-        final BidRequest bidRequestWithoutTrafficSource = givenBidRequest(
-                bidRequestCustomizer -> bidRequestCustomizer.site(null).app(null));
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(invocationContext.auctionContext()).thenReturn(
-                givenAuctionContext(activityInfrastructure, timeout, Account.builder().id("accountId").build())
-                        .toBuilder()
-                        .bidRequest(bidRequestWithoutTrafficSource)
-                        .build());
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNotNull();
-        assertThat(moduleContext.isShouldSkipEnrichment()).isTrue();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
-        assertThat(moduleContext.getBiddersToEnrich()).isNull();
-        assertThat(moduleContext.getOptableTargetingCall()).isNull();
-
-        final BidRequest bidRequest = result.payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest();
-        assertThat(bidRequest.getUser().getExt().getProperty("optable")).isNull();
-    }
-
-    @Test
-    void callShouldRetryEarlyNetworkCallInitializationWhenResolvedRequestStillHasStoredImps() {
-        // given
-        final ModuleContext moduleContext = new ModuleContext();
-        moduleContext.setEarlyNetworkCallEnabled(true);
-        moduleContext.setEarlyCallInitializationCompleted(false);
-
-        final TargetingResult targetingResult = givenTargetingResult();
-        final BidRequest bidRequestWithResolvedStoredImp = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenResolvedStoredImpExt("bidderA"))))));
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(invocationContext.auctionContext()).thenReturn(
-                givenAuctionContext(activityInfrastructure, timeout, Account.builder().id("accountId").build())
-                        .toBuilder()
-                        .bidRequest(bidRequestWithResolvedStoredImp)
-                        .build());
-        when(auctionRequestPayload.bidRequest()).thenReturn(bidRequestWithResolvedStoredImp);
-        when(optableTargeting.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(targetingResult));
-        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
-        assertThat(moduleContext.getOptableTargetingCall()).isNotNull();
-        assertThat(moduleContext.getOptableTargetingCall().succeeded()).isTrue();
-        assertThat(moduleContext.getOptableTargetingCall().result()).isSameAs(targetingResult);
-    }
-
-    @Test
-    void callShouldReturnResultWithEnrichedBidRequestWhenBothHooksAreAbsent() {
+    void callShouldReturnResultWithoutEnrichedBidRequestWhenBidderRequestHookIsPresent() {
         // given
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
-                givenFlowResolver(givenExecutionPlan(false, false)));
-        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(givenTargetingResult()));
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        final BidRequest bidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest();
-        assertThat(bidRequest.getUser().getEids())
-                .flatExtracting(Eid::getUids)
-                .extracting(Uid::getId)
-                .containsExactly("id");
-        assertThat(bidRequest.getUser().getData())
-                .flatExtracting(Data::getSegment)
-                .extracting(Segment::getId)
-                .containsExactly("id");
-    }
-
-    @Test
-    void callShouldReturnResultWithEnrichedBidRequestWhenOnlyBidderRequestHookIsPresent() {
-        // given
-        target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                givenFlowResolver(givenExecutionPlan(false, true)));
-        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(givenTargetingResult()));
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        final BidRequest bidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest();
-        assertThat(bidRequest.getUser().getEids())
-                .flatExtracting(Eid::getUids)
-                .extracting(Uid::getId)
-                .containsExactly("id");
-        assertThat(bidRequest.getUser().getData())
-                .flatExtracting(Data::getSegment)
-                .extracting(Segment::getId)
-                .containsExactly("id");
-    }
-
-    @Test
-    void callShouldReturnResultWithoutEnrichedBidRequestWhenBothHooksArePresent() {
-        // given
-        target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                givenFlowResolver(givenExecutionPlan(true, true)));
+                givenFlowResolver(givenExecutionPlan(true)));
         when(invocationContext.moduleContext()).thenReturn(new ModuleContext());
 
         // when
@@ -630,19 +362,14 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         return givenAccountConfig("key", "tenant", "origin", cacheEnabled);
     }
 
-    private ExecutionPlan givenExecutionPlan(boolean hasRawAuctionRequestHook, boolean hasBidderRequestHook) {
-        final HookId rawAuctionHook = HookId.of("optable-targeting", "optable-targeting-raw-auction-request-hook");
+    private ExecutionPlan givenExecutionPlan(boolean hasBidderRequestHook) {
         final HookId bidderRequestHook = HookId.of("optable-targeting", "optable-targeting-bidder-request-hook");
 
-        final StageExecutionPlan rawAuctionStage = StageExecutionPlan.of(List.of(
-                ExecutionGroup.of(null, hasRawAuctionRequestHook ? List.of(rawAuctionHook) : List.of())
-        ));
         final StageExecutionPlan bidderRequestStage = StageExecutionPlan.of(List.of(
                 ExecutionGroup.of(null, hasBidderRequestHook ? List.of(bidderRequestHook) : List.of())
         ));
 
         final EndpointExecutionPlan endpointExecutionPlan = EndpointExecutionPlan.of(Map.of(
-                Stage.raw_auction_request, rawAuctionStage,
                 Stage.bidder_request, bidderRequestStage
         ));
 

@@ -8,7 +8,6 @@ import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -20,12 +19,8 @@ import java.util.function.Function;
 public class CompositeHookExecutionPlan {
 
     private static final HookHttpEndpoint ENDPOINT_AUCTION = HookHttpEndpoint.POST_AUCTION;
-    private static final String STAGE_RAW_AUCTION_REQUEST = "raw_auction_request";
     private static final String STAGE_BIDDER_REQUEST = "bidder_request";
-    private static final String HOOK_CODE_OPTABLE_RAW_AUCTION = OptableRawAuctionRequestHook.CODE;
     private static final String HOOK_CODE_OPTABLE_BIDDER_REQUEST = OptableBidderRequestHook.CODE;
-
-    private final boolean hasHostRawAuctionRequestHook;
 
     private final boolean hasHostBidderRequestHook;
 
@@ -33,17 +28,14 @@ public class CompositeHookExecutionPlan {
 
     private final ExecutionPlan defaultAccountExecutionPlan;
 
-    private final ConcurrentHashMap<String, Boolean> rawAuctionRequestHookCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Boolean> bidderRequestHookCache = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, Long> bidderRequestHookTimeoutCache = new ConcurrentHashMap<>();
 
-    private CompositeHookExecutionPlan(boolean hasHostRawAuctionRequestHook,
-                                       boolean hasHostBidderRequestHook,
+    private CompositeHookExecutionPlan(boolean hasHostBidderRequestHook,
                                        long hostBidderRequestHookTimeout,
                                        ExecutionPlan defaultAccountExecutionPlan) {
 
-        this.hasHostRawAuctionRequestHook = hasHostRawAuctionRequestHook;
         this.hasHostBidderRequestHook = hasHostBidderRequestHook;
         this.hostBidderRequestHookTimeout = hostBidderRequestHookTimeout;
         this.defaultAccountExecutionPlan = defaultAccountExecutionPlan;
@@ -53,7 +45,6 @@ public class CompositeHookExecutionPlan {
                                                 ExecutionPlan defaultAccountExecutionPlan) {
 
         return new CompositeHookExecutionPlan(
-                hasHook(hostExecutionPlan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION),
                 hasHook(hostExecutionPlan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST),
                 getHookTimeout(hostExecutionPlan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST),
                 defaultAccountExecutionPlan);
@@ -67,12 +58,6 @@ public class CompositeHookExecutionPlan {
         return StringUtils.isNotEmpty(accountId)
                 ? cache.computeIfAbsent(accountId, id -> compute.apply(resolveExecutionPlan(account)))
                 : defaultValue;
-    }
-
-    public boolean hasRawAuctionRequestHook(Account account) {
-        return computeFromAccount(account, rawAuctionRequestHookCache, false,
-                plan -> hasHook(plan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION)
-                        || hasHostRawAuctionRequestHook);
     }
 
     public boolean hasBidderRequestHook(Account account) {

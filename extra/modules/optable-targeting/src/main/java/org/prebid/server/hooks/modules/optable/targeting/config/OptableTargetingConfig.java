@@ -12,6 +12,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAsyncProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AliasesResolver;
@@ -121,6 +122,9 @@ public class OptableTargetingConfig {
                         earlyOptableCallResolver,
                         logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
+                        configResolver,
+                        earlyOptableCallResolver),
+                new OptableTargetingAsyncProcessedAuctionRequestHook(
                         configResolver,
                         earlyOptableCallResolver),
                 new OptableBidderRequestHook(),

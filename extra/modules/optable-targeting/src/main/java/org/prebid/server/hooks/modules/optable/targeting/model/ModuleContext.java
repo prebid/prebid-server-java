@@ -25,8 +25,6 @@ public class ModuleContext {
 
     private long optableTargetingStartTimestamp;
 
-    private boolean isEarlyNetworkCallEnabled = false;
-
     private Future<TargetingResult> optableTargetingCall;
 
     private Set<String> biddersToEnrich;
