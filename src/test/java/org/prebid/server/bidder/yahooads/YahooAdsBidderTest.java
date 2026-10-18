@@ -258,6 +258,71 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotAddBannerWhenImpHasOnlyVideo() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(null).video(Video.builder().w(640).h(480).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner, Imp::getVideo)
+                .containsOnly(tuple(null, Video.builder().w(640).h(480).build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTakeSizeFromFirstFormatWhenOnlyBannerWidthIsSet() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder()
+                        .w(300)
+                        .format(singletonList(Format.builder().w(728).h(90).build()))
+                        .build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsOnly(tuple(728, 90));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTakeSizeFromFirstFormatWhenOnlyBannerHeightIsSet() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder()
+                        .h(250)
+                        .format(singletonList(Format.builder().w(728).h(90).build()))
+                        .build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsOnly(tuple(728, 90));
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetExpectedHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
@@ -689,6 +754,180 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldSkipBidWhenMtypeIsUnknown() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").mtype(99).adm("<VAST version=\"4.0\"></VAST>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("321")
+                                .banner(Banner.builder().build())
+                                .video(Video.builder().build())
+                                .build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenNoMtypeAndNoAdmOnVideoOnlyImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("321")
+                                .video(Video.builder().build())
+                                .build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldMatchVastWithLeadingWhitespaceAndMixedCase() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("  <VaSt version=\"4.0\"></VaSt>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("321")
+                                .banner(Banner.builder().build())
+                                .video(Video.builder().build())
+                                .build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenAdmIsSelfClosingVast() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<VAST/>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("321")
+                                .banner(Banner.builder().build())
+                                .video(Video.builder().build())
+                                .build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenAdmMentionsVastOnlyAsText() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<div>VAST</div>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("321")
+                                .banner(Banner.builder().build())
+                                .video(Video.builder().build())
+                                .build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidTypePerImpression() throws JsonProcessingException {
+        // given
+        final Bid bannerOnlyImpBid = Bid.builder().impid("123").adm("<VAST version=\"4.0\"></VAST>").build();
+        final Bid multiFormatImpBid = Bid.builder()
+                .impid("321")
+                .adm("<VAST version=\"4.0\"></VAST>")
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(asList(
+                                Imp.builder().id("123").banner(Banner.builder().build()).build(),
+                                Imp.builder()
+                                        .id("321")
+                                        .banner(Banner.builder().build())
+                                        .video(Video.builder().build())
+                                        .build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(asList(bannerOnlyImpBid, multiFormatImpBid))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(bannerOnlyImpBid, banner, "USD"),
+                BidderBid.of(multiFormatImpBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
+                mapper.writeValueAsString(BidResponse.builder().cur("USD").seatbid(emptyList()).build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldPreserveTopLevel26RegsAndExtTypedFields() {
         // given
         final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
@@ -830,6 +1069,85 @@ public class YahooAdsBidderTest extends VertxTest {
                 .allSatisfy(regs -> {
                     assertThat(regs.getGpp()).isEqualTo("with_gpc");
                     assertThat(regs.getExt()).isEqualTo(expectedExt);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldKeepExtGdprAfterPromotion() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(1, null, null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("gppconsent"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("gppconsent");
+                    assertThat(regs.getExt()).isEqualTo(ExtRegs.of(1, null, null, null));
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldKeepExtUsPrivacyAfterPromotion() {
+        // given
+        final ExtRegs extRegs = ExtRegs.of(null, "1YNN", null, null);
+        extRegs.addProperty("gpp", TextNode.valueOf("gppconsent"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("gppconsent");
+                    assertThat(regs.getExt()).isEqualTo(ExtRegs.of(null, "1YNN", null, null));
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldKeepExtDsaAfterPromotion() {
+        // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
+        final ExtRegs extRegs = ExtRegs.of(null, null, null, dsa);
+        extRegs.addProperty("gpp", TextNode.valueOf("gppconsent"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder
+                        .regs(Regs.builder().ext(extRegs).build())
+                        .device(Device.builder().ua("UA").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("gppconsent");
+                    assertThat(regs.getExt()).isEqualTo(ExtRegs.of(null, null, null, dsa));
                 });
     }
 
