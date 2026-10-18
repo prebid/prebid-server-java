@@ -252,43 +252,55 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
+            final List<BidderError> errors = new ArrayList<>();
+            final List<BidderBid> bids = extractBids(bidResponse, httpCall.getRequest().getPayload(), errors);
+            return Result.of(bids, errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse,
+                                               BidRequest bidRequest,
+                                               List<BidderError> errors) {
         final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
         if (seatBids == null) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, bidRequest.getImp());
+        return bidsFromResponse(bidResponse, bidRequest.getImp(), errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse,
+                                                    List<Imp> imps,
+                                                    List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur()))
+                .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
-        final BidType bidType = getBidType(bid, imps);
-        return bidType != null
-                ? BidderBid.of(bid, bidType, currency)
-                : null;
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+        final Imp imp = findImp(bid, imps);
+        try {
+            final BidType bidType = resolveBidType(bid, imp);
+            return bidType != null
+                    ? BidderBid.of(bid, bidType, currency)
+                    : null;
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
     }
 
-    private static BidType getBidType(Bid bid, List<Imp> imps) {
+    private static Imp findImp(Bid bid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(bid.getImpid())) {
-                return resolveBidType(bid, imp);
+                return imp;
             }
         }
         throw new PreBidException("Unknown ad unit code '%s'".formatted(bid.getImpid()));
@@ -300,7 +312,8 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             return switch (mtype) {
                 case 1 -> BidType.banner;
                 case 2 -> BidType.video;
-                default -> null;
+                default -> throw new PreBidException(
+                        "Unsupported mtype %d for bid '%s'".formatted(mtype, bid.getId()));
             };
         }
         if (imp.getVideo() != null && (imp.getBanner() == null || isVast(bid.getAdm()))) {
