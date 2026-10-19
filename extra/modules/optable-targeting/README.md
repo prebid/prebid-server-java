@@ -314,13 +314,16 @@ The `id5_signature` field is also part of the Optable input erasure, see above.
 
 ## Analytics Tags
 
-The following 2 analytics tags are written by the module:
+The following 3 analytics tags are written by the module:
 
-* `optable-enrich-request`
-* `optable-enrich-response`
+* `optable-enrich-request` - written by the legacy synchronous flow at the `processed-auction-request` stage
+* `optable-enrich-bidder-request` - written by the async flow at the `bidder-request` stage for every bidder
+  selected for enrichment
+* `optable-enrich-response` - written at the `auction-response` stage
 
 The `status` is either `success` or `failure`. Where it is `failure` a `results[0].value.reason` is provided.  
-For the `optable-enrich-request` activity the `execution-time` value is logged.
+For the `optable-enrich-request` activity the `execution-time` value is logged - it is the duration of the
+Targeting API call.
 Example:
 
 ```json
@@ -338,7 +341,7 @@ Example:
               "results": [
                 {
                   "values": {
-                    "execution-time": 33
+                    "execution-time": "33"
                   }
                 }
               ]
@@ -350,6 +353,49 @@ Example:
                 {
                   "values": {
                     "reason": "none"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+For the `optable-enrich-bidder-request` activity the `status` is `success` when the bidder request was enriched and
+`fail` otherwise. The result values include the `outcome` - one of `enriched`, `no-data`, `timeout` or `error` -
+and the `execution-time`, and the `appliedto.bidders` field identifies the bidder. Note that this `execution-time`
+is the elapsed time from the start of the Targeting API call (made at the `raw-auction-request` or
+`async-processed-auction-request` stage) until the `bidder-request` stage. It includes the auction processing time
+between these stages, so it is not the duration of the Targeting API call itself.
+Example:
+
+```json
+{
+  "analytics": {
+    "tags": [
+      {
+        "stage": "bidder-request",
+        "module": "optable-targeting",
+        "analyticstags": {
+          "activities": [
+            {
+              "name": "optable-enrich-bidder-request",
+              "status": "success",
+              "results": [
+                {
+                  "values": {
+                    "outcome": "enriched",
+                    "execution-time": "33"
+                  },
+                  "appliedto": {
+                    "bidders": [
+                      "appnexus"
+                    ],
+                    "request": true
                   }
                 }
               ]
