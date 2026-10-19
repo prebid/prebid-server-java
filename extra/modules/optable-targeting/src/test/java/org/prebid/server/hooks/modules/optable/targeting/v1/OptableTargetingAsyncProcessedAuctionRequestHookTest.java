@@ -2,10 +2,13 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -16,6 +19,7 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -28,6 +32,9 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
@@ -36,6 +43,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -204,6 +212,67 @@ class OptableTargetingAsyncProcessedAuctionRequestHookTest extends BaseOptableTe
     }
 
     @Test
+    void callShouldResolveGdprAttributesFromTcfContextWhenGdprScopeComesFromDefaultValue() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyCallInitializationCompleted(false);
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .inGdprScope(true)
+                .consentString("consent")
+                .consentValid(true)
+                .build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestCustomizer ->
+                bidRequestCustomizer.user(User.builder().consent("consent").build()));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        givenAuctionContextWithTcfContext(tcfContext, bidRequest);
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+
+        // when
+        target.call(auctionRequestPayload, invocationContext);
+
+        // then
+        final ArgumentCaptor<OptableAttributes> attributesCaptor = ArgumentCaptor.forClass(OptableAttributes.class);
+        verify(optableTargeting).getTargeting(any(), any(), attributesCaptor.capture(), any());
+        assertThat(attributesCaptor.getValue())
+                .returns(true, OptableAttributes::isGdprApplies)
+                .returns("consent", OptableAttributes::getGdprConsent);
+    }
+
+    @Test
+    void callShouldNotResolveGdprAttributesWhenConsentIsNotValid() {
+        // given
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyCallInitializationCompleted(false);
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .inGdprScope(true)
+                .consentString("invalidConsent")
+                .consentValid(false)
+                .build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestCustomizer -> bidRequestCustomizer
+                .user(User.builder().consent("invalidConsent").build())
+                .regs(Regs.builder().gdpr(1).build()));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        givenAuctionContextWithTcfContext(tcfContext, bidRequest);
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+
+        // when
+        target.call(auctionRequestPayload, invocationContext);
+
+        // then
+        final ArgumentCaptor<OptableAttributes> attributesCaptor = ArgumentCaptor.forClass(OptableAttributes.class);
+        verify(optableTargeting).getTargeting(any(), any(), attributesCaptor.capture(), any());
+        assertThat(attributesCaptor.getValue())
+                .returns(false, OptableAttributes::isGdprApplies)
+                .returns(null, OptableAttributes::getGdprConsent);
+    }
+
+    @Test
     void callShouldCleanRequestWhenNoBiddersToEnrich() {
         // given
         final ModuleContext moduleContext = new ModuleContext();
@@ -316,5 +385,15 @@ class OptableTargetingAsyncProcessedAuctionRequestHookTest extends BaseOptableTe
 
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {
         return givenAccountConfig("key", "tenant", "origin", cacheEnabled);
+    }
+
+    private void givenAuctionContextWithTcfContext(TcfContext tcfContext, BidRequest bidRequest) {
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout, Account.builder().id("accountId").build())
+                        .toBuilder()
+                        .bidRequest(bidRequest)
+                        .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
+                        .build());
+        when(auctionRequestPayload.bidRequest()).thenReturn(bidRequest);
     }
 }

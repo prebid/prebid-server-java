@@ -66,11 +66,52 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldResolveGdprAttributesForORTB26WhenConsentIsValid() {
+    public void shouldResolveGdprAttributesWhenConsentIsValidAndInGdprScope() {
         // given
-        final GppModel gppModel = mock();
-        when(gppModel.encode()).thenReturn("consent");
-        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
+        when(tcfContext.isConsentValid()).thenReturn(true);
+        when(tcfContext.isInGdprScope()).thenReturn(true);
+        when(tcfContext.getConsentString()).thenReturn("consent");
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder().consent("consent").build())
+                .build();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(true, OptableAttributes::isGdprApplies)
+                .returns("consent", OptableAttributes::getGdprConsent);
+    }
+
+    @Test
+    public void shouldResolveGdprAttributesWhenConsentIsValidAndNotInGdprScope() {
+        // given
+        when(tcfContext.isConsentValid()).thenReturn(true);
+        when(tcfContext.isInGdprScope()).thenReturn(false);
+        when(tcfContext.getConsentString()).thenReturn("consent");
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder().consent("consent").build())
+                .build();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(false, OptableAttributes::isGdprApplies)
+                .returns("consent", OptableAttributes::getGdprConsent);
+    }
+
+    @Test
+    public void shouldNotResolveGdprAttributesWhenConsentIsNotValid() {
+        // given
+        when(tcfContext.isConsentValid()).thenReturn(false);
+        when(tcfContext.getConsentString()).thenReturn("consent");
         final BidRequest bidRequest = givenBidRequestWithGdprORTB26(true, "consent");
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
 
@@ -80,18 +121,15 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // then
         assertThat(result).isNotNull()
-                .returns(true, OptableAttributes::isGdprApplies)
-                .returns("consent", OptableAttributes::getGdprConsent);
+                .returns(false, OptableAttributes::isGdprApplies)
+                .returns(null, OptableAttributes::getGdprConsent);
     }
 
     @Test
-    public void shouldResolveGdprAttributesForORTB25WhenConsentIsValid() {
+    public void shouldResolveGdprAttributesFromRegsForORTB26WhenTcfContextIsAbsent() {
         // given
-        final GppModel gppModel = mock();
-        when(gppModel.encode()).thenReturn("consent");
-        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final BidRequest bidRequest = givenBidRequestWithGdprORTB25(true, "consent");
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+        final BidRequest bidRequest = givenBidRequestWithGdprORTB26(true, "consent");
+        final AuctionContext auctionContext = givenAuctionContextWithoutTcfContext(bidRequest, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
@@ -104,15 +142,28 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldNotResolveTcfAttributesWhenConsentIsNotValid() {
+    public void shouldResolveGdprAttributesFromRegsForORTB25WhenTcfContextIsAbsent() {
         // given
-        final GppModel gppModel = mock();
-        when(tcfContext.isConsentValid()).thenReturn(false);
-        when(tcfContext.getConsentString()).thenReturn("consent");
-        when(gppModel.encode()).thenReturn("consent");
-        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final BidRequest bidRequest = givenBidRequest();
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+        final BidRequest bidRequest = givenBidRequestWithGdprORTB25(true, "consent");
+        final AuctionContext auctionContext = givenAuctionContextWithoutTcfContext(bidRequest, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(true, OptableAttributes::isGdprApplies)
+                .returns("consent", OptableAttributes::getGdprConsent);
+    }
+
+    @Test
+    public void shouldNotResolveGdprAttributesFromRegsWhenGdprIsAbsentAndTcfContextIsAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder().consent("consent").build())
+                .build();
+        final AuctionContext auctionContext = givenAuctionContextWithoutTcfContext(bidRequest, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
@@ -467,6 +518,14 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
+                .gppContext(gppContext)
+                .build();
+    }
+
+    public AuctionContext givenAuctionContextWithoutTcfContext(BidRequest bidRequest,
+                                                               GppContext gppContext) {
+        return AuctionContext.builder()
+                .bidRequest(bidRequest)
                 .gppContext(gppContext)
                 .build();
     }
