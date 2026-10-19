@@ -263,6 +263,73 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
+    public void shouldNotResolveIpFromXForwardedForHeaderWhenHeaderValueIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, ""));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of(), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldNotResolveIpFromXForwardedForHeaderWhenFirstEntryIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, ", 5.6.7.8"));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of(), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldNotResolveIpFromXForwardedForHeaderWhenTransmitGeoIsNotAllowedAndValueIsInvalid() {
+        // given
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).thenReturn(false);
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "unknown"));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of(), OptableAttributes::getIps);
+    }
+
+    @Test
+    public void shouldNotResolveIpFromXForwardedForHeaderWhenMaskedIpIsNull() {
+        // given
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).thenReturn(false);
+        when(ipAddressHelper.maskIpv4("1.2.3.4")).thenReturn(null);
+        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext =
+                givenAuctionContextWithHeaders(bidRequest, Map.of(X_FORWARDED_FOR_HEADER, "1.2.3.4"));
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, bidRequest, properties.getTimeout(), 0.01, ipAddressHelper);
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(List.of(), OptableAttributes::getIps);
+    }
+
+    @Test
     public void shouldNotMaskIpFromXForwardedForHeaderWhenTransmitGeoIsAllowed() {
         // given
         final BidRequest bidRequest = givenBidRequest();

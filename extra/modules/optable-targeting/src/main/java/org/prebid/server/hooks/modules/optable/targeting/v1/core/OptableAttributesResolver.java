@@ -114,11 +114,13 @@ public class OptableAttributesResolver {
                     .map(it -> it.split(X_FORWARDED_FOR_HEADER_DELIMITER))
                     .filter(it -> it.length > 0)
                     .map(it -> it[0])
-                    .ifPresent(ip -> result.add(
-                            maskIp(auctionContext.getBidRequest(),
-                                    ip,
-                                    ipAddressHelper,
-                                    auctionContext.getActivityInfrastructure())));
+                    .filter(StringUtils::isNoneEmpty)
+                    .map(ip -> maskIp(auctionContext.getBidRequest(),
+                            ip,
+                            ipAddressHelper,
+                            auctionContext.getActivityInfrastructure()))
+                    .filter(StringUtils::isNotEmpty)
+                    .ifPresent(result::add);
         }
 
         return result;
