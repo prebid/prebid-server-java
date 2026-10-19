@@ -263,7 +263,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldNotMaskIpFromXForwardedForHeaderWhenTransmitUfpdIsAllowed() {
+    public void shouldNotMaskIpFromXForwardedForHeaderWhenTransmitGeoIsAllowed() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final AuctionContext auctionContext =
@@ -279,9 +279,9 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldMaskIpv4FromXForwardedForHeaderWhenTransmitUfpdIsNotAllowed() {
+    public void shouldMaskIpv4FromXForwardedForHeaderWhenTransmitGeoIsNotAllowed() {
         // given
-        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).thenReturn(false);
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).thenReturn(false);
         when(ipAddressHelper.maskIpv4("1.2.3.4")).thenReturn("1.2.3.0");
         final BidRequest bidRequest = givenBidRequest();
         final AuctionContext auctionContext =
@@ -297,9 +297,9 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldAnonymizeIpv6FromXForwardedForHeaderWhenTransmitUfpdIsNotAllowed() {
+    public void shouldAnonymizeIpv6FromXForwardedForHeaderWhenTransmitGeoIsNotAllowed() {
         // given
-        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).thenReturn(false);
+        when(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).thenReturn(false);
         when(ipAddressHelper.anonymizeIpv6("2001:db8::1")).thenReturn("2001:db8::");
         final BidRequest bidRequest = givenBidRequest();
         final AuctionContext auctionContext =

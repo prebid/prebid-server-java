@@ -131,9 +131,9 @@ public class OptableAttributesResolver {
                 ActivityInvocationPayloadImpl.of(ComponentType.GENERAL_MODULE, OptableTargetingModule.CODE),
                 bidRequest);
 
-        final boolean disallowTransmitUfpd =
-                !activityInfrastructure.isAllowed(Activity.TRANSMIT_UFPD, activityInvocationPayload);
-        if (disallowTransmitUfpd) {
+        final boolean disallowTransmitGeo =
+                !activityInfrastructure.isAllowed(Activity.TRANSMIT_GEO, activityInvocationPayload);
+        if (disallowTransmitGeo) {
             return maskIp(ip, ipAddressHelper);
         }
 
