@@ -84,6 +84,17 @@ public class CompositeHookExecutionPlan {
     }
 
     private static boolean hasHook(ExecutionPlan executionPlan, String stage, String hookCode) {
+        return findGroupWithHook(executionPlan, stage, hookCode).isPresent();
+    }
+
+    private static long getHookTimeout(ExecutionPlan executionPlan, String stage, String hookCode) {
+        return findGroupWithHook(executionPlan, stage, hookCode)
+                .map(ExecutionGroup::getTimeout)
+                .orElse(0L);
+    }
+
+    private static Optional<ExecutionGroup> findGroupWithHook(ExecutionPlan executionPlan, String stage,
+                                                             String hookCode) {
         return Optional.ofNullable(executionPlan)
                 .map(ExecutionPlan::getEndpoints)
                 .map(endpoints -> endpoints.get(ENDPOINT_AUCTION))
@@ -92,21 +103,13 @@ public class CompositeHookExecutionPlan {
                 .map(StageExecutionPlan::getGroups)
                 .orElseGet(List::of)
                 .stream()
-                .map(ExecutionGroup::getHookSequence)
-                .flatMap(java.util.Collection::stream)
-                .anyMatch(hook -> hookCode.equals(hook.getHookImplCode()));
+                .filter(group -> groupContainsHook(group, hookCode))
+                .findFirst();
     }
 
-    private static long getHookTimeout(ExecutionPlan executionPlan, String stage, String hookCode) {
-        return Optional.ofNullable(executionPlan)
-                .map(ExecutionPlan::getEndpoints)
-                .map(endpoints -> endpoints.get(ENDPOINT_AUCTION))
-                .map(EndpointExecutionPlan::getStages)
-                .map(stages -> stages.get(Stage.valueOf(stage)))
-                .map(StageExecutionPlan::getGroups)
-                .orElseGet(List::of)
-                .stream().findFirst()
-                .map(ExecutionGroup::getTimeout)
-                .orElse(0L);
+    private static boolean groupContainsHook(ExecutionGroup group, String hookCode) {
+        return group.getHookSequence() != null
+                && group.getHookSequence().stream()
+                .anyMatch(hook -> hookCode.equals(hook.getHookImplCode()));
     }
 }

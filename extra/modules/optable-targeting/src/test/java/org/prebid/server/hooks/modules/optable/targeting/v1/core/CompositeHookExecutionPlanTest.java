@@ -300,6 +300,53 @@ public class CompositeHookExecutionPlanTest {
         assertThat(target.getOptableTargetingBidderRequestTimeout(account)).isEqualTo(250L);
     }
 
+    @Test
+    public void getBidderRequestTimeoutShouldReturnTimeoutOfGroupContainingHookWhenOtherModuleGroupComesFirst() {
+        // given
+        final ExecutionGroup otherModuleGroup = ExecutionGroup.of(10L, List.of(
+                HookId.of("other-module", "other-module-bidder-request-hook")));
+        final ExecutionGroup optableGroup = ExecutionGroup.of(500L, List.of(
+                HookId.of("optable-targeting", "optable-targeting-bidder-request-hook")));
+        final ExecutionPlan accountPlan = givenExecutionPlanWithGroups(otherModuleGroup, optableGroup);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingBidderRequestTimeout(account)).isEqualTo(500L);
+    }
+
+    @Test
+    public void getBidderRequestTimeoutShouldFallbackToHostWhenGroupWithHookHasNoTimeoutAndOtherGroupHasTimeout() {
+        // given
+        final ExecutionGroup otherModuleGroup = ExecutionGroup.of(10L, List.of(
+                HookId.of("other-module", "other-module-bidder-request-hook")));
+        final ExecutionGroup optableGroup = ExecutionGroup.of(null, List.of(
+                HookId.of("optable-targeting", "optable-targeting-bidder-request-hook")));
+        final ExecutionPlan accountPlan = givenExecutionPlanWithGroups(otherModuleGroup, optableGroup);
+        final ExecutionPlan hostPlan = givenExecutionPlanWithTimeout(
+                "bidder_request", "optable-targeting-bidder-request-hook", 300L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(hostPlan, null);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingBidderRequestTimeout(account)).isEqualTo(300L);
+    }
+
+    @Test
+    public void hasBidderRequestHookShouldReturnTrueWhenHookIsInSecondGroup() {
+        // given
+        final ExecutionGroup otherModuleGroup = ExecutionGroup.of(10L, List.of(
+                HookId.of("other-module", "other-module-bidder-request-hook")));
+        final ExecutionGroup optableGroup = ExecutionGroup.of(500L, List.of(
+                HookId.of("optable-targeting", "optable-targeting-bidder-request-hook")));
+        final ExecutionPlan accountPlan = givenExecutionPlanWithGroups(otherModuleGroup, optableGroup);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null, null);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.hasBidderRequestHook(account)).isTrue();
+    }
+
     private ExecutionPlan givenExecutionPlan(String stage, String hookCode) {
         final HookId hookId = HookId.of("optable-targeting", hookCode);
         final ExecutionGroup group = ExecutionGroup.of(null, List.of(hookId));
@@ -313,6 +360,13 @@ public class CompositeHookExecutionPlanTest {
         final ExecutionGroup group = ExecutionGroup.of(timeout, List.of(hookId));
         final StageExecutionPlan stagePlan = StageExecutionPlan.of(List.of(group));
         final EndpointExecutionPlan endpointPlan = EndpointExecutionPlan.of(Map.of(Stage.valueOf(stage), stagePlan));
+        return ExecutionPlan.of(null, Map.of(HookHttpEndpoint.POST_AUCTION, endpointPlan));
+    }
+
+    private ExecutionPlan givenExecutionPlanWithGroups(ExecutionGroup... groups) {
+        final StageExecutionPlan stagePlan = StageExecutionPlan.of(List.of(groups));
+        final EndpointExecutionPlan endpointPlan = EndpointExecutionPlan.of(
+                Map.of(Stage.valueOf("bidder_request"), stagePlan));
         return ExecutionPlan.of(null, Map.of(HookHttpEndpoint.POST_AUCTION, endpointPlan));
     }
 
