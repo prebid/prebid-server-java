@@ -1,8 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
@@ -14,8 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OS;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.ExtUserOptable;
-import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.log.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,19 +21,14 @@ import java.util.Optional;
 
 public class IdsMapper {
 
-    private static final ConditionalLogger conditionalLogger =
-            new ConditionalLogger(LoggerFactory.getLogger(IdsMapper.class));
-
     private static final Map<String, String> STATIC_PPID_MAPPING = Map.of(
             "id5-sync.com", Id.ID5,
             "utiq.com", Id.UTIQ,
             "netid.de", Id.NET_ID);
 
-    private final ObjectMapper objectMapper;
     private final double logSamplingRate;
 
-    public IdsMapper(ObjectMapper objectMapper, double logSamplingRate) {
-        this.objectMapper = Objects.requireNonNull(objectMapper);
+    public IdsMapper(double logSamplingRate) {
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -60,7 +50,7 @@ public class IdsMapper {
         final Optional<ExtUserOptable> extUserOptable = Optional.ofNullable(user)
                 .map(User::getExt)
                 .map(ext -> ext.getProperty("optable"))
-                .map(this::parseExtUserOptable);
+                .map(it -> ExtUserOptableResolver.resolveExtUserOptable(it, logSamplingRate));
 
         extUserOptable.map(ExtUserOptable::getEmail).ifPresent(it -> ids.put(Id.EMAIL, it));
         extUserOptable.map(ExtUserOptable::getPhone).ifPresent(it -> ids.put(Id.PHONE, it));
@@ -68,19 +58,15 @@ public class IdsMapper {
         extUserOptable.map(ExtUserOptable::getVid).ifPresent(it -> ids.put(Id.OPTABLE_VID, it));
     }
 
-    private ExtUserOptable parseExtUserOptable(JsonNode node) {
-        try {
-            return objectMapper.treeToValue(node, ExtUserOptable.class);
-        } catch (JsonProcessingException e) {
-            conditionalLogger.warn("Can't parse $.ext.user.Optable tag", logSamplingRate);
-            return null;
-        }
-    }
-
     private static void addDeviceIds(Map<String, String> ids, Device device) {
         final String ifa = device != null ? device.getIfa() : null;
         final String os = device != null ? StringUtils.toRootLowerCase(device.getOs()) : null;
         final int lmt = Optional.ofNullable(device).map(Device::getLmt).orElse(0);
+        final String ip6 = device != null ? device.getIpv6() : null;
+
+        if (ip6 != null) {
+            ids.put(Id.DEVICE_IP_V_6, ip6);
+        }
 
         if (ifa == null || StringUtils.isEmpty(os) || lmt == 1) {
             return;

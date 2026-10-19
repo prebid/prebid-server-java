@@ -29,7 +29,7 @@ public class OptableTargeting {
                                                 Timeout timeout) {
 
         final List<Id> ids = idsMapper.toIds(bidRequest, properties.getPpidMapping());
-        final Query query = QueryBuilder.build(ids, attributes, properties.getIdPrefixOrder());
+        final Query query = QueryBuilder.build(ids, attributes, properties);
         if (query == null) {
             return Future.failedFuture("Can't get targeting");
         }

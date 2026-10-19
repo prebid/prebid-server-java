@@ -1,0 +1,86 @@
+package org.prebid.server.hooks.modules.optable.targeting.v1;
+
+import io.vertx.core.Future;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionRequestCleaner;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
+import org.prebid.server.hooks.v1.InvocationAction;
+import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
+
+import java.util.Objects;
+
+public class OptableTargetingAsyncProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
+
+    public static final String CODE = "optable-targeting-async-processed-auction-request-hook";
+
+    private final ConfigResolver configResolver;
+
+    private final OptableTargetingFlowResolver optableTargetingFlowResolver;
+
+    public OptableTargetingAsyncProcessedAuctionRequestHook(ConfigResolver configResolver,
+                                                             OptableTargetingFlowResolver earlyOptableCallResolver) {
+
+        this.configResolver = Objects.requireNonNull(configResolver);
+        this.optableTargetingFlowResolver = Objects.requireNonNull(earlyOptableCallResolver);
+    }
+
+    @Override
+    public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
+                                                                 AuctionInvocationContext invocationContext) {
+
+        final ModuleContext moduleContext = ModuleContext.of(invocationContext);
+        final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
+
+        if (moduleContext.isEarlyCallInitializationCompleted()) {
+            return success(moduleContext);
+        }
+
+        if (!PropertiesValidator.isTrafficSourceValid(
+                invocationContext.auctionContext().getBidRequest(), properties)) {
+
+            moduleContext.setShouldSkipEnrichment(true);
+            moduleContext.setEarlyCallInitializationCompleted(false);
+
+            return update(AuctionRequestCleaner.instance(), moduleContext);
+        }
+
+        return optableTargetingFlowResolver.resolveAsyncOptableTargetingFlow(
+                moduleContext, auctionRequestPayload, invocationContext, properties);
+    }
+
+    public static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_action)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    public static Future<InvocationResult<AuctionRequestPayload>> update(
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+            ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(payloadUpdate)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    @Override
+    public String code() {
+        return CODE;
+    }
+}
