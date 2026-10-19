@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "pulsepoint"
+                "adaptercode": "pulsepoint",
+                "seat": "seatId8"
               }
             },
             "origbidcpm": 4.75

@@ -22,7 +22,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "akcelo"
+                "adaptercode": "akcelo",
+                "seat": "adverxo"
               }
             }
           }

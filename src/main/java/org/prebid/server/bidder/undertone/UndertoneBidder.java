@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -30,7 +29,6 @@ import org.prebid.server.proto.openrtb.ext.request.undertone.ExtImpUndertone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -192,10 +190,11 @@ public class UndertoneBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid()
                 .stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, idImpMap), bidResponse.getCur()))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                bid, getBidType(bid, idImpMap), bidResponse.getCur())))
                 .toList();
     }
 

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -24,7 +23,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -72,16 +70,15 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+    private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         final BidType mediaType = getMediaType(bid);
         if (mediaType == null) {
             errors.add(BidderError.badServerResponse("Failed to parse impression \"%s\" mediatype"
@@ -97,7 +94,7 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
                 .adm(Strings.CS.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
                 .build();
 
-        return BidderBid.of(modifiedBid, mediaType, currency);
+        return BidderBid.of(originalSeat, modifiedBid, mediaType, currency);
     }
 
     private BidType getMediaType(Bid bid) {
@@ -115,4 +112,5 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
             return null;
         }
     }
+
 }

@@ -154,6 +154,45 @@ public class AjaBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldKeepValidBidAndSeatWhenOtherSeatsHaveNoBids() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final String body = """
+                {"cur":"USD","seatbid":[
+                  {"seat":"missing-bids"},
+                  {"seat":"buyer","bid":[{"id":"valid-bid","impid":"123","mtype":1}]},
+                  {"seat":"null-bids","bid":null}
+                ]}
+                """;
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, body);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getBid)
+                .containsExactly(Bid.builder().id("valid-bid").impid("123").mtype(1).build());
+        assertThat(result.getValue()).extracting(BidderBid::getOriginalSeat).containsExactly("buyer");
+    }
+
+    @Test
+    public void makeBidsShouldReturnNoBidsWhenEverySeatHasNoBids() {
+        // given
+        final String body = """
+                {"seatbid":[null,{"seat":"missing-bids"},{"bid":null},{"bid":[]}]}
+                """;
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, body);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "copper6"
+                "adaptercode": "copper6",
+                "seat": "adtelligent"
               }
             },
             "origbidcpm": 8.43
