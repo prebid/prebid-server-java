@@ -544,7 +544,7 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWhenAdmHasNoVastRootElement() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenAdmHasNoVastElement() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().impid("321").adm("<x><VASTAdTagURI>u</VASTAdTagURI></x>").build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
