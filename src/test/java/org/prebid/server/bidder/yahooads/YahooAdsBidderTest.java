@@ -530,9 +530,12 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldMatchVastWithLeadingWhitespaceAndMixedCase() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidWhenVastFollowsXmlDeclaration() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("321").adm("  <VaSt version=\"4.0\"></VaSt>").build();
+        final Bid bid = Bid.builder()
+                .impid("321")
+                .adm("<?xml version=\"1.0\" ?><VAST version=\"2.0\"><Ad></Ad></VAST>")
+                .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
 
         // when
@@ -544,9 +547,37 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnVideoBidWhenVastAttributesStartOnNextLine() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<VAST\n  version=\"4.0\"></VAST>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenVastTagIsLowercase() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<vast version=\"4.0\"></vast>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnBannerBidWhenAdmHasNoVastElement() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("321").adm("<x><VASTAdTagURI>u</VASTAdTagURI></x>").build();
+        final Bid bid = Bid.builder().impid("321").adm("<VASTAdTagURI>u</VASTAdTagURI>").build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
 
         // when

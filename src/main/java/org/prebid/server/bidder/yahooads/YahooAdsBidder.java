@@ -50,8 +50,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static final String GPP_PROPERTY = "gpp";
     private static final String GPP_SID_PROPERTY = "gpp_sid";
 
-    private static final Pattern VAST_MARKUP =
-            Pattern.compile("<\\s*VAST[\\s/>]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VAST_MARKUP = Pattern.compile("<VAST[ \\t\\r\\n/>]");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
