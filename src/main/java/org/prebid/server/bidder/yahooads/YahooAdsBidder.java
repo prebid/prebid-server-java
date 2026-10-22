@@ -17,6 +17,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -307,15 +308,16 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     }
 
     private static BidType resolveBidType(Bid bid, Imp imp) {
-        final Integer mtype = bid.getMtype();
-        if (mtype != null && mtype != 0) {
-            return switch (mtype) {
-                case 1 -> BidType.banner;
-                case 2 -> BidType.video;
-                default -> throw new PreBidException(
-                        "Unsupported mtype %d for bid '%s'".formatted(mtype, bid.getId()));
-            };
-        }
+        return switch (ObjectUtils.getIfNull(bid.getMtype(), 0)) {
+            case 0 -> resolveBidTypeFromImp(bid, imp);
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            default -> throw new PreBidException(
+                    "Unsupported mtype %d for bid '%s'".formatted(bid.getMtype(), bid.getId()));
+        };
+    }
+
+    private static BidType resolveBidTypeFromImp(Bid bid, Imp imp) {
         if (imp.getVideo() != null && (imp.getBanner() == null || isVast(bid.getAdm()))) {
             return BidType.video;
         }
