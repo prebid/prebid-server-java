@@ -391,6 +391,213 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnVideoBidWhenMtypeIsVideoOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").mtype(2).adm("<VAST version=\"4.0\"></VAST>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenMtypeIsBannerOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").mtype(1).adm("<div>ad</div>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldTreatZeroMtypeAsAbsent() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").mtype(0).adm("<VAST version=\"4.0\"></VAST>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorForUnsupportedMtypeAndKeepOtherBids() throws JsonProcessingException {
+        // given
+        final Bid audioBid = Bid.builder().id("audioBidId").impid("321").mtype(3).build();
+        final Bid nativeBid = Bid.builder().id("nativeBidId").impid("321").mtype(4).build();
+        final Bid videoBid = Bid.builder().id("videoBidId").impid("321").mtype(2).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), audioBid, nativeBid, videoBid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("Unsupported mtype 3 for bid 'audioBidId'"),
+                BidderError.badServerResponse("Unsupported mtype 4 for bid 'nativeBidId'"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(videoBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorForUnsupportedMtypeOnBannerOnlyImp() throws JsonProcessingException {
+        // given
+        final Bid bannerBid = Bid.builder().id("bannerBidId").impid("321").mtype(1).adm("<div>ad</div>").build();
+        final Bid nativeBid = Bid.builder().id("nativeBidId").impid("321").mtype(4).build();
+        final Imp bannerOnlyImp = Imp.builder().id("321").banner(Banner.builder().build()).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bannerOnlyImp, bannerBid, nativeBid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unsupported mtype 4 for bid 'nativeBidId'"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bannerBid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenNoMtypeAndAdmIsVastOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<VAST version=\"4.0\"></VAST>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenNoMtypeAndAdmIsHtmlOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<div>ad</div>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenVastFollowsXmlDeclaration() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder()
+                .impid("321")
+                .adm("<?xml version=\"1.0\" ?><VAST version=\"2.0\"><Ad></Ad></VAST>")
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenVastAttributesStartOnNextLine() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<VAST\n  version=\"4.0\"></VAST>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenVastTagIsLowercase() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<vast version=\"4.0\"></vast>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenAdmHasNoVastElement() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<VASTAdTagURI>u</VASTAdTagURI>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenAdmMentionsVastOnlyAsText() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<div>VAST</div>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenNoMtypeAndNoAdmOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenNoMtypeOnBannerOnlyImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<div>ad</div>").build();
+        final Imp bannerOnlyImp = Imp.builder().id("321").banner(Banner.builder().build()).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bannerOnlyImp, bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldPreserveTopLevel26RegsAndExtTypedFields() {
         // given
         final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
@@ -955,10 +1162,27 @@ public class YahooAdsBidderTest extends VertxTest {
                 .build();
     }
 
+    private static Imp givenMultiFormatImp() {
+        return Imp.builder()
+                .id("321")
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
+                .build();
+    }
+
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(Imp imp, Bid... bids) throws JsonProcessingException {
+        return givenHttpCall(
+                BidRequest.builder().imp(singletonList(imp)).build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder().bid(asList(bids)).build()))
+                        .build()));
     }
 }
