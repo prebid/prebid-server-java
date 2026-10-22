@@ -50,6 +50,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static final String GPP_PROPERTY = "gpp";
     private static final String GPP_SID_PROPERTY = "gpp_sid";
 
+    // VAST_MARKUP is a heuristic to find video bids without mtype on banner+video imps.
     private static final Pattern VAST_MARKUP = Pattern.compile("<VAST[ \\t\\r\\n/>]");
 
     private final String endpointUrl;
