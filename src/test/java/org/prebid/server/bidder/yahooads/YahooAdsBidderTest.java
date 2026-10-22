@@ -393,7 +393,7 @@ public class YahooAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidWhenMtypeIsVideoOnMultiFormatImp() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("321").mtype(2).adm("<div>ad</div>").build();
+        final Bid bid = Bid.builder().impid("321").mtype(2).adm("<VAST version=\"4.0\"></VAST>").build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
 
         // when
@@ -405,9 +405,9 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWhenMtypeIsBannerEvenIfAdmIsVast() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenMtypeIsBannerOnMultiFormatImp() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("321").mtype(1).adm("<VAST version=\"4.0\"></VAST>").build();
+        final Bid bid = Bid.builder().impid("321").mtype(1).adm("<div>ad</div>").build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
 
         // when
@@ -479,6 +479,20 @@ public class YahooAdsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(bid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenNoMtypeAndAdmIsHtmlOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("321").adm("<div>ad</div>").build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenMultiFormatImp(), bid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bid, banner, "USD"));
     }
 
     @Test
