@@ -516,6 +516,23 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorForUnsupportedMtypeOnBannerOnlyImp() throws JsonProcessingException {
+        // given
+        final Bid bannerBid = Bid.builder().id("bannerBidId").impid("321").mtype(1).adm("<div>ad</div>").build();
+        final Bid nativeBid = Bid.builder().id("nativeBidId").impid("321").mtype(4).build();
+        final Imp bannerOnlyImp = Imp.builder().id("321").banner(Banner.builder().build()).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bannerOnlyImp, bannerBid, nativeBid);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unsupported mtype 4 for bid 'nativeBidId'"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bannerBid, banner, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnVideoBidWhenNoMtypeAndAdmIsVastOnMultiFormatImp() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().impid("321").adm("<VAST version=\"4.0\"></VAST>").build();
@@ -617,9 +634,9 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWhenImpIsBannerOnlyEvenIfAdmIsVast() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenNoMtypeOnBannerOnlyImp() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("321").adm("<VAST version=\"4.0\"></VAST>").build();
+        final Bid bid = Bid.builder().impid("321").adm("<div>ad</div>").build();
         final Imp bannerOnlyImp = Imp.builder().id("321").banner(Banner.builder().build()).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(bannerOnlyImp, bid);
 
