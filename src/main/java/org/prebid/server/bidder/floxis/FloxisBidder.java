@@ -55,7 +55,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final Map<RequestTarget, List<Imp>> impsByTarget = new LinkedHashMap<>();
+        final Map<String, List<Imp>> impsByUrl = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
             final ExtImpFloxis impExt;
@@ -66,15 +66,13 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 continue;
             }
 
-            // Keyed on the resolved URL: an alias endpoint without {Host} must not split imps per region/partner.
-            final RequestTarget target = new RequestTarget(impExt.getSeat(), resolveUrl(impExt));
-            impsByTarget.computeIfAbsent(target, key -> new ArrayList<>()).add(imp);
+            impsByUrl.computeIfAbsent(resolveUrl(impExt), key -> new ArrayList<>()).add(imp);
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = impsByTarget.entrySet().stream()
+        final List<HttpRequest<BidRequest>> httpRequests = impsByUrl.entrySet().stream()
                 .map(entry -> BidderUtil.defaultRequest(
                         request.toBuilder().imp(entry.getValue()).build(),
-                        entry.getKey().url(),
+                        entry.getKey(),
                         mapper))
                 .toList();
 
@@ -200,8 +198,5 @@ public class FloxisBidder implements Bidder<BidRequest> {
             formats++;
         }
         return formats;
-    }
-
-    private record RequestTarget(String seat, String url) {
     }
 }
