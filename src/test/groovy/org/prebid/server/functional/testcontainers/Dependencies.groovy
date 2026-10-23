@@ -32,6 +32,7 @@ class Dependencies {
             .withUsername("prebid")
             .withPassword("prebid")
             .withInitScript("org/prebid/server/functional/db_psql_schema.sql")
+            .withEnv("POSTGRES_HOST_AUTH_METHOD", "trust")
             .withNetwork(network)
 
     static final InfluxDBContainer influxdbContainer = new InfluxDBContainer<>(DockerImageName.parse("influxdb:1.8.10"))
