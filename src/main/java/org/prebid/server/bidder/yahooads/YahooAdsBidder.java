@@ -264,6 +264,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse,
                                                BidRequest bidRequest,
                                                List<BidderError> errors) {
+
         final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
         if (seatBids == null) {
             return Collections.emptyList();
@@ -274,6 +275,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse,
                                                     List<Imp> imps,
                                                     List<BidderError> errors) {
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
