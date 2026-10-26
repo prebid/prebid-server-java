@@ -85,10 +85,6 @@
             <artifactId>vertx-uri-template</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.ongres.scram</groupId>
-            <artifactId>client</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
             <classifier>linux-x86_64</classifier>
