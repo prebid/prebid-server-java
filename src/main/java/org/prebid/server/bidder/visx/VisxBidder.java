@@ -17,7 +17,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.visx.model.VisxBid;
 import org.prebid.server.bidder.visx.model.VisxResponse;
-import org.prebid.server.bidder.visx.model.VisxSeatBid;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -28,7 +27,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -95,10 +93,10 @@ public class VisxBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, VisxResponse visxResponse) {
         return visxResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(VisxSeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(visxBid -> toBidderBid(bidRequest, visxBid, visxResponse.getCur()))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .map(visxBid -> BidderBid.of(seatBid.getSeat(),
+                                toBidderBid(bidRequest, visxBid, visxResponse.getCur()))))
                 .toList();
     }
 

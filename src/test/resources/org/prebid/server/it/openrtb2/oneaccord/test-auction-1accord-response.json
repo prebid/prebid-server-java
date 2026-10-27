@@ -18,7 +18,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "1accord"
+                "adaptercode": "1accord",
+                "seat": "seatId00"
               }
             },
             "bidType": "banner"

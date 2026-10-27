@@ -20,7 +20,6 @@ import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.request.GridNative;
 import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.bidder.grid.model.response.GridBidResponse;
-import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -41,7 +40,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -239,19 +237,20 @@ public class GridBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, GridBidResponse gridBidResponse) {
         return gridBidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(GridSeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur()))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur(),
+                                seatBid.getSeat())))
                 .toList();
     }
 
-    private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {
+    private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency, String originalSeat) {
         try {
             final Bid bid = mapper.mapper().treeToValue(bidNode, Bid.class);
             final Bid modifiedBid = bid.toBuilder().adm(modifyAdm(bidNode, bid)).ext(modifyBidExt(bidNode)).build();
 
-            return BidderBid.of(modifiedBid, resolveBidType(bidNode, bid.getImpid(), imps), currency);
+            return BidderBid.of(originalSeat, modifiedBid, resolveBidType(bidNode, bid.getImpid(), imps), currency);
         } catch (JsonProcessingException | IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }

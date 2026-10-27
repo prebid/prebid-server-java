@@ -1833,6 +1833,77 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddOriginalSeatToBidMetaWhenDifferentFromOutputSeat() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid(IMP_ID).build();
+        final BidderBid bidderBid = BidderBid.of(bid, banner, "outputSeat", "USD")
+                .toBuilder().originalSeat("sourceSeat").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "bidder", givenSeatBid(bidderBid), 100));
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).singleElement()
+                .satisfies(seatBid -> {
+                    assertThat(seatBid.getSeat()).isEqualTo("outputSeat");
+                    assertThat(seatBid.getBid()).singleElement()
+                            .satisfies(responseBid -> assertThat(responseBid.getExt()
+                                    .path("prebid").path("meta").path("seat").asText()).isEqualTo("sourceSeat"));
+                });
+    }
+
+    @Test
+    public void shouldPreserveAdapterMetaSeatWhenOriginalSeatIsPresent() {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode();
+        bidExt.putObject("prebid").putObject("meta")
+                .put("seat", "adapterSeat")
+                .put("advertiserName", "advertiser");
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid(IMP_ID).ext(bidExt).build();
+        final BidderBid bidderBid = BidderBid.of(bid, banner, "outputSeat", "USD")
+                .toBuilder().originalSeat("sourceSeat").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "bidder", givenSeatBid(bidderBid), 100));
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        final JsonNode meta = bidResponse.getSeatbid().getFirst().getBid().getFirst()
+                .getExt().path("prebid").path("meta");
+        assertThat(meta.path("seat").asText()).isEqualTo("adapterSeat");
+        assertThat(meta.path("advertiserName").asText()).isEqualTo("advertiser");
+    }
+
+    @Test
+    public void shouldOmitOriginalSeatMetaWhenItMatchesOutputSeat() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid(IMP_ID).build();
+        final BidderBid bidderBid = BidderBid.of(bid, banner, "outputSeat", "USD")
+                .toBuilder().originalSeat("outputSeat").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "bidder", givenSeatBid(bidderBid), 100));
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid().getFirst().getBid().getFirst()
+                .getExt().path("prebid").path("meta").has("seat")).isFalse();
+    }
+
+    @Test
     public void shouldPassPreferDealsToWinningComparatorFactoryWhenBidRequestTrue() {
         // given
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();

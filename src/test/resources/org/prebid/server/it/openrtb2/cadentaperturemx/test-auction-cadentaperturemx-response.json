@@ -17,7 +17,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "cadent_aperture_mx"
+                "adaptercode": "cadent_aperture_mx",
+                "seat": "12356"
               }
             },
             "origbidcpm": 2.942808,

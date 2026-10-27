@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -30,7 +29,6 @@ import org.prebid.server.util.Uri;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -99,18 +97,17 @@ public class AdotBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> createBidderBid(bid, bidResponse))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> createBidderBid(bid, bidResponse, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid createBidderBid(Bid bid, BidResponse bidResponse) {
+    private BidderBid createBidderBid(Bid bid, BidResponse bidResponse, String originalSeat) {
         try {
-            return BidderBid.of(resolveMacros(bid), getBidType(bid), bidResponse.getCur());
+            return BidderBid.of(originalSeat, resolveMacros(bid), getBidType(bid), bidResponse.getCur());
         } catch (PreBidException e) {
             return null;
         }
@@ -150,4 +147,5 @@ public class AdotBidder implements Bidder<BidRequest> {
             throw new PreBidException("Wrong Adot bid ext in bid with id : " + bid.getId());
         }
     }
+
 }

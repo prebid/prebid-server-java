@@ -17,7 +17,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "taboola"
+                "adaptercode": "taboola",
+                "seat": "adtelligent"
               }
             }
           }
@@ -36,7 +37,8 @@
             "prebid": {
               "type": "native",
               "meta": {
-                "adaptercode": "taboola"
+                "adaptercode": "taboola",
+                "seat": "adtelligent"
               }
             }
           }

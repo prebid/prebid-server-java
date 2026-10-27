@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -53,7 +52,6 @@ import org.prebid.server.util.StreamUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -549,15 +547,16 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidderErrors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                    .filter(Objects::nonNull)
+                    .map(bid -> resolveBidderBid(
+                            bid, bidResponse.getCur(), bidderErrors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> bidderErrors) {
+    private BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> bidderErrors, String originalSeat) {
         final List<String> cat = bid.getCat();
         final List<String> firstCat = CollectionUtils.isNotEmpty(cat)
                 ? Collections.singletonList(cat.getFirst())
@@ -583,6 +582,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         return BidderBid.builder()
                 .bid(updatedBid)
+                .originalSeat(originalSeat)
                 .type(bidType)
                 .bidCurrency(currency)
                 .dealPriority(getDealPriority(pubmaticBidExt))

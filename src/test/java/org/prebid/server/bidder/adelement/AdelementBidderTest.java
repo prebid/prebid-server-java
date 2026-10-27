@@ -3,6 +3,7 @@ package org.prebid.server.bidder.adelement;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
@@ -80,6 +81,44 @@ public class AdelementBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Bad Server Response"));
+    }
+
+    @Test
+    public void makeBidsShouldKeepValidBidAndSeatWhenOtherSeatsHaveNoBids() {
+        // given
+        final String body = """
+                {"cur":"USD","seatbid":[
+                  {"seat":"missing-bids"},
+                  {"seat":"buyer","bid":[{"id":"valid-bid","impid":"123","mtype":1}]},
+                  {"seat":"null-bids","bid":null}
+                ]}
+                """;
+        final BidderCall<BidRequest> httpCall = givenHttpCall(body);
+
+        // when
+        final Result<List<BidderBid>> result = adelementBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getBid)
+                .containsExactly(Bid.builder().id("valid-bid").impid("123").mtype(1).build());
+        assertThat(result.getValue()).extracting(BidderBid::getOriginalSeat).containsExactly("buyer");
+    }
+
+    @Test
+    public void makeBidsShouldReturnNoBidsWhenEverySeatHasNoBids() {
+        // given
+        final String body = """
+                {"seatbid":[null,{"seat":"missing-bids"},{"bid":null},{"bid":[]}]}
+                """;
+        final BidderCall<BidRequest> httpCall = givenHttpCall(body);
+
+        // when
+        final Result<List<BidderBid>> result = adelementBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {

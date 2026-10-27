@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -30,7 +29,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -189,11 +187,11 @@ public class BeintooBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
                 .map(bid -> bid.toBuilder().impid(bid.getId()).build())
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(seatBid.getSeat(), bid, BidType.banner, bidResponse.getCur())))
                 .toList();
     }
 }

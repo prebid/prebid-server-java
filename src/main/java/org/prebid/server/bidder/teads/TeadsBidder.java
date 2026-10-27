@@ -131,8 +131,11 @@ public class TeadsBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid()
                 .stream()
-                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
-                .map(bid -> makeBid(impMap, bid, bidResponse.getCur()))
+                .filter(java.util.Objects::nonNull)
+                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream()
+                        .filter(java.util.Objects::nonNull)
+                        .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                makeBid(impMap, bid, bidResponse.getCur()))))
                 .toList();
     }
 

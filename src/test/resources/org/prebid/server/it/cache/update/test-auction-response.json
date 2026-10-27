@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "generic"
+                "adaptercode": "generic",
+                "seat": "seatId2"
               },
               "targeting": {
                 "hb_pb": "4.20",
@@ -49,7 +50,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "genericAlias"
+                "adaptercode": "genericAlias",
+                "seat": "seatId2"
               },
               "targeting": {
                 "hb_pb": "3.00",

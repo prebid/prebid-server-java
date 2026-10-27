@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.aja.proto.ExtImpAja;
@@ -23,7 +22,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -112,19 +110,20 @@ public class AjaBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors, bidResponse.getCur()))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors, bidResponse.getCur(), seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
         return Result.of(bidderBids, errors);
     }
 
-    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors, String currency) {
+    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors, String currency,
+            String originalSeat) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), imps, bid.getId());
-            return BidderBid.of(bid, bidType, currency);
+            return BidderBid.of(originalSeat, bid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
@@ -143,4 +142,5 @@ public class AjaBidder implements Bidder<BidRequest> {
         }
         throw new PreBidException("Response received for unexpected type of bid bidID: " + bidId);
     }
+
 }

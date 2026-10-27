@@ -7,7 +7,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -25,7 +24,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -103,18 +101,18 @@ public class ColossusBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors,
+            String originalSeat) {
         try {
-            return BidderBid.of(bid, resolveBidType(bid.getExt(), bid.getImpid(), imps), currency);
+            return BidderBid.of(originalSeat, bid, resolveBidType(bid.getExt(), bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -143,4 +141,5 @@ public class ColossusBidder implements Bidder<BidRequest> {
 
         throw new PreBidException("Failed to find impression for ID: " + impId);
     }
+
 }

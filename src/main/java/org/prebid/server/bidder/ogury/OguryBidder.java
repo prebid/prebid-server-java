@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -194,18 +193,17 @@ public class OguryBidder implements Bidder<BidRequest> {
                 .stream()
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> createBidderBid(bid, bidResponse, errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> createBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid createBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
+    private BidderBid createBidderBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         try {
-            return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
+            return BidderBid.of(originalSeat, bid, getBidType(bid), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;

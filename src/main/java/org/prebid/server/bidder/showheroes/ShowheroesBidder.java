@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
@@ -36,7 +35,6 @@ import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -199,11 +197,10 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                bid, getBidType(bid), bidResponse.getCur())))
                 .filter(Objects::nonNull)
                 .toList();
     }
