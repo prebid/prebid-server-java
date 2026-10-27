@@ -24,21 +24,21 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "sspbc"
+                "adaptercode": "gopl"
               }
             },
             "origbidcpm": 3.33
           }
         }
       ],
-      "seat": "sspbc",
+      "seat": "gopl",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "sspbc": "{{ sspbc.response_time_ms }}"
+      "gopl": "{{ gopl.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
