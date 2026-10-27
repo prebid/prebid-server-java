@@ -537,22 +537,34 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenBidImpIdNotFound() throws Exception {
+    public void makeBidsShouldReturnErrorWhenBidImpIdIsNotInOutgoingRequest() throws Exception {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp-1").banner(Banner.builder().build()).build()))
+                .imp(asList(givenImp(imp -> imp.id("imp-1")), givenImp(imp -> imp.id("imp-2"))))
                 .build();
-        final BidResponse bidResponse = givenBidResponse(Bid.builder().impid("no-such-imp").build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+        final BidRequest outgoingRequest = bidRequest.toBuilder()
+                .imp(singletonList(bidRequest.getImp().getFirst()))
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(asList(
+                                Bid.builder().impid("imp-1").mtype(1).build(),
+                                Bid.builder().impid("imp-2").mtype(1).build()))
+                        .build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(outgoingRequest, mapper.writeValueAsString(bidResponse));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse(
-                        "unable to find impression no-such-imp for bid"));
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getImpid)
+                .containsExactly("imp-1");
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("unable to find impression imp-2 for bid"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
