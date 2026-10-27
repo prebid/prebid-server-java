@@ -588,6 +588,83 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfBannerHasNoSizesAndNoFormat() {
+        // given - non-interstitial banner with no W/H and no format: should error
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No sizes provided for Banner"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfBannerHasOnlyOneDimensionAndNoFormat() {
+        // given - banner with w=300, h=null, no format, adSlot without size: should error
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().w(300).build()),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No sizes provided for Banner"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotReturnErrorForInterstitialBannerWithNoSizes() {
+        // given - per OpenRTB 2.6, banner sizes are optional for interstitial imps (instl=1)
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .instl(1)
+                        .banner(Banner.builder().build()),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAllowBannerWithNoFormatWhenAdSlotProvidesSize() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        // Default givenBidRequest adSlot is "slot@300x250", so dimensions come from adSlot
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW)
+                .containsExactly(300);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getH)
+                .containsExactly(250);
+    }
+
+
+
+    @Test
     public void makeHttpRequestsShouldSetTagIdForBannerImpsWithSymbolsFromAdSlotBeforeAtSign() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
