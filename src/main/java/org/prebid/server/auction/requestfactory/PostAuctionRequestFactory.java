@@ -34,10 +34,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Used in OpenRTB request processing.
- */
-public class AuctionRequestFactory {
+public class PostAuctionRequestFactory {
+
+    private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -55,23 +54,21 @@ public class AuctionRequestFactory {
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
     private final BidAdjustmentsEnricher bidAdjustmentsEnricher;
 
-    private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
-
-    public AuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
-                                 StoredRequestProcessor storedRequestProcessor,
-                                 ProfilesProcessor profilesProcessor,
-                                 BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                                 AuctionGppService gppService,
-                                 CookieDeprecationService cookieDeprecationService,
-                                 ImplicitParametersExtractor paramsExtractor,
-                                 Ortb2ImplicitParametersResolver paramsResolver,
-                                 InterstitialProcessor interstitialProcessor,
-                                 OrtbTypesResolver ortbTypesResolver,
-                                 AuctionPrivacyContextFactory auctionPrivacyContextFactory,
-                                 DebugResolver debugResolver,
-                                 JacksonMapper mapper,
-                                 GeoLocationServiceWrapper geoLocationServiceWrapper,
-                                 BidAdjustmentsEnricher bidAdjustmentsEnricher) {
+    public PostAuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
+                                     StoredRequestProcessor storedRequestProcessor,
+                                     ProfilesProcessor profilesProcessor,
+                                     BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
+                                     AuctionGppService gppService,
+                                     CookieDeprecationService cookieDeprecationService,
+                                     ImplicitParametersExtractor paramsExtractor,
+                                     Ortb2ImplicitParametersResolver paramsResolver,
+                                     InterstitialProcessor interstitialProcessor,
+                                     OrtbTypesResolver ortbTypesResolver,
+                                     AuctionPrivacyContextFactory auctionPrivacyContextFactory,
+                                     DebugResolver debugResolver,
+                                     JacksonMapper mapper,
+                                     GeoLocationServiceWrapper geoLocationServiceWrapper,
+                                     BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -90,9 +87,6 @@ public class AuctionRequestFactory {
         this.bidAdjustmentsEnricher = Objects.requireNonNull(bidAdjustmentsEnricher);
     }
 
-    /**
-     * Creates {@link AuctionContext} and parses BidRequest based on {@link RoutingContext}.
-     */
     public Future<AuctionContext> parseRequest(RoutingContext routingContext, long startTime) {
         final String body;
         try {
@@ -112,9 +106,6 @@ public class AuctionRequestFactory {
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
-    /**
-     * Enriches {@link AuctionContext}.
-     */
     public Future<AuctionContext> enrichAuctionContext(AuctionContext initialContext) {
         if (initialContext.isRequestRejected()) {
             return Future.succeededFuture(initialContext);
@@ -228,10 +219,6 @@ public class AuctionRequestFactory {
                 .build();
     }
 
-    /**
-     * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
-     * updated by values derived from headers and other request attributes.
-     */
     private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
