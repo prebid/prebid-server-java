@@ -1378,6 +1378,8 @@ public class ExchangeService {
                                            Map<String, Future<BidderResponse>> bidderToFutureResponse) {
 
         final Map<String, BidRejectionTracker> mergedBidRejectionTrackers = newBidRejectionTrackers.keySet().stream()
+                .filter(bidder -> bidderToFutureResponse.containsKey(bidder)
+                        || auctionContext.getBidRejectionTrackers().containsKey(bidder))
                 .collect(Collectors.toMap(Function.identity(), bidder -> mergeBidRejectionTrackersForSingleBidder(
                         bidderToFutureResponse.get(bidder),
                         auctionContext.getBidRejectionTrackers().get(bidder),

@@ -4545,6 +4545,34 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldIgnoreCopiedBidRejectionTrackersWithoutOriginalTrackerOrBidderFuture() {
+        // given
+        given(bidderRequestPostProcessor.process(any(), any(), any()))
+                .willAnswer(invocation -> {
+                    final AuctionContext bidderContext = invocation.getArgument(2);
+                    bidderContext.getBidRejectionTrackers().put("copiedOnlyBidder",
+                            new BidRejectionTracker("copiedOnlyBidder", Set.of("impId1"), 0.0));
+                    return Future.succeededFuture(
+                            BidderRequestPostProcessingResult.withValue(invocation.getArgument(0)));
+                });
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), any(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(Map.of("testBidder", 1)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result().getBidRejectionTrackers()).containsOnlyKeys("testBidder");
+        assertThat(result.result().getBidRejectionTrackers().get("testBidder").getRejected())
+                .extracting(Rejection::reason)
+                .containsExactly(BidRejectionReason.NO_BID);
+    }
+
+    @Test
     public void shouldRetainBidRejectionsForBiddersThatWereRejectedBeforeBidderFutureSplit() {
         // given
         final BidderPrivacyResult restrictedPrivacy = BidderPrivacyResult.builder()
