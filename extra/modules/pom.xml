@@ -29,6 +29,7 @@
         <module>optable-targeting</module>
         <module>wurfl-devicedetection</module>
         <module>live-intent-omni-channel-identity</module>
+        <module>intentiq-identity</module>
     </modules>
 
     <dependencyManagement>
