@@ -12,6 +12,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AuctionRequestCleanerTest extends BaseOptableTest {
 
     @Test
+    public void shouldReturnSameCleanerInstance() {
+        // when and then
+        assertThat(AuctionRequestCleaner.instance()).isSameAs(AuctionRequestCleaner.instance());
+    }
+
+    @Test
     public void shouldRemoveUserExtOptableTag() {
         // given
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(givenBidRequest(bidRequest ->
@@ -53,5 +59,60 @@ public class AuctionRequestCleanerTest extends BaseOptableTest {
                     assertThat(optable.has("email")).isFalse();
                     assertThat(optable.has("id5_signature")).isFalse();
                 });
+    }
+
+    @Test
+    public void shouldKeepOtherUserExtProperties() {
+        // given
+        final User user = givenUser();
+        user.getExt().addProperty("other", com.fasterxml.jackson.databind.node.TextNode.valueOf("value"));
+
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(givenBidRequest(bidRequest ->
+                bidRequest.user(user)));
+
+        // when
+        final AuctionRequestPayload result = AuctionRequestCleaner.instance().apply(auctionRequestPayload);
+
+        // then
+        assertThat(result).extracting(AuctionRequestPayload::bidRequest)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .extracting(it -> it.getProperty("other"))
+                .isEqualTo(com.fasterxml.jackson.databind.node.TextNode.valueOf("value"));
+    }
+
+    @Test
+    public void shouldNotModifyOriginalRequestWhenCleaning() {
+        // given
+        final User user = givenUser();
+        final BidRequest bidRequest = givenBidRequest(request -> request.user(user));
+
+        // when
+        final AuctionRequestPayload result = AuctionRequestCleaner.instance()
+                .apply(AuctionRequestPayloadImpl.of(bidRequest));
+
+        // then
+        assertThat(result.bidRequest()).isNotSameAs(bidRequest);
+        assertThat(result.bidRequest().getUser()).isNotSameAs(user);
+        final com.fasterxml.jackson.databind.node.ObjectNode originalOptable =
+                (com.fasterxml.jackson.databind.node.ObjectNode) user.getExt().getProperty("optable");
+        assertThat(originalOptable.has("email")).isTrue();
+        assertThat(originalOptable.has("phone")).isTrue();
+        assertThat(originalOptable.has("zip")).isTrue();
+        assertThat(originalOptable.has("vid")).isTrue();
+    }
+
+    @Test
+    public void shouldReturnSameBidRequestWhenUserExtHasNoOptable() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request ->
+                request.user(User.builder().build()));
+
+        // when
+        final AuctionRequestPayload result = AuctionRequestCleaner.instance()
+                .apply(AuctionRequestPayloadImpl.of(bidRequest));
+
+        // then
+        assertThat(result.bidRequest()).isSameAs(bidRequest);
     }
 }
