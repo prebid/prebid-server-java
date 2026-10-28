@@ -168,17 +168,17 @@ public class MobilefuseBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt, Imp::getTagid)
-                .containsExactly(tuple(null, "1"));
+                .extracting(Imp::getTagid)
+                .containsExactly("1");
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpWithAddingSkadnWhenSkadnIsPresent() {
+    public void makeHttpRequestsShouldPassImpExtThrough() {
         // given
-        final ObjectNode skadn = mapper.createObjectNode().put("something", "something");
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.valueToTree(ExtImpMobilefuse.of(1)));
-        impExt.set("skadn", skadn);
+        impExt.set("skadn", mapper.createObjectNode().put("something", "something"));
+        impExt.put("gpid", "/1234/home#div-banner");
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder().build()).ext(impExt));
 
@@ -186,13 +186,12 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedImpExt = mapper.createObjectNode().set("skadn", skadn);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt, Imp::getTagid)
-                .containsExactly(tuple(expectedImpExt, "1"));
+                .containsExactly(tuple(impExt, "1"));
     }
 
     @Test
