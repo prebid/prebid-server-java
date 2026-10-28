@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 public class BidderEnrichmentSampler {
 
     private static final String PREBID_BIDDER_PATH = "/prebid/bidder";
-    private static final int DEFAULT_ENRICHMENT_PERCENTAGE = 100;
 
     private final BidderCatalog bidderCatalog;
 
