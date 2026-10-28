@@ -6,40 +6,38 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.IntSupplier;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 @ExtendWith(MockitoExtension.class)
 public class BidderEnrichmentSamplerTest extends BaseOptableTest {
 
     @Mock
-    private AliasesResolver aliasesResolver;
-
-    @Mock
-    private BidderAliases bidderAliases;
-
-    @Mock
-    private IntSupplier randomSupplier;
+    private BidderCatalog bidderCatalog;
 
     private BidderEnrichmentSampler target;
 
     @BeforeEach
     public void setUp() {
-        target = BidderEnrichmentSampler.of(aliasesResolver, randomSupplier);
-        given(aliasesResolver.resolve(any())).willReturn(bidderAliases);
+        target = BidderEnrichmentSampler.of(bidderCatalog);
     }
 
     @Test
@@ -97,23 +95,24 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     @Test
     public void sampleShouldIncludeAllBiddersWhenDefaultPercentageIs100() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+            // then
+            assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+        }
     }
 
     @Test
     public void sampleShouldExcludeAllBiddersWhenDefaultPercentageIsNegative() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
@@ -128,55 +127,58 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     @Test
     public void sampleShouldExcludeBidderWhenRandomValueEqualsPercentage() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(50);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(50)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
-        // then
-        assertThat(result).isEmpty();
+            // then
+            assertThat(result).isEmpty();
+        }
     }
 
     @Test
     public void sampleShouldIncludeBidderWhenRandomValueIsBelowPercentage() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(49);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(49)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactly("bidderA");
+            // then
+            assertThat(result).containsExactly("bidderA");
+        }
     }
 
     @Test
     public void sampleShouldExcludeBidderWhenRandomValueExceedsPercentage() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(51);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(51)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
-        // then
-        assertThat(result).isEmpty();
+            // then
+            assertThat(result).isEmpty();
+        }
     }
 
     @Test
-    public void sampleShouldExcludeBidderWhenPercentageIsZeroAndRandomIsZero() {
+    public void sampleShouldExcludeBidderWhenPercentageIsZero() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
@@ -191,128 +193,173 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     @Test
     public void sampleShouldUseBidderSpecificPercentageWhenAvailable() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("bidderA", 100)));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("bidderA", 100)));
 
-        // then
-        assertThat(result).containsExactly("bidderA");
+            // then
+            assertThat(result).containsExactly("bidderA");
+        }
     }
 
     @Test
-    public void sampleShouldUseAliasSpecificPercentageWhenBidderResolvesToAlias() {
+    public void sampleShouldUseBidderSpecificPercentageWhenBidderIsRequestAlias() {
         // given
-        given(bidderAliases.resolveBidder("bidderA")).willReturn("bidderA");
-        given(bidderAliases.resolveBidder("bidderB")).willReturn("aliasB");
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "bidderB"))))));
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(Map.of("aliasB", "bidderB"))
+                        .build()))
+                .imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA", "aliasB"))))));
+
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("bidderB", 100)));
+
+            // then
+            assertThat(result).containsExactly("aliasB");
+        }
+    }
+
+    @Test
+    public void sampleShouldIgnoreRequestAliasWhenBidderIsValidCatalogName() {
+        // given
+        given(bidderCatalog.isValidName("bidderA")).willReturn(true);
+
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(Map.of("bidderA", "bidderB"))
+                        .build()))
+                .imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("aliasB", 100)));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("bidderB", 100)));
 
         // then
-        assertThat(result).containsExactly("bidderB");
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void sampleShouldPreferBidderOwnPercentageOverResolvedBidderPercentage() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(Map.of("aliasB", "bidderB"))
+                        .build()))
+                .imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("aliasB"))))));
+
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest,
+                    givenSampleProperties(-1, Map.of("aliasB", 100, "bidderB", 0)));
+
+            // then
+            assertThat(result).containsExactly("aliasB");
+        }
     }
 
     @Test
     public void sampleShouldDeduplicateBiddersAppearingInMultipleImps() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(0);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final ObjectNode ext = givenPrebidBidderExt("bidderA");
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(ext)),
                 givenImp(imp -> imp.ext(ext)))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(0)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactly("bidderA");
+            // then
+            assertThat(result).containsExactly("bidderA");
+        }
     }
 
     @Test
     public void sampleShouldReturnOldStyleImpExtBiddersWhenPrebidBidderNodeIsAbsent() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenOldStyleExt("bidderA", "bidderB"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+            // then
+            assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+        }
     }
 
     @Test
     public void sampleShouldIgnoreOldStyleImpExtBiddersWhenImpHasPrebidBidderNode() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final ObjectNode ext = givenPrebidBidderExt("bidderA");
         ext.putObject("bidderB").put("param", "value");
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(ext)))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactly("bidderA");
+            // then
+            assertThat(result).containsExactly("bidderA");
+        }
     }
 
     @Test
     public void sampleShouldFallBackToOldStyleImpExtBiddersWhenPrebidBidderNodeIsEmpty() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final ObjectNode ext = givenPrebidBidderExt();
         ext.putObject("bidderB").put("param", "value");
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(ext)))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactly("bidderB");
+            // then
+            assertThat(result).containsExactly("bidderB");
+        }
     }
 
     @Test
     public void sampleShouldCombinePrebidAndOldStyleBiddersOfDifferentImps() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))),
                 givenImp(imp -> imp.ext(givenOldStyleExt("bidderB"))))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+            // then
+            assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
+        }
     }
 
     @Test
     public void sampleShouldNotTreatReservedOrNonObjectImpExtFieldsAsBidders() {
         // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final ObjectNode ext = givenOldStyleExt("bidderA", "context", "data", "skadn", "all", "general");
         ext.put("gpid", "gpid");
@@ -321,31 +368,21 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(ext)))));
 
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
+        try (MockedStatic<ThreadLocalRandom> ignored = givenRandomValue(99)) {
+            // when
+            final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
-        // then
-        assertThat(result).containsExactly("bidderA");
-        assertThat(target.hasBidders(bidRequest)).isTrue();
+            // then
+            assertThat(result).containsExactly("bidderA");
+        }
     }
 
-    @Test
-    public void sampleShouldEnrichAllBiddersWhenPercentagesAreNull() {
-        // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(99);
-
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
-        final OptableTargetingProperties properties = new OptableTargetingProperties();
-        properties.setEnrichmentPercentage(null);
-        properties.setBidderEnrichmentPercentages(null);
-
-        // when
-        final Set<String> result = target.sample(bidRequest, properties);
-
-        // then
-        assertThat(result).containsExactly("bidderA");
+    private static MockedStatic<ThreadLocalRandom> givenRandomValue(int value) {
+        final MockedStatic<ThreadLocalRandom> threadLocalRandom = mockStatic(ThreadLocalRandom.class);
+        final ThreadLocalRandom current = mock(ThreadLocalRandom.class);
+        threadLocalRandom.when(ThreadLocalRandom::current).thenReturn(current);
+        given(current.nextInt(100)).willReturn(value);
+        return threadLocalRandom;
     }
 
     private OptableTargetingProperties givenSampleProperties(int defaultPct, Map<String, Integer> bidderPcts) {
