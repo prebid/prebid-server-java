@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.smartadserver;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
@@ -20,4 +21,13 @@ public class ExtImpSmartadserver {
 
     @JsonProperty(value = "programmaticGuaranteed", access = JsonProperty.Access.WRITE_ONLY)
     boolean programmaticGuaranteed;
+
+    @JsonProperty(value = "placementuuid", access = JsonProperty.Access.WRITE_ONLY)
+    String placementUuid;
+
+    @JsonProperty(value = "plcmtuuid", access = JsonProperty.Access.READ_ONLY)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getPlcmtuuid() {
+        return placementUuid;
+    }
 }

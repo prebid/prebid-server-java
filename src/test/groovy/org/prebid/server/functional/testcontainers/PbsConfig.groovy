@@ -36,6 +36,8 @@ LIMIT 1
             "metrics.prefix"                             : "prebid",
             "status-response"                            : "ok",
             "gdpr.default-value"                         : "0",
+            "gdpr.vendorlist.v2.http-endpoint-template"  : "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
+            "gdpr.vendorlist.v3.http-endpoint-template"  : "$networkServiceContainer.rootUri/v3/vendor-list.json".toString(),
             "settings.database.account-query"            : DB_ACCOUNT_QUERY,
             "settings.database.stored-requests-query"    : "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impId, impData, 'imp' as dataType FROM stored_imps WHERE impId IN (%IMP_ID_LIST%)",
             "settings.database.amp-stored-requests-query": "SELECT accountId, reqId, requestData, 'request' as dataType FROM stored_requests WHERE reqId IN (%REQUEST_ID_LIST%)",

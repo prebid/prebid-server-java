@@ -807,7 +807,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
-        def reversedBidPrice = impPrice / bidAdjustmentFactorsPrice
+        def reversedBidPrice = PBSUtils.divide(impPrice, bidAdjustmentFactorsPrice, FLOOR_VALUE_PRECISION)
         assert bidderRequest.imp.bidFloor == [getReverseAdjustedPrice(reversedBidPrice, adjustmentRule.value, adjustmentType)]
 
         where:

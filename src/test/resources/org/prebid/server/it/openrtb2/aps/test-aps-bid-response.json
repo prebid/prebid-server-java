@@ -1,0 +1,18 @@
+{
+  "id": "tid",
+  "cur": "USD",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.5,
+          "adm": "<div>banner ad</div>",
+          "crid": "creative-1",
+          "mtype": 1
+        }
+      ]
+    }
+  ]
+}
