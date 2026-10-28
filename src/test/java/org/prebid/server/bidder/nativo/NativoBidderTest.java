@@ -264,6 +264,108 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getValue().getFirst().getBid().getExt()).isEqualTo(invalidExt);
     }
 
+    @Test
+    public void makeBidsShouldReturnNativeBidWhenMtypeIsNativeOnBannerAndNativeImp() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
+                .banner(Banner.builder().build())
+                .xNative(Native.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 4);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenMtypeIsBannerOnBannerAndVideoImp() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
+                .banner(Banner.builder().build())
+                .video(Video.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 1);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenMtypeIsVideoOnVideoAndNativeImp() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
+                .video(Video.builder().build())
+                .xNative(Native.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 2);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidWhenMtypeIsNativeOnBannerVideoAndNativeImp()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
+                .xNative(Native.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 4);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidWhenMtypeIsAudio() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(Banner.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 3);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.audio, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidTypeFromImpWhenMtypeIsUnrecognized() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
+                .banner(Banner.builder().build())
+                .xNative(Native.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 7);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.banner, "USD"));
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return BidRequest.builder()
                 .imp(singletonList(impCustomizer.apply(Imp.builder().id("imp1")).build()))
@@ -282,11 +384,16 @@ public class NativoBidderTest extends VertxTest {
     }
 
     private static Bid givenBid(String id, String impId) {
+        return givenBid(id, impId, null);
+    }
+
+    private static Bid givenBid(String id, String impId, Integer mtype) {
         return Bid.builder()
                 .id(id)
                 .impid(impId)
                 .price(BigDecimal.valueOf(1.5))
                 .adm("adm001")
+                .mtype(mtype)
                 .build();
     }
 
