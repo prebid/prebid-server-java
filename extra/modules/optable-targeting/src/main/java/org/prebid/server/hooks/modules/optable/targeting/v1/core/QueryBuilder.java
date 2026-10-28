@@ -5,14 +5,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -26,12 +29,42 @@ public class QueryBuilder {
     private QueryBuilder() {
     }
 
-    public static Query build(List<Id> ids, OptableAttributes optableAttributes, String idPrefixOrder) {
+    public static Query build(List<Id> ids, OptableAttributes optableAttributes,
+                              OptableTargetingProperties properties) {
+
         if (CollectionUtils.isEmpty(ids) && CollectionUtils.isEmpty(optableAttributes.getIps())) {
             return null;
         }
 
-        return Query.of(buildIdsString(ids, idPrefixOrder), buildAttributesString(optableAttributes));
+        final String idPrefixOrder = properties.getIdPrefixOrder();
+        final String hidPrefixes = properties.getHidPrefixes();
+        return Query.of(
+                buildIdsString(ids, idPrefixOrder),
+                buildHidString(ids, hidPrefixes),
+                buildAttributesString(optableAttributes),
+                buildHidAttributesString(optableAttributes));
+    }
+
+    private static String buildHidString(List<Id> ids, String hidPrefixesString) {
+        if (CollectionUtils.isEmpty(ids) || StringUtils.isEmpty(hidPrefixesString)) {
+            return StringUtils.EMPTY;
+        }
+        final Map<String, Id> prefixToIdValue = ids.stream()
+                .collect(Collectors.toMap(Id::getName, it -> it, (a, b) -> b));
+
+        final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
+                .map(String::trim)
+                .filter(StringUtils::isNotEmpty)
+                .map(prefixToIdValue::get)
+                .filter(Objects::nonNull)
+                .map(it -> String.format(
+                        "hid=%s:%s", it.getName(), URLEncoder.encode(it.getValue(), StandardCharsets.UTF_8)))
+                .collect(Collectors.joining("&"));
+        if (StringUtils.isEmpty(hidParameters)) {
+            return StringUtils.EMPTY;
+        }
+
+        return "&" + hidParameters;
     }
 
     private static String buildIdsString(List<Id> ids, String idPrefixOrder) {
@@ -39,14 +72,15 @@ public class QueryBuilder {
             return StringUtils.EMPTY;
         }
 
-        final List<Id> reorderedIds = reorderIds(ids, idPrefixOrder);
+        final List<Id> reorderedIds = reorderIds(ids, idPrefixOrder)
+                .stream()
+                .filter(id -> !Id.DEVICE_IP_V_6.equals(id.getName()))
+                .toList();
 
         final StringBuilder sb = new StringBuilder();
         for (Id id : reorderedIds) {
             sb.append("&id=");
-            sb.append(URLEncoder.encode(
-                    "%s:%s".formatted(id.getName(), id.getValue()),
-                    StandardCharsets.UTF_8));
+            sb.append(URLEncoder.encode(String.format("%s:%s", id.getName(), id.getValue()), StandardCharsets.UTF_8));
         }
 
         return sb.toString();
@@ -78,12 +112,40 @@ public class QueryBuilder {
                 .ifPresent(gpp -> sb.append("&gpp=").append(gpp));
         Optional.ofNullable(optableAttributes.getGppSid())
                 .filter(Predicate.not(Collection::isEmpty))
-                .ifPresent(gppSids -> sb.append("&gpp_sid=").append(gppSids.stream().findFirst()));
+                .ifPresent(gppSids -> sb.append("&gpp_sid=").append(
+                        gppSids.stream().limit(2).map(String::valueOf).collect(Collectors.joining(","))));
 
         Optional.ofNullable(optableAttributes.getTimeout())
                 .ifPresent(timeout -> sb.append("&timeout=").append(timeout).append("ms"));
 
         sb.append("&osdk=").append(REQUEST_SOURCE);
+
+        return sb.toString();
+    }
+
+    /**
+     * Kept apart from buildAttributesString because these are the only attributes that
+     * discriminate one user from another, so they have to take part in the cache key.
+     */
+    private static String buildHidAttributesString(OptableAttributes optableAttributes) {
+        final StringBuilder sb = new StringBuilder();
+
+        Optional.ofNullable(optableAttributes.getApp())
+                .ifPresent(app -> {
+                    final String bundle = app.getBundle();
+                    if (StringUtils.isNotEmpty(bundle)) {
+                        sb.append("&bundle=").append(URLEncoder.encode(bundle, StandardCharsets.UTF_8));
+
+                        final String ver = app.getVer();
+                        if (StringUtils.isNotEmpty(ver)) {
+                            sb.append("&ver=").append(URLEncoder.encode(ver, StandardCharsets.UTF_8));
+                        }
+                    }
+                });
+
+        Optional.ofNullable(optableAttributes.getId5Signature())
+                .ifPresent(id5Signature -> sb.append("&id5_signature=")
+                        .append(URLEncoder.encode(id5Signature, StandardCharsets.UTF_8)));
 
         return sb.toString();
     }

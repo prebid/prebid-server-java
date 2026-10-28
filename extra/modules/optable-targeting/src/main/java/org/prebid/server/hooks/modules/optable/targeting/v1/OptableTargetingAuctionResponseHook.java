@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -13,6 +12,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsRes
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidResponseEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.Id5SignatureBidResponseEnricher;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -52,25 +52,37 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
 
-        if (!adserverTargeting) {
-            return success(moduleContext);
+        if (moduleContext.isShouldSkipEnrichment() || !adserverTargeting) {
+            return id5SignatureOnlyPayload(moduleContext);
         }
 
+        final List<Audience> targeting = moduleContext.getTargeting();
+
         final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
-                auctionResponsePayload.bidResponse(), moduleContext.getTargeting());
+                auctionResponsePayload.bidResponse(), targeting);
         moduleContext.setEnrichResponseStatus(validationStatus);
 
         return validationStatus.getStatus() == Status.SUCCESS
-                ? enrichedPayload(moduleContext)
+                ? update(fullEnrichmentChain(targeting, moduleContext.getId5Signature()), moduleContext)
+                : id5SignatureOnlyPayload(moduleContext);
+    }
+
+    private PayloadUpdate<AuctionResponsePayload> fullEnrichmentChain(final List<Audience> targeting,
+                                                                      final String id5Signature) {
+
+        return BidResponseEnricher.of(targeting, objectMapper, jsonMerger)
+                .andThen(Id5SignatureBidResponseEnricher.of(id5Signature, objectMapper, jsonMerger))::apply;
+    }
+
+    private Future<InvocationResult<AuctionResponsePayload>> id5SignatureOnlyPayload(ModuleContext moduleContext) {
+        final String id5Signature = moduleContext.getId5Signature();
+        return id5Signature != null
+                ? update(id5SignatureEnrichmentChain(id5Signature), moduleContext)
                 : success(moduleContext);
     }
 
-    private Future<InvocationResult<AuctionResponsePayload>> enrichedPayload(ModuleContext moduleContext) {
-        final List<Audience> targeting = moduleContext.getTargeting();
-
-        return CollectionUtils.isNotEmpty(targeting)
-                ? update(BidResponseEnricher.of(targeting, objectMapper, jsonMerger), moduleContext)
-                : success(moduleContext);
+    private PayloadUpdate<AuctionResponsePayload> id5SignatureEnrichmentChain(String id5Signature) {
+        return Id5SignatureBidResponseEnricher.of(id5Signature, objectMapper, jsonMerger);
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> update(

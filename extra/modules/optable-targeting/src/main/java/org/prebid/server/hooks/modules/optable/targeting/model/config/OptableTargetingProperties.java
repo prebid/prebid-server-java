@@ -32,6 +32,9 @@ public final class OptableTargetingProperties {
     @JsonProperty("id-prefix-order")
     String idPrefixOrder;
 
+    @JsonProperty("hid-prefixes")
+    String hidPrefixes;
+
     @JsonProperty("optable-inserter-eids-merge")
     Set<String> optableInserterEidsMerge = Set.of();
 
@@ -42,4 +45,16 @@ public final class OptableTargetingProperties {
     Set<String> optableInserterEidsIgnore = Set.of();
 
     CacheProperties cache = new CacheProperties();
+
+    @JsonProperty("enrichment-percentage")
+    Integer enrichmentPercentage = 100;
+
+    @JsonProperty("bidder-enrichment-percentages")
+    Map<String, Integer> bidderEnrichmentPercentages = Map.of();
+
+    @JsonProperty("enrich-web")
+    Boolean enrichWeb = true;
+
+    @JsonProperty("enrich-app")
+    Boolean enrichApp = true;
 }
