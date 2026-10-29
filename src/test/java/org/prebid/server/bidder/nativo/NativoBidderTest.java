@@ -265,11 +265,9 @@ public class NativoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidWhenMtypeIsNativeOnBannerAndNativeImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidWhenMtypeIsNative() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
-                .banner(Banner.builder().build())
-                .xNative(Native.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
         final Bid bid = givenBid("bid1", "imp1", 4);
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
 
@@ -282,11 +280,9 @@ public class NativoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWhenMtypeIsBannerOnBannerAndVideoImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenMtypeIsBanner() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
-                .banner(Banner.builder().build())
-                .video(Video.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
         final Bid bid = givenBid("bid1", "imp1", 1);
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
 
@@ -299,11 +295,9 @@ public class NativoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidWhenMtypeIsVideoOnVideoAndNativeImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidWhenMtypeIsVideo() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
-                .video(Video.builder().build())
-                .xNative(Native.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
         final Bid bid = givenBid("bid1", "imp1", 2);
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
 
@@ -316,28 +310,9 @@ public class NativoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidWhenMtypeIsNativeOnBannerVideoAndNativeImp()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
-                .banner(Banner.builder().build())
-                .video(Video.builder().build())
-                .xNative(Native.builder().build()));
-        final Bid bid = givenBid("bid1", "imp1", 4);
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.xNative, "USD"));
-    }
-
-    @Test
     public void makeBidsShouldReturnAudioBidWhenMtypeIsAudio() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(Banner.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
         final Bid bid = givenBid("bid1", "imp1", 3);
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
 
