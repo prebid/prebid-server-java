@@ -13,7 +13,9 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -23,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.Uri;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,12 +46,18 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_REGION = "us-e";
     private static final String DEFAULT_PARTNER = "floxis";
+    private static final String BIDDER_CURRENCY = "USD";
 
     private final Uri endpointUrl;
+    private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    public FloxisBidder(String endpointUrl, JacksonMapper mapper) {
+    public FloxisBidder(String endpointUrl,
+                        CurrencyConversionService currencyConversionService,
+                        JacksonMapper mapper) {
+
         this.endpointUrl = Uri.of(endpointUrl);
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -59,19 +68,22 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             final ExtImpFloxis impExt;
+            final Imp modifiedImp;
             try {
                 impExt = parseImpExt(imp);
+                modifiedImp = modifyImp(imp, request);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
 
-            impsByUrl.computeIfAbsent(resolveUrl(impExt), key -> new ArrayList<>()).add(imp);
+            impsByUrl.computeIfAbsent(resolveUrl(impExt), key -> new ArrayList<>()).add(modifiedImp);
         }
 
+        final List<String> currencies = resolveCurrencies(request.getCur());
         final List<HttpRequest<BidRequest>> httpRequests = impsByUrl.entrySet().stream()
                 .map(entry -> BidderUtil.defaultRequest(
-                        request.toBuilder().imp(entry.getValue()).build(),
+                        request.toBuilder().imp(entry.getValue()).cur(currencies).build(),
                         entry.getKey(),
                         mapper))
                 .toList();
@@ -95,6 +107,27 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 : impExt.getPartner().toLowerCase(Locale.ROOT);
 
         return ExtImpFloxis.of(impExt.getSeat(), region, partner);
+    }
+
+    private Imp modifyImp(Imp imp, BidRequest request) {
+        final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        if (!BidderUtil.shouldConvertBidFloor(bidFloorPrice, BIDDER_CURRENCY)) {
+            return imp;
+        }
+
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(), request, bidFloorPrice.getCurrency(), BIDDER_CURRENCY);
+
+        return imp.toBuilder()
+                .bidfloor(convertedPrice)
+                .bidfloorcur(BIDDER_CURRENCY)
+                .build();
+    }
+
+    private static List<String> resolveCurrencies(List<String> currencies) {
+        return CollectionUtils.isEmpty(currencies) || currencies.contains(BIDDER_CURRENCY)
+                ? currencies
+                : Collections.singletonList(BIDDER_CURRENCY);
     }
 
     private String resolveUrl(ExtImpFloxis impExt) {
