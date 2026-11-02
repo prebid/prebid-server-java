@@ -22,6 +22,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdk;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdkRenderer;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
@@ -88,8 +89,18 @@ public class NativoBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> updateBid(bid, rendererVersion, errors))
-                .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, impMap), bidResponse.getCur()))
                 .toList();
+    }
+
+    private static BidType getBidType(Bid bid, Map<String, Imp> impMap) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null, default -> BidderUtil.getBidType(bid, impMap);
+        };
     }
 
     private String getNativoRendererVersion(BidRequest bidRequest) {
