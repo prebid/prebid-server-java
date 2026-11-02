@@ -1299,7 +1299,7 @@ public class MagniteBidder implements Bidder<BidRequest> {
                 ? null
                 : device.toBuilder()
                   .ext(mapper.fillExtension(
-                          ExtDevice.empty(),
+                          ExtDevice.of(ObjectUtil.getIfNotNull(device.getExt(), ExtDevice::getAtts), null),
                           MagniteDeviceExt.of(MagniteDeviceExtRp.of(device.getPxratio()))))
                   .build();
     }
