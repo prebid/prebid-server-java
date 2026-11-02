@@ -89,6 +89,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -2271,10 +2273,12 @@ public class MagniteBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPreserveDeviceExtAtts() throws JsonProcessingException {
+    public void makeHttpRequestsShouldPreserveOnlyDeviceExtAtts() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.device(Device.builder().ext(ExtDevice.of(1, null)).build()),
+                builder -> builder.device(Device.builder()
+                        .ext(ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
+                        .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -2283,13 +2287,12 @@ public class MagniteBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getExt)
-                .extracting(ExtDevice::getAtts)
-                .doesNotContainNull()
-                .containsOnly(1);
+                .extracting(ExtDevice::getAtts, ExtDevice::getPrebid)
+                .containsExactly(tuple(1, null));
     }
 
     @Test
