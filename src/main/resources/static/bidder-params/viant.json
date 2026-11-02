@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Viant Adapter Params",
+  "description": "A schema which validates params accepted by the Viant adapter.",
+  "type": "object",
+  "properties": {
+    "publisherId": {
+      "type": "string",
+      "description": "Viant-assigned publisher ID.",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "publisherId"
+  ]
+}
