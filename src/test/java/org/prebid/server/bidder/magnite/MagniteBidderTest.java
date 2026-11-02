@@ -88,6 +88,7 @@ import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -2267,6 +2268,28 @@ public class MagniteBidderTest extends VertxTest {
                 // created manually, because mapper creates Double ObjectNode instead of BigDecimal
                 // for floating point numbers (affects testing only)
                 .containsOnly(mapper.readTree("4.2"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveDeviceExtAtts() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.device(Device.builder().ext(ExtDevice.of(1, null)).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getExt)
+                .extracting(ExtDevice::getAtts)
+                .doesNotContainNull()
+                .containsOnly(1);
     }
 
     @Test
