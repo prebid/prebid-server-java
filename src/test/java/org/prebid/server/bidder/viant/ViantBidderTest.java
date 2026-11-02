@@ -225,7 +225,8 @@ public class ViantBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(validBid, BidType.banner, "USD"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer, Imp... imps) {
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
         return bidRequestCustomizer.apply(BidRequest.builder().imp(List.of(imps))).build();
     }
 
