@@ -14,7 +14,7 @@ adapters:
           enabled: true
           cookie-family-name: adapex
           redirect:
-            url: "https://sync.adapex.io/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&gpp={gpp}&gpp_sid={gpp_sid}&us_privacy={us_privacy}&dest={redirect_url}"
+            url: "https://px-us-e.floxis.tech/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&gpp={gpp}&gpp_sid={gpp_sid}&us_privacy={us_privacy}&dest={redirect_url}"
             uid-macro: "${USER_ID}"
     meta-info:
       maintainer-email: prebid@floxis.tech
