@@ -39,16 +39,6 @@ public class PrivacyExtractor {
     private static final String DEFAULT_GPP_VALUE = "";
     private static final List<Integer> DEFAULT_GPP_SID_VALUE = Collections.emptyList();
 
-    /**
-     * Retrieves:
-     * <p><ul>
-     * <li>gdpr from regs.ext.gdpr
-     * <li>consent from user.consent
-     * <li>us_privacy from regs.ext.us_privacy
-     * <li>coppa from regs.coppa
-     * </ul><p>
-     * And construct {@link Privacy} from them. Use default values in case of invalid value.
-     */
     public Privacy validPrivacyFrom(BidRequest bidRequest, List<String> errors) {
         return extractPrivacy(bidRequest.getRegs(), bidRequest.getUser(), errors);
     }
@@ -91,8 +81,8 @@ public class PrivacyExtractor {
     }
 
     private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {
-        final Integer extRegsGdpr = regs != null ? regs.getGdpr() : null;
-        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
+        final Integer regsGdpr = regs != null ? regs.getGdpr() : null;
+        final String gdpr = regsGdpr != null ? Integer.toString(regsGdpr) : null;
         final String consent = user != null ? user.getConsent() : null;
         final String usPrivacy = regs != null ? regs.getUsPrivacy() : null;
         final Integer coppa = regs != null ? regs.getCoppa() : null;
