@@ -23,8 +23,8 @@ public class ViantTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/viant/test-viant-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/viant/test-auction-viant-request.json",
-                Endpoint.openrtb2_auction);
+        final Response response = responseFor(
+                "openrtb2/viant/test-auction-viant-request.json", Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/viant/test-auction-viant-response.json", response, singletonList("viant"));

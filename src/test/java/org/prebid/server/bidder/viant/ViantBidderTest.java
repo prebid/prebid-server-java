@@ -80,12 +80,19 @@ public class ViantBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyAppAndSiteCorrectly() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.ext(givenImpExt(ExtImpViant.of("pub"))))
-                .toBuilder()
-                .site(Site.builder().publisher(Publisher.builder().id("origPub").build()).build())
-                .app(App.builder().publisher(Publisher.builder().id("origPub").build()).build())
+        final Site site = Site.builder()
+                .publisher(Publisher.builder()
+                        .id("origSub")
+                        .build())
                 .build();
+        final App app = App.builder()
+                .publisher(Publisher.builder()
+                        .id("origSub")
+                        .build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(site).app(app),
+                givenImp(imp -> imp.ext(givenImpExt(ExtImpViant.of("pub")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -104,11 +111,9 @@ public class ViantBidderTest extends VertxTest {
     public void makeHttpRequestsShouldModifyAppAndSiteCorrectlyWhenPublisherIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.ext(givenImpExt(ExtImpViant.of("pub"))))
-                .toBuilder()
-                .site(Site.builder().build())
-                .app(App.builder().build())
-                .build();
+                request -> request.site(Site.builder().build())
+                        .app(App.builder().build()),
+                givenImp(imp -> imp.ext(givenImpExt(ExtImpViant.of("pub")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -218,6 +223,10 @@ public class ViantBidderTest extends VertxTest {
                 .containsExactly(badServerResponse("Unsupported MType 5 for bid bidId"));
         assertThat(result.getValue()).hasSize(1)
                 .containsExactly(BidderBid.of(validBid, BidType.banner, "USD"));
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer, Imp... imps) {
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(List.of(imps))).build();
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

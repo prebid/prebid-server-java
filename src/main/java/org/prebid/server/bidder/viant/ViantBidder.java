@@ -10,6 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -42,7 +43,7 @@ public class ViantBidder implements Bidder<BidRequest> {
 
     public ViantBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.mapper = mapper;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -52,7 +53,7 @@ public class ViantBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpViant extImp = parseImpExt(imp);
-                publisherId = extImp.getPublisherId();
+                publisherId = StringUtils.isEmpty(publisherId) ? extImp.getPublisherId() : publisherId;
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
@@ -118,7 +119,8 @@ public class ViantBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid).filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
