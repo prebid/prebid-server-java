@@ -24,7 +24,8 @@ public class AdgenerationTest extends IntegrationTest {
                 .withQueryParam("posall", equalTo("SSPLOC"))
                 .withQueryParam("sdktype", equalTo("0"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adgeneration/test-auction-adgeneration-request.json",

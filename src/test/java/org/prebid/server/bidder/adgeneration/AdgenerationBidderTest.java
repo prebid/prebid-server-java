@@ -61,7 +61,7 @@ public class AdgenerationBidderTest extends VertxTest {
             </script>""";
     private static final String TRACKER_URL = "https://test.tracker";
 
-    private static final AdgenerationBidder target = new AdgenerationBidder(ENDPOINT_URL, PBS_VERSION, jacksonMapper);
+    private final AdgenerationBidder target = new AdgenerationBidder(ENDPOINT_URL, PBS_VERSION, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

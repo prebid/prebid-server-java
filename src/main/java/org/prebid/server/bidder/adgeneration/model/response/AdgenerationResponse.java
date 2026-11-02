@@ -1,10 +1,9 @@
 package org.prebid.server.bidder.adgeneration.model.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Value;
 
 import java.util.List;
-
-import lombok.Value;
 
 @Value(staticConstructor = "of")
 public class AdgenerationResponse {
