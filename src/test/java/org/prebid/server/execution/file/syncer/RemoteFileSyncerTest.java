@@ -547,19 +547,6 @@ public class RemoteFileSyncerTest extends VertxTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int index) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(index)).handle(obj);
-            return inv.getMock();
-        };
-    }
-
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return withSelfAndPassObjectToHandler(obj, 1);
-    }
-
-    @SuppressWarnings("unchecked")
     private static <T, V> Answer<Object> withReturnObjectAndPassObjectToHandler(T obj, V ret, int index) {
         return inv -> {
             // invoking handler right away passing mock to it

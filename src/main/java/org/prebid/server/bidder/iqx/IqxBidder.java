@@ -127,7 +127,7 @@ public class IqxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid) {
-        return switch (ObjectUtils.defaultIfNull(bid.getMtype(), 0)) {
+        return switch (ObjectUtils.getIfNull(bid.getMtype(), 0)) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;

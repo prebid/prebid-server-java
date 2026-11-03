@@ -10,8 +10,8 @@
       },
       "ext": {
         "bidder": {
-          "type" : "publisher",
-          "placementId" : "id"
+          "type": "publisher",
+          "placementId": "id"
         }
       }
     }

@@ -27,14 +27,14 @@ public class CompositeRuleTest {
     @Test
     public void processShouldAccumulateResultFromAllSubrules() {
         // given
-        final Rule<Object, Object> firstRule = (Rule<Object, Object>) mock(Rule.class);
+        final Rule<Object, Object> firstRule = mock();
         given(firstRule.process(any(), any())).willAnswer(invocationOnMock -> RuleResult.of(
                 invocationOnMock.getArgument(0),
                 RuleAction.UPDATE,
                 TagsImpl.of(singletonList(ActivityImpl.of("firstActivity", "success", emptyList()))),
                 singletonList(SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))))));
 
-        final Rule<Object, Object> secondRule = (Rule<Object, Object>) mock(Rule.class);
+        final Rule<Object, Object> secondRule = mock();
         given(secondRule.process(any(), any())).willAnswer(invocationOnMock -> RuleResult.of(
                 invocationOnMock.getArgument(0),
                 RuleAction.UPDATE,

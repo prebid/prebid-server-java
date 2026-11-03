@@ -32,7 +32,7 @@
         },
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "property2" : "value2"
+          "property2": "value2"
         }
       }
     }

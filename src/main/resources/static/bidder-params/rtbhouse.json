@@ -9,5 +9,7 @@
       "description": "The publisher's ID provided by RTB House"
     }
   },
-  "required": ["publisherId"]
+  "required": [
+    "publisherId"
+  ]
 }

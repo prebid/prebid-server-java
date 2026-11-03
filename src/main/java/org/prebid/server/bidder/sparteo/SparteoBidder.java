@@ -112,7 +112,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
 
     private Site modifySite(Site site, String networkId) {
         if (site == null) {
-            return site;
+            return null;
         }
 
         final Publisher originalPublisher = site.getPublisher() != null
@@ -126,7 +126,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
 
     private App modifyApp(App app, String networkId) {
         if (app == null) {
-            return app;
+            return null;
         }
 
         final Publisher originalPublisher = app.getPublisher() != null

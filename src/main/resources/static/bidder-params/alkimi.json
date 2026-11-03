@@ -3,7 +3,6 @@
   "title": "Alkimi Adapter Params",
   "description": "A schema which validates params accepted by the Alkimi adapter",
   "type": "object",
-
   "properties": {
     "token": {
       "type": "string",
@@ -23,6 +22,7 @@
       "description": "Advisory as to the number of seconds that may elapse between the auction and the actual impression"
     }
   },
-
-  "required": ["token"]
+  "required": [
+    "token"
+  ]
 }

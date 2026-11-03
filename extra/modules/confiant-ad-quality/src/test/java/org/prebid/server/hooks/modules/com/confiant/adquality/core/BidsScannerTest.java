@@ -55,7 +55,7 @@ public class BidsScannerTest {
         bidsScannerTest.start(startFuture);
 
         // then
-        verify(writeRedisNode).start((Promise<Void>) any());
+        verify(writeRedisNode).start(any());
     }
 
     @Test()

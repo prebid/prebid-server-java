@@ -12,13 +12,15 @@
       },
       "ext": {
         "vungle": {
-          "bid_token": "bid_token",
           "app_store_id": "app_store_id",
           "placement_reference_id": "placement_reference_id"
         }
       }
     }
   ],
+  "user": {
+    "buyeruid": "bid_token"
+  },
   "tmax": 5000,
   "regs": {
     "ext": {

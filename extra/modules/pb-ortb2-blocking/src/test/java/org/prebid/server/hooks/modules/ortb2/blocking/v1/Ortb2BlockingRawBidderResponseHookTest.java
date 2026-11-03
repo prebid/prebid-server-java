@@ -197,10 +197,10 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                                         .build()))))));
 
         assertThat(invocationResult.rejections()).containsOnly(entry("bidder1", List.of(
-                        BidRejection.of(bid1,
-                                RESPONSE_REJECTED_ADVERTISER_BLOCKED),
-                        BidRejection.of(bid(bid -> bid.id("bidId2").adomain(singletonList("domain2.com"))),
-                                RESPONSE_REJECTED_ADVERTISER_BLOCKED))));
+                BidRejection.of(bid1,
+                        RESPONSE_REJECTED_ADVERTISER_BLOCKED),
+                BidRejection.of(bid(bid -> bid.id("bidId2").adomain(singletonList("domain2.com"))),
+                        RESPONSE_REJECTED_ADVERTISER_BLOCKED))));
     }
 
     @Test

@@ -78,7 +78,7 @@ public class GetVtrackHandler implements ApplicationResource {
                 Endpoint.vtrack,
                 response -> {
                     headers.forEach(response::putHeader);
-                    response.setStatusCode(status.code()) .end(body);
+                    response.setStatusCode(status.code()).end(body);
                 });
     }
 

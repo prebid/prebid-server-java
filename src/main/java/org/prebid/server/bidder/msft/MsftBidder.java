@@ -17,6 +17,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.SameValueValidator;
@@ -80,7 +81,7 @@ public class MsftBidder implements Bidder<BidRequest> {
         this.endpointUrl = Uri.of(endpointUrl);
         this.hbSource = hbSource;
         this.hbSourceVideo = hbSourceVideo;
-        this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
+        this.iabCategories = ObjectUtils.getIfNull(iabCategories, Collections.emptyMap());
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -170,7 +171,7 @@ public class MsftBidder implements Bidder<BidRequest> {
         }
 
         return bannerBuilder
-                .api(ObjectUtils.defaultIfNull(banner.getApi(), extImp.getBannerFrameworks()))
+                .api(ObjectUtils.getIfNull(banner.getApi(), extImp.getBannerFrameworks()))
                 .build();
     }
 
@@ -244,8 +245,8 @@ public class MsftBidder implements Bidder<BidRequest> {
         final ExtRequestMsft.ExtRequestMsftBuilder updatedRequestExtMsftBuilder = Optional.ofNullable(requestExtMsft)
                 .map(ExtRequestMsft::toBuilder)
                 .orElseGet(ExtRequestMsft::builder)
-                .isAmp(BooleanUtils.toInteger(StringUtils.equals(endpointUrl, Endpoint.openrtb2_amp.value())))
-                .hbSource(StringUtils.equals(endpointUrl, Endpoint.openrtb2_video.value()) ? hbSourceVideo : hbSource);
+                .isAmp(BooleanUtils.toInteger(Strings.CS.equals(endpointUrl, Endpoint.openrtb2_amp.value())))
+                .hbSource(Strings.CS.equals(endpointUrl, Endpoint.openrtb2_video.value()) ? hbSourceVideo : hbSource);
 
         Optional.ofNullable(requestExt)
                 .map(ExtRequest::getPrebid)

@@ -193,8 +193,8 @@ public class GridBidder implements Bidder<BidRequest> {
                                                 Keywords firstImpExtKeywords,
                                                 Keywords requestExtKeywords) {
 
-        final String resolvedUserKeywords = ObjectUtils.defaultIfNull(userKeywords, "");
-        final String resolvedSiteKeywords = ObjectUtils.defaultIfNull(siteKeywords, "");
+        final String resolvedUserKeywords = ObjectUtils.getIfNull(userKeywords, "");
+        final String resolvedSiteKeywords = ObjectUtils.getIfNull(siteKeywords, "");
 
         return gridKeywordsProcessor.merge(
                 gridKeywordsProcessor.resolveKeywordsFromOpenRtb(resolvedUserKeywords, resolvedSiteKeywords),
@@ -268,7 +268,7 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode modifyBidExt(ObjectNode gridBid) {
-        final String demandSource = ObjectUtils.defaultIfNull(gridBid, MissingNode.getInstance())
+        final String demandSource = ObjectUtils.getIfNull(gridBid, MissingNode.getInstance())
                 .at("/ext/bidder/grid/demandSource")
                 .textValue();
         if (StringUtils.isEmpty(demandSource)) {

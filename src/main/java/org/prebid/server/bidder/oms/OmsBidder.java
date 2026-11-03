@@ -120,7 +120,7 @@ public class OmsBidder implements Bidder<BidRequest> {
         final Integer duration = bid.getDur();
 
         return ExtBidPrebidVideo.of(
-                ObjectUtils.defaultIfNull(duration, 0),
+                ObjectUtils.getIfNull(duration, 0),
                 CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : StringUtils.EMPTY);
     }
 }

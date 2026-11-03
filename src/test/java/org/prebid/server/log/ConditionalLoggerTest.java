@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 public class ConditionalLoggerTest {
 
     @Spy
-    private Logger logger = LoggerFactory.getLogger(ConditionalLoggerTest.class);
+    private final Logger logger = LoggerFactory.getLogger(ConditionalLoggerTest.class);
 
     private Vertx vertx;
 

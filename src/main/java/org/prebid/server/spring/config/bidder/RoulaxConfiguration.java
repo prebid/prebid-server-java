@@ -25,7 +25,7 @@ public class RoulaxConfiguration {
 
     @Bean
     BidderDeps roulaxBidderDeps(BidderConfigurationProperties roulaxConfigurationProperties,
-                                 JacksonMapper mapper) {
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(roulaxConfigurationProperties)

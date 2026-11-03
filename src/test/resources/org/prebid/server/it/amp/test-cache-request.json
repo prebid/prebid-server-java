@@ -30,7 +30,7 @@
           "origbidcpm": 12.09
         }
       },
-      "aid":"tid",
+      "aid": "tid",
       "ttlseconds": 300
     },
     {
@@ -67,7 +67,7 @@
           "origbidcur": "USD"
         }
       },
-      "aid":"tid",
+      "aid": "tid",
       "ttlseconds": 300
     }
   ]

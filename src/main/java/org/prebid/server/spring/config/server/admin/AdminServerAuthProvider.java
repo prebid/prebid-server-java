@@ -7,6 +7,7 @@ import io.vertx.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.ext.auth.authentication.Credentials;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public class AdminServerAuthProvider implements AuthenticationProvider {
         final String requestPassword = StringUtils.chomp(principal.getString("password"));
         final String storedPassword = credentials.get(requestUsername);
 
-        return StringUtils.isNotBlank(requestPassword) && StringUtils.equals(storedPassword, requestPassword)
+        return StringUtils.isNotBlank(requestPassword) && Strings.CS.equals(storedPassword, requestPassword)
                 ? Future.succeededFuture()
                 : Future.failedFuture("Password does not match.");
     }

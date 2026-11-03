@@ -57,7 +57,7 @@ public class PrecisoBidderTest extends VertxTest {
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new PrecisoBidder(
-                "invalid_url", currencyConversionService, jacksonMapper));
+                        "invalid_url", currencyConversionService, jacksonMapper));
 
     }
 
@@ -65,7 +65,7 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
 
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -82,7 +82,7 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
 
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(null));
 
         // when
@@ -97,7 +97,7 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
 
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -112,7 +112,7 @@ public class PrecisoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner)))));
 
         // when
@@ -129,32 +129,13 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeHttpRequestsShouldConvertCurrencyIfRequestCurrencyDoesNotMatchBidderCurrency() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
-                 .willReturn(BigDecimal.TEN);
+                .willReturn(BigDecimal.TEN);
 
         final BidRequest bidRequest = BidRequest.builder()
-                        .imp(singletonList(Imp.builder().bidfloor(BigDecimal.ONE).bidfloorcur("EUR")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))).build()))
-                        .id("request_id").build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getPayload)
-                        .flatExtracting(BidRequest::getImp)
-                        .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                        .containsOnly(tuple(BigDecimal.TEN, "USD"));
-
-    }
-
-    @Test
-    public void makeHttpRequestsShouldTakePriceFloorsWhenBidfloorParamIsAlsoPresent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().bidfloor(BigDecimal.TEN).bidfloorcur("USD")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPreciso.builder()
-                        .bidFloor(BigDecimal.ONE).build())))
+                .imp(singletonList(Imp.builder()
+                        .bidfloor(BigDecimal.ONE)
+                        .bidfloorcur("EUR")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
                         .build()))
                 .id("request_id").build();
 
@@ -164,20 +145,22 @@ public class PrecisoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getPayload)
-        .flatExtracting(BidRequest::getImp)
-        .extracting(Imp::getBidfloor, Imp::getBidfloorcur).containsOnly(tuple(BigDecimal.TEN, "USD"));
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, "USD"));
 
     }
 
     @Test
-    public void makeHttpRequestsShouldTakeBidfloorExtImpParamIfNoBidfloorInRequest() {
+    public void makeHttpRequestsShouldTakePriceFloorsWhenBidfloorParamIsAlsoPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpPreciso.builder()
-                                .bidFloor(BigDecimal.valueOf(16)).build())))
-                .build()))
+                .imp(singletonList(Imp.builder()
+                        .bidfloor(BigDecimal.TEN)
+                        .bidfloorcur("USD")
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, ExtImpPreciso.builder().bidFloor(BigDecimal.ONE).build())))
+                        .build()))
                 .id("request_id").build();
 
         // when
@@ -186,8 +169,29 @@ public class PrecisoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getPayload)
-               .flatExtracting(BidRequest::getImp)
-               .extracting(Imp::getBidfloor).containsExactly(BigDecimal.valueOf(16));
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur).containsOnly(tuple(BigDecimal.TEN, "USD"));
+
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTakeBidfloorExtImpParamIfNoBidfloorInRequest() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, ExtImpPreciso.builder().bidFloor(BigDecimal.valueOf(16)).build())))
+                        .build()))
+                .id("request_id").build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor).containsExactly(BigDecimal.valueOf(16));
 
     }
 
@@ -195,12 +199,16 @@ public class PrecisoBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorMessageOnFailedCurrencyConversion() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
-                  .willThrow(PreBidException.class);
+                .willThrow(PreBidException.class);
 
         final BidRequest bidRequest = BidRequest.builder()
-                  .imp(singletonList(Imp.builder().id("123").bidfloor(BigDecimal.ONE).bidfloorcur("EUR")
-                  .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))).build()))
-                  .id("request_id").build();
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .bidfloor(BigDecimal.ONE)
+                        .bidfloorcur("EUR")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))).build()))
+                .id("request_id")
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -222,11 +230,11 @@ public class PrecisoBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                   HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                   HttpResponse.of(200, null, body),
-                   null);
+                HttpRequest.<BidRequest>builder().payload(null).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 
     private static ObjectNode givenBidExt(BidType bidType) {

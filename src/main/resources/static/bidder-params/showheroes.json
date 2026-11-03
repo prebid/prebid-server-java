@@ -10,5 +10,7 @@
       "minLength": 8
     }
   },
-  "required": ["unitId"]
+  "required": [
+    "unitId"
+  ]
 }

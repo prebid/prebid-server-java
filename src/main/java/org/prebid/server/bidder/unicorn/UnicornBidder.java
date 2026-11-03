@@ -111,7 +111,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
                 .secure(1)
                 .tagid(resolvedPlacementId != null ? resolvedPlacementId : placementId)
                 .ext(mapper.mapper().convertValue(
-                        ObjectUtils.defaultIfNull(resolvedUnicornImpExt, unicornImpExt),
+                        ObjectUtils.getIfNull(resolvedUnicornImpExt, unicornImpExt),
                         ObjectNode.class))
                 .build();
     }

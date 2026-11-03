@@ -42,6 +42,13 @@ class PBSUtils implements ObjectMapperWrapper {
         roundDecimal(BigDecimal.valueOf(number), DEFAULT_NUMBER_PRECISION)
     }
 
+    static BigDecimal divide(BigDecimal dividend,
+                             BigDecimal divisor,
+                             int scale = 4,
+                             RoundingMode roundingMode = RoundingMode.HALF_EVEN) {
+        dividend.divide(divisor, scale, roundingMode)
+    }
+
     static BigDecimal roundDecimal(BigDecimal number, int decimalPlaces) {
         number.setScale(decimalPlaces, RoundingMode.HALF_EVEN)
     }
@@ -51,7 +58,7 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static String getRandomSpecialChars(int stringLength = 20) {
-        RandomStringUtils.random(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
+        RandomStringUtils.insecure().next(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
     }
 
     static String getRandomStringWithSpecials(int stringLength = 20) {

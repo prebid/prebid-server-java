@@ -17,7 +17,7 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "emx_digital"
+                "adaptercode": "emxdigital"
               }
             },
             "origbidcpm": 2.942808,
@@ -25,14 +25,14 @@
           }
         }
       ],
-      "seat": "emx_digital",
+      "seat": "emxdigital",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "emx_digital": 0
+      "emxdigital": 0
     },
     "prebid": {
       "auctiontimestamp": 0

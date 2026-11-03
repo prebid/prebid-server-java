@@ -39,6 +39,7 @@ public class SmartadserverBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/path/api/bid?testParam=testVal";
     private static final String SECONDARY_URL = "https://test.endpoint2.com/path/ortb?testParam=testVal";
+    private static final String PLACEMENT_UUID = "0ac7b8e4-8f35-4d1b-9a3c-2b7c0f7d9e11";
 
     private final SmartadserverBidder target = new SmartadserverBidder(ENDPOINT_URL, SECONDARY_URL, jacksonMapper);
 
@@ -217,7 +218,8 @@ public class SmartadserverBidderTest extends VertxTest {
                         .put("networkId", 5)
                         .put("siteId", 6)
                         .put("formatId", 7)
-                        .put("pageId", 8));
+                        .put("pageId", 8)
+                        .put("placementuuid", PLACEMENT_UUID));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(
@@ -240,7 +242,8 @@ public class SmartadserverBidderTest extends VertxTest {
                         .put("networkId", 5)
                         .put("siteId", 6)
                         .put("formatId", 7)
-                        .put("pageId", 8));
+                        .put("pageId", 8)
+                        .put("plcmtuuid", PLACEMENT_UUID));
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
@@ -249,6 +252,98 @@ public class SmartadserverBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(expectedImpExt1, expectedImpExt2);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldForwardPlacementUuidAsPlcmtuuid() {
+        // given
+        final ObjectNode givenImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("networkId", 73)
+                        .put("placementuuid", PLACEMENT_UUID));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("networkId", 73)
+                        .put("plcmtuuid", PLACEMENT_UUID));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldForwardPlacementUuidAndLegacyIdsWhenBothPresent() {
+        // given
+        final ObjectNode givenImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("siteId", 1)
+                        .put("pageId", 2)
+                        .put("formatId", 3)
+                        .put("networkId", 73)
+                        .put("placementuuid", PLACEMENT_UUID));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("siteId", 1)
+                        .put("pageId", 2)
+                        .put("formatId", 3)
+                        .put("networkId", 73)
+                        .put("plcmtuuid", PLACEMENT_UUID));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreInboundPlcmtuuid() {
+        // given
+        final ObjectNode givenImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("networkId", 73)
+                        .put("plcmtuuid", PLACEMENT_UUID));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("networkId", 73));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
     }
 
     @Test
@@ -403,7 +498,7 @@ public class SmartadserverBidderTest extends VertxTest {
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null,
-                                ExtImpSmartadserver.of(1, 2, 3, 4, false)))))
+                                ExtImpSmartadserver.of(1, 2, 3, 4, false, null)))))
                 .build();
     }
 

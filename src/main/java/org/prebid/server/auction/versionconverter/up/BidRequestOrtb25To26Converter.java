@@ -47,11 +47,11 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
 
         return ObjectUtils.anyNotNull(modifiedImps, modifiedSource, modifiedRegs, modifiedUser)
                 ? bidRequest.toBuilder()
-                .imp(modifiedImps != null ? modifiedImps : imps)
-                .source(modifiedSource != null ? modifiedSource : source)
-                .regs(modifiedRegs != null ? modifiedRegs : regs)
-                .user(modifiedUser != null ? modifiedUser : user)
-                .build()
+                  .imp(modifiedImps != null ? modifiedImps : imps)
+                  .source(modifiedSource != null ? modifiedSource : source)
+                  .regs(modifiedRegs != null ? modifiedRegs : regs)
+                  .user(modifiedUser != null ? modifiedUser : user)
+                  .build()
                 : bidRequest;
     }
 
@@ -65,7 +65,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         }
 
         return IntStream.range(0, imps.size())
-                .mapToObj(i -> ObjectUtils.defaultIfNull(modifiedImps.get(i), imps.get(i)))
+                .mapToObj(i -> ObjectUtils.getIfNull(modifiedImps.get(i), imps.get(i)))
                 .toList();
     }
 
@@ -86,9 +86,9 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
 
         return ObjectUtils.anyNotNull(resolvedRewarded, resolvedExtImp)
                 ? imp.toBuilder()
-                .rwdd(resolvedRewarded != null ? resolvedRewarded : rewarded)
-                .ext(resolvedExtImp != null ? resolvedExtImp : extImp)
-                .build()
+                  .rwdd(resolvedRewarded != null ? resolvedRewarded : rewarded)
+                  .ext(resolvedExtImp != null ? resolvedExtImp : extImp)
+                  .build()
                 : null;
     }
 
@@ -132,9 +132,9 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
 
         return ObjectUtils.anyNotNull(resolvedSupplyChain, resolvedExtSource)
                 ? source.toBuilder()
-                .schain(resolvedSupplyChain != null ? resolvedSupplyChain : supplyChain)
-                .ext(resolvedExtSource != null ? nullIfEmpty(resolvedExtSource) : extSource)
-                .build()
+                  .schain(resolvedSupplyChain != null ? resolvedSupplyChain : supplyChain)
+                  .ext(resolvedExtSource != null ? nullIfEmpty(resolvedExtSource) : extSource)
+                  .build()
                 : null;
     }
 
@@ -179,10 +179,10 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
 
         return ObjectUtils.anyNotNull(resolvedGdpr, resolvedUsPrivacy, resolvedExtRegs)
                 ? regs.toBuilder()
-                .gdpr(resolvedGdpr != null ? resolvedGdpr : gdpr)
-                .usPrivacy(resolvedUsPrivacy != null ? resolvedUsPrivacy : usPrivacy)
-                .ext(resolvedExtRegs != null ? nullIfEmpty(resolvedExtRegs) : extRegs)
-                .build()
+                  .gdpr(resolvedGdpr != null ? resolvedGdpr : gdpr)
+                  .usPrivacy(resolvedUsPrivacy != null ? resolvedUsPrivacy : usPrivacy)
+                  .ext(resolvedExtRegs != null ? nullIfEmpty(resolvedExtRegs) : extRegs)
+                  .build()
                 : null;
     }
 
@@ -223,10 +223,10 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
 
         return ObjectUtils.anyNotNull(resolvedConsent, resolvedEids, resolvedExtUser)
                 ? user.toBuilder()
-                .consent(resolvedConsent != null ? resolvedConsent : consent)
-                .eids(resolvedEids != null ? resolvedEids : eids)
-                .ext(resolvedExtUser != null ? nullIfEmpty(resolvedExtUser) : extUser)
-                .build()
+                  .consent(resolvedConsent != null ? resolvedConsent : consent)
+                  .eids(resolvedEids != null ? resolvedEids : eids)
+                  .ext(resolvedExtUser != null ? nullIfEmpty(resolvedExtUser) : extUser)
+                  .build()
                 : null;
     }
 

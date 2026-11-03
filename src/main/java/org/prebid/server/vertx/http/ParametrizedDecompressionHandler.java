@@ -5,7 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.RoutingContextInternal;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,7 +26,7 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
 
     @Override
     public void handle(RoutingContext routingContext) {
-        if (!StringUtils.equalsAny(routingContext.request().getParam("gzip"), "1", "true")) {
+        if (!Strings.CS.equalsAny(routingContext.request().getParam("gzip"), "1", "true")) {
             routingContext.next();
             return;
         }

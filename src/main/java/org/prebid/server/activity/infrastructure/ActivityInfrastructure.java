@@ -1,4 +1,3 @@
-
 package org.prebid.server.activity.infrastructure;
 
 import org.prebid.server.activity.Activity;

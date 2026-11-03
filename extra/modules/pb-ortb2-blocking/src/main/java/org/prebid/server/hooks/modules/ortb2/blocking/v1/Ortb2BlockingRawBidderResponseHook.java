@@ -56,7 +56,7 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
                 .create(
                         bidderResponsePayload.bids(),
                         bidder,
-                        ObjectUtils.defaultIfNull(moduleContext.ortbVersionOf(bidder), OrtbVersion.ORTB_2_5),
+                        ObjectUtils.getIfNull(moduleContext.ortbVersionOf(bidder), OrtbVersion.ORTB_2_5),
                         invocationContext.accountConfig(),
                         moduleContext.blockedAttributesFor(bidder),
                         invocationContext.debugEnabled())

@@ -68,7 +68,7 @@ public class SeedtagBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (modifiedImps.size() < 1) {
+        if (modifiedImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
@@ -114,11 +114,11 @@ public class SeedtagBidder implements Bidder<BidRequest> {
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
         return BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, BIDDER_CURRENCY)
-                ? convertBidFloor(initialBidFloorPrice, imp.getId(), bidRequest)
+                ? convertBidFloor(initialBidFloorPrice, bidRequest)
                 : initialBidFloorPrice;
     }
 
-    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
         final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
                 bidFloorPrice.getValue(),
                 bidRequest,

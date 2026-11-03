@@ -85,7 +85,7 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, String priceType) {
-        final ExtRequest extRequest = ObjectUtils.defaultIfNull(bidRequest.getExt(), ExtRequest.empty());
+        final ExtRequest extRequest = ObjectUtils.getIfNull(bidRequest.getExt(), ExtRequest.empty());
         final ExtRequest modifiedExtRequest = StringUtils.isNotEmpty(priceType)
                 ? modifyExtRequest(extRequest, priceType)
                 : extRequest;

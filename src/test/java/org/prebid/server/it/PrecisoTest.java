@@ -19,10 +19,10 @@ public class PrecisoTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromPreciso() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/preciso-exchange"))
-                 .withRequestBody(equalToJson(jsonFrom(
-                         "openrtb2/preciso/test-preciso-bid-request.json")))
-                 .willReturn(aResponse().withBody(jsonFrom(
-                         "openrtb2/preciso/test-preciso-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom(
+                        "openrtb2/preciso/test-preciso-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/preciso/test-preciso-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/preciso/test-auction-preciso-request.json",

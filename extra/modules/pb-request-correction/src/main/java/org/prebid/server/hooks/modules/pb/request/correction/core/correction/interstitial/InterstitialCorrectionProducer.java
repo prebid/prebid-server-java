@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.pb.request.correction.core.correction.in
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.hooks.modules.pb.request.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.request.correction.core.correction.Correction;
 import org.prebid.server.hooks.modules.pb.request.correction.core.correction.CorrectionProducer;
@@ -53,11 +53,11 @@ public class InterstitialCorrectionProducer implements CorrectionProducer {
                 .map(ExtAppPrebid::getSource)
                 .orElse(null);
 
-        return StringUtils.equalsIgnoreCase(source, PREBID_MOBILE);
+        return Strings.CI.equals(source, PREBID_MOBILE);
     }
 
     private static boolean isAndroid(App app) {
-        return StringUtils.containsIgnoreCase(app.getBundle(), ANDROID);
+        return Strings.CI.contains(app.getBundle(), ANDROID);
     }
 
     private static boolean isApplicableVersion(App app) {

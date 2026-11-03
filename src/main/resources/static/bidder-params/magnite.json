@@ -62,11 +62,17 @@
           "description": "Language of the ad - should match content video"
         },
         "playerHeight": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "Height in pixels of the video player"
         },
         "playerWidth": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "Width in pixels of the video player"
         },
         "size_id": {

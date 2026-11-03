@@ -69,9 +69,9 @@ public class ConditionsRuleCreator extends AbstractRuleCreator<AccountActivityCo
     private static List<ConditionsRule.GeoCode> geoCodes(List<String> stringGeoCodes) {
         return stringGeoCodes != null
                 ? stringGeoCodes.stream()
-                .map(ConditionsRuleCreator::from)
-                .filter(Objects::nonNull)
-                .toList()
+                  .map(ConditionsRuleCreator::from)
+                  .filter(Objects::nonNull)
+                  .toList()
                 : null;
     }
 

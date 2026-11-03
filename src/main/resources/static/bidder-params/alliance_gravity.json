@@ -10,5 +10,7 @@
       "minLength": 1
     }
   },
-  "required": ["srid"]
+  "required": [
+    "srid"
+  ]
 }

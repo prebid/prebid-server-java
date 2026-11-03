@@ -26,8 +26,9 @@ public class PrecisoConfiguration {
 
     @Bean
     BidderDeps precisoBidderDeps(BidderConfigurationProperties precisoConfigurationProperties,
-            CurrencyConversionService currencyConversionService,
-            JacksonMapper mapper) {
+                                 CurrencyConversionService currencyConversionService,
+                                 JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(precisoConfigurationProperties)
                 .bidderCreator(config -> new PrecisoBidder(

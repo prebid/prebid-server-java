@@ -10,5 +10,7 @@
       "description": "Unique supply identifier"
     }
   },
-  "required": ["supplyId"]
+  "required": [
+    "supplyId"
+  ]
 }

@@ -176,6 +176,54 @@ public class VungleBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorWhenUserIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.user(null), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly("missing bidder token in user.buyeruid");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenUserBuyeruidIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.user(User.builder().buyeruid(null).build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly("missing bidder token in user.buyeruid");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenUserBuyeruidIsBlank() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.user(User.builder().buyeruid(" ").build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly("missing bidder token in user.buyeruid");
+    }
+
+    @Test
     public void makeHttpRequestShouldUpdateExtImpVungleWhenUserBuyeruidPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -380,12 +428,14 @@ public class VungleBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "seat", null));
     }
 
+    @SafeVarargs
     private static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder>... impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .app(App.builder().build())
+                        .user(User.builder().buyeruid("buyeruid").build())
                         .imp(Arrays.stream(impCustomizer).map(VungleBidderTest::givenImp).toList()))
                 .build();
     }

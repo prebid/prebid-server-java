@@ -1,0 +1,20 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "test-bid-id",
+          "impid": "test-imp-id",
+          "price": 2.50,
+          "adm": "<div>AdPlayx Creative Content</div>",
+          "crid": "test-creative-id",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "adplayx"
+    }
+  ],
+  "cur": "USD"
+}

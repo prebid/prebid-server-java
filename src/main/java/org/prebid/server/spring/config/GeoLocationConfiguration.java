@@ -116,19 +116,19 @@ public class GeoLocationConfiguration {
                     config.getAddressPattern(),
                     geoInfo != null
                             ? org.prebid.server.geolocation.model.GeoInfo.builder()
-                            .vendor(StringUtils.EMPTY)
-                            .continent(geoInfo.getContinent())
-                            .country(geoInfo.getCountry())
-                            .region(geoInfo.getRegion())
-                            .city(geoInfo.getCity())
-                            .metroGoogle(geoInfo.getMetroGoogle())
-                            .metroNielsen(geoInfo.getMetroNielsen())
-                            .zip(geoInfo.getZip())
-                            .connectionSpeed(geoInfo.getConnectionSpeed())
-                            .lat(geoInfo.getLat())
-                            .lon(geoInfo.getLon())
-                            .timeZone(geoInfo.getTimeZone())
-                            .build()
+                              .vendor(StringUtils.EMPTY)
+                              .continent(geoInfo.getContinent())
+                              .country(geoInfo.getCountry())
+                              .region(geoInfo.getRegion())
+                              .city(geoInfo.getCity())
+                              .metroGoogle(geoInfo.getMetroGoogle())
+                              .metroNielsen(geoInfo.getMetroNielsen())
+                              .zip(geoInfo.getZip())
+                              .connectionSpeed(geoInfo.getConnectionSpeed())
+                              .lat(geoInfo.getLat())
+                              .lon(geoInfo.getLon())
+                              .timeZone(geoInfo.getTimeZone())
+                              .build()
                             : null);
         }
 

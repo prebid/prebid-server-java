@@ -72,10 +72,10 @@ public class CookieSyncGppService {
         return updatedGdpr.isUpdated() || updatedConsent.isUpdated() || updatedUsPrivacy.isUpdated()
 
                 ? cookieSyncRequest.toBuilder()
-                .gdpr(updatedGdpr.getValue())
-                .gdprConsent(updatedConsent.getValue())
-                .usPrivacy(updatedUsPrivacy.getValue())
-                .build()
+                  .gdpr(updatedGdpr.getValue())
+                  .gdprConsent(updatedConsent.getValue())
+                  .usPrivacy(updatedUsPrivacy.getValue())
+                  .build()
 
                 : cookieSyncRequest;
     }

@@ -200,8 +200,8 @@ public class AuctionRequestFactory {
     private BidRequest fillWithValuesFromHttpRequest(BidRequest bidRequest, HttpRequestContext httpRequest) {
         return !containsRegsExtGpc(bidRequest)
                 ? bidRequest.toBuilder()
-                .regs(fillRegsWithValuesFromHttpRequest(bidRequest.getRegs(), httpRequest))
-                .build()
+                  .regs(fillRegsWithValuesFromHttpRequest(bidRequest.getRegs(), httpRequest))
+                  .build()
                 : bidRequest;
     }
 

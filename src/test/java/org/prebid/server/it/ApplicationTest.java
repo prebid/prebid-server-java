@@ -17,6 +17,7 @@ import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.apache.commons.collections4.CollectionUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
@@ -369,7 +370,7 @@ public class ApplicationTest extends IntegrationTest {
         assertThat(uids.getUids())
                 .extracting(Map::keySet)
                 .extracting(ArrayList::new)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(MAGNITE_COOKIE);
         assertThat(uids.getUids().get(MAGNITE_COOKIE).getUid()).isEqualTo("updatedUid");
         assertThat(uids.getUids().get(MAGNITE_COOKIE).getExpires().toInstant())
@@ -460,10 +461,6 @@ public class ApplicationTest extends IntegrationTest {
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
-        //todo: necessary since the config file is not a source of truth in terms of defining aliases for the bidders
-        // the suggestion is eventually resolving static json file name from the bidder config file
-        // and not from the name hard-coded in the Configuration class
-        aliases.put("cadent_aperture_mx", "emx_digital");
         final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
                 .collect(Collectors.toMap(
                         Function.identity(),

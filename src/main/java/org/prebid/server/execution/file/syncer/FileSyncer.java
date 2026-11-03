@@ -47,8 +47,8 @@ public abstract class FileSyncer {
     private Future<?> processFile(String filePath) {
         return filePath != null
                 ? vertx.executeBlocking(() -> fileProcessor.setDataPath(filePath))
-                .compose(Function.identity())
-                .onFailure(error -> logger.error("Can't process saved file: " + filePath))
+                  .compose(Function.identity())
+                  .onFailure(error -> logger.error("Can't process saved file: " + filePath))
                 : Future.succeededFuture();
     }
 

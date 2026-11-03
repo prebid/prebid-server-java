@@ -178,8 +178,8 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     private Source modifySource(Source source) {
         return source != null
                 ? source.toBuilder()
-                .ext(ObjectUtil.getIfNotNullOrDefault(source.getExt(), this::modifyExtSource, this::createExtSource))
-                .build()
+                  .ext(ObjectUtil.getIfNotNullOrDefault(source.getExt(), this::modifyExtSource, this::createExtSource))
+                  .build()
                 : Source.builder().ext(createExtSource()).build();
     }
 

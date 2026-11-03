@@ -115,13 +115,13 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipped(false)
-                        .floorProvider("provider.com")
-                        .floorMin(BigDecimal.ONE)
-                        .data(providerFloorsData)
-                        .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.fetch)));
+                .enabled(true)
+                .skipped(false)
+                .floorProvider("provider.com")
+                .floorMin(BigDecimal.ONE)
+                .data(providerFloorsData)
+                .fetchStatus(FetchStatus.success)
+                .location(PriceFloorLocation.fetch)));
         verifyNoInteractions(metrics);
 
     }
@@ -143,12 +143,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipped(false)
-                        .floorProvider("provider.com")
-                        .data(providerFloorsData)
-                        .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.fetch)));
+                .enabled(true)
+                .skipped(false)
+                .floorProvider("provider.com")
+                .data(providerFloorsData)
+                .fetchStatus(FetchStatus.success)
+                .location(PriceFloorLocation.fetch)));
         verifyNoInteractions(metrics);
     }
 
@@ -250,13 +250,13 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipped(false)
-                        .floorProvider("provider.com")
-                        .data(providerFloorsData)
-                        .floorMin(BigDecimal.ONE)
-                        .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.fetch)));
+                .enabled(true)
+                .skipped(false)
+                .floorProvider("provider.com")
+                .data(providerFloorsData)
+                .floorMin(BigDecimal.ONE)
+                .fetchStatus(FetchStatus.success)
+                .location(PriceFloorLocation.fetch)));
         verifyNoInteractions(metrics);
     }
 
@@ -598,14 +598,14 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result)).isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipped(false)
-                        .floorProvider("provider.com")
-                        .enforcement(PriceFloorEnforcement.builder().enforcePbs(false).enforceRate(100).build())
-                        .data(providerFloorsData)
-                        .floorMin(BigDecimal.ONE)
-                        .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.fetch)));
+                .enabled(true)
+                .skipped(false)
+                .floorProvider("provider.com")
+                .enforcement(PriceFloorEnforcement.builder().enforcePbs(false).enforceRate(100).build())
+                .data(providerFloorsData)
+                .floorMin(BigDecimal.ONE)
+                .fetchStatus(FetchStatus.success)
+                .location(PriceFloorLocation.fetch)));
     }
 
     @Test
@@ -626,12 +626,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         final PriceFloorRules expectedResult = givenFloors(floors -> floors
-                        .enabled(true)
-                        .skipped(false)
-                        .floorProvider("provider.com")
-                        .data(providerFloorsData)
-                        .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.fetch));
+                .enabled(true)
+                .skipped(false)
+                .floorProvider("provider.com")
+                .data(providerFloorsData)
+                .fetchStatus(FetchStatus.success)
+                .location(PriceFloorLocation.fetch));
 
         assertThat(extractFloors(result)).isEqualTo(expectedResult);
     }
@@ -1024,9 +1024,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 ExtImpPrebidFloors.of("rule", BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN, "CUR"));
 
         assertThat(extractImps(result)).containsOnly(givenImp(imp -> imp
-                        .bidfloor(BigDecimal.TEN)
-                        .bidfloorcur("USD")
-                        .ext(ext.set("prebid", extPrebid.set("floors", extPrebidFloors)))));
+                .bidfloor(BigDecimal.TEN)
+                .bidfloorcur("USD")
+                .ext(ext.set("prebid", extPrebid.set("floors", extPrebidFloors)))));
     }
 
     @Test

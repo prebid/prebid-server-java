@@ -4,23 +4,25 @@
   "description": "A schema which validates params accepted by the Jixie adapter",
   "type": "object",
   "properties": {
-    "unit" : {
+    "unit": {
       "type": "string",
       "description": "The unit code of an inventory target",
       "minLength": 18
     },
-    "accountid" : {
+    "accountid": {
       "type": "string",
       "description": "The accountid of an inventory target"
     },
-    "jxprop1" : {
+    "jxprop1": {
       "type": "string",
       "description": "jxprop1 of an inventory target"
     },
-    "jxprop2" : {
+    "jxprop2": {
       "type": "string",
       "description": "jxprop2 of an inventory target"
     }
   },
-  "required": ["unit"]
+  "required": [
+    "unit"
+  ]
 }

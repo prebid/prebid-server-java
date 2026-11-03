@@ -265,7 +265,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
         schainBuilder.append(schain.getVer());
         schainBuilder.append(",");
-        schainBuilder.append(ObjectUtils.defaultIfNull(schain.getComplete(), 0));
+        schainBuilder.append(ObjectUtils.getIfNull(schain.getComplete(), 0));
         for (SupplyChainNode node : schain.getNodes()) {
             schainBuilder.append("!");
             schainBuilder.append(encodeValue(node.getAsi()));
@@ -354,7 +354,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private static String encodeTransparencyParams(List<Integer> dsaParams) {
         return dsaParams.stream()
-                .map(param -> ObjectUtils.defaultIfNull(param, 0))
+                .map(param -> ObjectUtils.getIfNull(param, 0))
                 .map(Object::toString)
                 .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER));
     }

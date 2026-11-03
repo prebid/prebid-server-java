@@ -25,7 +25,7 @@ public class MotorikConfiguration {
 
     @Bean
     BidderDeps motorikBidderDeps(BidderConfigurationProperties motorikConfigurationProperties,
-                                    JacksonMapper mapper) {
+                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(motorikConfigurationProperties)

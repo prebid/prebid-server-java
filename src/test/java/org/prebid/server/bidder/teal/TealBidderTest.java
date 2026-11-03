@@ -177,6 +177,26 @@ public class TealBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBidTypeFromBidExtPrebidType() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode();
+        bidExt.putObject("prebid").put("type", "video");
+
+        final Bid responseBid = givenBid("imp1", 2, 1).toBuilder().ext(bidExt).build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(Banner.builder().id("id").build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        final Bid expectedBid = givenBid("imp1", 2, 1).toBuilder().ext(bidExt).build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BidType.video, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final Bid responseBid = givenBid("imp1", 1, 1);
@@ -231,6 +251,7 @@ public class TealBidderTest extends VertxTest {
         return givenBidRequest(null, impCustomizer);
     }
 
+    @SafeVarargs
     private static BidRequest givenBidRequest(Site site, UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         final List<Imp> imps = Stream.of(impCustomizers)
                 .map(customizer -> customizer.apply(Imp.builder().id("impId")).build())

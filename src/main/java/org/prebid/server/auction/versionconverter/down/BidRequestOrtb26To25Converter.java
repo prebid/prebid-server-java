@@ -57,11 +57,11 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 modifiedRegs)
 
                 ? bidRequest.toBuilder()
-                .imp(modifiedImps != null ? modifiedImps : imps)
-                .user(modifiedUser != null ? modifiedUser : user)
-                .source(modifiedSource != null ? modifiedSource : source)
-                .regs(modifiedRegs != null ? modifiedRegs : regs)
-                .build()
+                  .imp(modifiedImps != null ? modifiedImps : imps)
+                  .user(modifiedUser != null ? modifiedUser : user)
+                  .source(modifiedSource != null ? modifiedSource : source)
+                  .regs(modifiedRegs != null ? modifiedRegs : regs)
+                  .build()
 
                 : bidRequest;
     }
@@ -76,7 +76,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         }
 
         return IntStream.range(0, imps.size())
-                .mapToObj(i -> ObjectUtils.defaultIfNull(modifiedImps.get(i), imps.get(i)))
+                .mapToObj(i -> ObjectUtils.getIfNull(modifiedImps.get(i), imps.get(i)))
                 .toList();
     }
 

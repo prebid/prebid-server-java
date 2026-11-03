@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
@@ -124,7 +124,7 @@ public class BidderRequestCleaner implements BidderRequestPostProcessor {
         }
 
         for (Map.Entry<String, T> entry : map.entrySet()) {
-            if (StringUtils.equalsIgnoreCase(entry.getKey(), bidder)) {
+            if (Strings.CI.equals(entry.getKey(), bidder)) {
                 return Collections.singletonMap(entry.getKey(), entry.getValue());
             }
         }
@@ -165,7 +165,7 @@ public class BidderRequestCleaner implements BidderRequestPostProcessor {
             }
 
             for (Iterator<String> bidders = bidderMap.fieldNames(); bidders.hasNext(); ) {
-                if (!StringUtils.equalsIgnoreCase(bidders.next(), bidder)) {
+                if (!Strings.CI.equals(bidders.next(), bidder)) {
                     bidders.remove();
                 }
             }

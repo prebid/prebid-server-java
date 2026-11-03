@@ -13,7 +13,10 @@
       },
       "ext": {
         "yearxero": {
-          "customParams": {"custom1": "param1", "custom2": "param2"}
+          "customParams": {
+            "custom1": "param1",
+            "custom2": "param2"
+          }
         }
       }
     }

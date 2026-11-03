@@ -1,7 +1,7 @@
 package org.prebid.server.cache.utils;
 
 import io.vertx.core.MultiMap;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
@@ -53,6 +53,6 @@ public class CacheServiceUtil {
     }
 
     private static boolean startsWithSlashOrNull(String path) {
-        return path == null || StringUtils.startsWith(path, "/");
+        return path == null || Strings.CS.startsWith(path, "/");
     }
 }

@@ -3,11 +3,11 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.scientiamobile.wurfl.core.Device;
 import com.scientiamobile.wurfl.core.WURFLEngine;
 import io.vertx.core.Future;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.execution.file.FileProcessor;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineUtils;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;

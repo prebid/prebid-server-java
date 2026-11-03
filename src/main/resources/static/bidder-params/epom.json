@@ -3,6 +3,5 @@
   "title": "Epom Adapter Params",
   "description": "A schema which validates params accepted by the Epom adapter",
   "type": "object",
-
   "properties": {}
 }

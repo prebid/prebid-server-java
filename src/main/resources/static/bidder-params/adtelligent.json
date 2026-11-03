@@ -24,5 +24,7 @@
       "description": "BidFloor, US Dollars"
     }
   },
-  "required": ["aid"]
+  "required": [
+    "aid"
+  ]
 }

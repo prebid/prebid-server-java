@@ -9,7 +9,7 @@
           "exp": 300,
           "price": 7.713,
           "adm": "<div>foo</div>",
-          "crid":"banner_creative_id",
+          "crid": "banner_creative_id",
           "w": 300,
           "h": 250,
           "mtype": 1,
@@ -30,7 +30,7 @@
           "exp": 1500,
           "price": 6.494,
           "adm": "<vast><div>video</div></vast>",
-          "crid":"video_creative_id",
+          "crid": "video_creative_id",
           "mtype": 2,
           "ext": {
             "origbidcpm": 5.7,

@@ -14,7 +14,12 @@
       "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder": {"customParams": {"custom1": "param1", "custom2": "param2"}}
+        "bidder": {
+          "customParams": {
+            "custom1": "param1",
+            "custom2": "param2"
+          }
+        }
       }
     }
   ],

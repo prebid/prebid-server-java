@@ -62,13 +62,13 @@ public class UsersyncInfoFactory {
 
     private String buildSetUidUrl(String bidder, String uid, UsersyncMethod usersyncMethod, Privacy privacy) {
         return callbackUrlTemplate
-                .replaceMacros(prepareRedirectParams(bidder, uid, usersyncMethod))
+                .replaceMacros(prepareRedirectParams(bidder, usersyncMethod))
                 .replaceMacros(preparePrivacyParams(privacy))
                 .expand()
                 + "&uid=" + StringUtils.defaultString(uid); // uid macro should not be url-encoded
     }
 
-    private Map<String, String> prepareRedirectParams(String bidder, String uid, UsersyncMethod method) {
+    private Map<String, String> prepareRedirectParams(String bidder, UsersyncMethod method) {
         return Map.of(
                 BIDDER_PLACEHOLDER, bidder,
                 FORMAT_PLACEHOLDER, resolveFormat(method).name);

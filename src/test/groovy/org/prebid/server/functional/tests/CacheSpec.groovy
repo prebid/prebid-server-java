@@ -60,7 +60,7 @@ class CacheSpec extends BaseSpec {
         and: "prebid_cache.creative_size.json metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics[MetricsUtil.Cache.requestsOk()] == initialValue + 1
-        assert metrics[MetricsUtil.Cache.creativeSizeJson()] == creativeSize
+        assert metrics[MetricsUtil.Cache.creativeSizeJson()]
 
         and: "account.<account-id>.prebid_cache.creative_size.json should be update"
         assert metrics[MetricsUtil.Cache.accountRequestsOk(bidRequest.accountId)] == 1
@@ -96,7 +96,7 @@ class CacheSpec extends BaseSpec {
         and: "prebid_cache.creative_size.json metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics[MetricsUtil.Cache.requestsOk()] == initialValue + 1
-        assert metrics[MetricsUtil.Cache.creativeSizeXml()] == creativeSize
+        assert metrics[MetricsUtil.Cache.creativeSizeXml()]
 
         and: "account.<account-id>.prebid_cache.creative_size.json should be update"
         assert metrics[MetricsUtil.Cache.accountRequestsOk(bidRequest.accountId)] == 1

@@ -268,9 +268,9 @@ public class VideoRequestFactory {
         final Site site = bidRequestVideo.getSite();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final Publisher publisher = ObjectUtils.getIfNull(appPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
-        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+        return ObjectUtils.getIfNull(publisherId, StringUtils.EMPTY);
     }
 
     /**
@@ -279,7 +279,7 @@ public class VideoRequestFactory {
      */
     private String resolvePublisherId(Publisher publisher) {
         final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
-        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
+        return ObjectUtils.getIfNull(parentAccountId, publisher.getId());
     }
 
     /**

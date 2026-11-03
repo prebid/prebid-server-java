@@ -7,6 +7,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
@@ -63,7 +64,7 @@ public class BidderUtil {
 
     public static boolean shouldConvertBidFloor(Price price, String bidderCurrency) {
         return isValidPrice(price)
-                && !StringUtils.equalsIgnoreCase(price.getCurrency(), bidderCurrency);
+                && !Strings.CI.equals(price.getCurrency(), bidderCurrency);
     }
 
     public static PriceFloorInfo resolvePriceFloor(Bid bid, BidRequest bidRequest) {

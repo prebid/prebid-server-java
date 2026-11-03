@@ -11,6 +11,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -58,11 +59,16 @@ public class VungleBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
+        final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
+        if (StringUtils.isBlank(buyerId)) {
+            return Result.withError(BidderError.badInput("missing bidder token in user.buyeruid"));
+        }
+
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final Price price = resolveBidFloor(imp, bidRequest);
                 final VungleImpressionExt impExt = parseImpExt(imp);
-                final VungleImpressionExt modifiedImpExt = modifyImpExt(impExt, bidRequest);
+                final VungleImpressionExt modifiedImpExt = modifyImpExt(impExt, buyerId);
                 final Imp modifiedImp = modifyImp(imp, modifiedImpExt, price);
                 final BidRequest modifiedRequest = modifyBidRequest(
                         bidRequest,
@@ -81,7 +87,7 @@ public class VungleBidder implements Bidder<BidRequest> {
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         BigDecimal bigDecimal = null;
         if (BidderUtil.isValidPrice(imp.getBidfloor())
-                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BIDDER_CURRENCY)
+                && !Strings.CI.equals(imp.getBidfloorcur(), BIDDER_CURRENCY)
                 && StringUtils.isNotBlank(imp.getBidfloorcur())) {
             bigDecimal = currencyConversionService.convertCurrency(
                     imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
@@ -94,9 +100,8 @@ public class VungleBidder implements Bidder<BidRequest> {
         return mapper.mapper().convertValue(imp.getExt(), VungleImpressionExt.class);
     }
 
-    private static VungleImpressionExt modifyImpExt(VungleImpressionExt impExt, BidRequest bidRequest) {
+    private static VungleImpressionExt modifyImpExt(VungleImpressionExt impExt, String buyerId) {
         final ExtImpVungle bidder = impExt.getBidder();
-        final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
         final ExtImpVungle vungle = ExtImpVungle.of(
                 buyerId,
                 bidder.getAppStoreId(),

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.util.AdUnitCodeUtils;
@@ -32,7 +32,7 @@ public class AdUnitCodeInFunction implements SchemaFunction<BidRequest, RequestR
         final BidRequest bidRequest = arguments.getOperand();
 
         final Imp adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()
-                .filter(imp -> StringUtils.equals(imp.getId(), impId))
+                .filter(imp -> Strings.CS.equals(imp.getId(), impId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "Critical error in rules engine. Imp id of absent imp supplied"));

@@ -410,10 +410,6 @@ class MeloZenBidderTest extends VertxTest {
                 .build());
     }
 
-    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
-    }
-
     private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().build(),

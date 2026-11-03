@@ -320,7 +320,7 @@ public class HookStageExecutor {
             BidResponse bidResponse,
             AuctionContext auctionContext) {
 
-        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
+        final Account account = ObjectUtils.getIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
         final HookHttpEndpoint endpoint = context.getEndpoint();
 
@@ -335,7 +335,7 @@ public class HookStageExecutor {
                                                                                     String responseBody,
                                                                                     AuctionContext auctionContext) {
 
-        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
+        final Account account = ObjectUtils.getIfNull(auctionContext.getAccount(), EMPTY_ACCOUNT);
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
         final HookHttpEndpoint endpoint = context.getEndpoint();
 

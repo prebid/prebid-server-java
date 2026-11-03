@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Consumable Adapter Params",
   "description": "A schema which validates params accepted by the Consumable adapter",
-
   "type": "object",
   "properties": {
     "siteId": {
@@ -26,5 +25,9 @@
       "pattern": "^-?[_a-zA-Z]+[_a-zA-Z0-9-]*$"
     }
   },
-  "required": ["siteId", "networkId","unitId"]
+  "required": [
+    "siteId",
+    "networkId",
+    "unitId"
+  ]
 }

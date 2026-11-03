@@ -4,24 +4,35 @@
   "description": "A schema which validates params accepted by the Seedtag adapter",
   "type": "object",
   "properties": {
-      "adUnitId": {
-          "type": "string",
-          "description": "Ad Unit ID",
-          "minLength": 1
-      },
-      "publisherId": {
-          "type": "string",
-          "description": "Publisher ID (editorial group ID)",
-          "minLength": 1
-      },
-      "integrationType": {
-          "type": "string",
-          "description": "Integration type",
-          "enum": ["ronId"]
-      }
+    "adUnitId": {
+      "type": "string",
+      "description": "Ad Unit ID",
+      "minLength": 1
+    },
+    "publisherId": {
+      "type": "string",
+      "description": "Publisher ID (editorial group ID)",
+      "minLength": 1
+    },
+    "integrationType": {
+      "type": "string",
+      "description": "Integration type",
+      "enum": [
+        "ronId"
+      ]
+    }
   },
   "oneOf": [
-    { "required": ["adUnitId"] },
-    { "required": ["publisherId", "integrationType"] }
+    {
+      "required": [
+        "adUnitId"
+      ]
+    },
+    {
+      "required": [
+        "publisherId",
+        "integrationType"
+      ]
+    }
   ]
 }

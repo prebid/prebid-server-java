@@ -9,5 +9,7 @@
       "description": "AdUnit to bid against to."
     }
   },
-  "required": ["adunit"]
+  "required": [
+    "adunit"
+  ]
 }

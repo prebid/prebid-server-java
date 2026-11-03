@@ -15,7 +15,7 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource(value = "classpath:/bidder-config/emxdigital.yaml", factory = YamlPropertySourceFactory.class)
 public class EmxDigitalConfiguration {
 
-    private static final String BIDDER_NAME = "emx_digital";
+    private static final String BIDDER_NAME = "emxdigital";
 
     @Bean("emxdigitalConfigurationProperties")
     @ConfigurationProperties("adapters.emxdigital")

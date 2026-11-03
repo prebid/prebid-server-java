@@ -10,5 +10,5 @@ adapters:
       site-media-types:
         - banner
         - video
-      supported-vendors: []
+      supported-vendors: [ ]
       vendor-id: 666

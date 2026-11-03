@@ -13,7 +13,7 @@
       },
       "ext": {
         "bidder": {
-          "type" : "publisher",
+          "type": "publisher",
           "placementId": "test"
         }
       }

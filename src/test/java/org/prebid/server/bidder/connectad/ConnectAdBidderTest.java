@@ -49,6 +49,7 @@ public class ConnectAdBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
+                        .banner(Banner.builder().w(300).h(250).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
@@ -109,12 +110,15 @@ public class ConnectAdBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
+                bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -146,7 +150,7 @@ public class ConnectAdBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12", null, BigDecimal.ONE)))));
+                                ExtImpConnectAd.of(12, null, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -164,7 +168,7 @@ public class ConnectAdBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12", "1", BigDecimal.ONE)))));
+                                ExtImpConnectAd.of(12, 1, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -178,6 +182,32 @@ public class ConnectAdBidderTest extends VertxTest {
                 .extracting(imp -> imp.getFirst().getSecure())
                 .hasSize(1)
                 .containsOnly(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPropagateSiteIdAndNetworkId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnectAd.of(12345, 67890, BigDecimal.ONE)))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(1)
+                .first()
+                .satisfies(imp -> {
+                    assertThat(imp.getTagid()).isEqualTo("67890");
+                    assertThat(imp.getExt().get("networkId").asInt()).isEqualTo(12345);
+                    assertThat(imp.getExt().get("siteId").asInt()).isEqualTo(67890);
+                });
     }
 
     private static BidRequest givenBidRequest(
@@ -202,7 +232,7 @@ public class ConnectAdBidderTest extends VertxTest {
                                 .w(14)
                                 .h(15).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12", "12", BigDecimal.ONE)))))
+                                ExtImpConnectAd.of(12, 12, BigDecimal.ONE)))))
                 .build();
     }
 

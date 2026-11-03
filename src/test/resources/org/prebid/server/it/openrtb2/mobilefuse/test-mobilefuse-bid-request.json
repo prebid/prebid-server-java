@@ -8,7 +8,13 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "999999"
+      "tagid": "999999",
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "placement_id": 999999
+        }
+      }
     }
   ],
   "source": {
@@ -33,8 +39,8 @@
   "cur": [
     "USD"
   ],
-  "regs" : {
-    "gdpr" : 0
+  "regs": {
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

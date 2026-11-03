@@ -120,8 +120,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.xNative(Native.builder().build()),
-                ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)),
-                null);
+                ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -358,10 +357,9 @@ public class TripleliftNativeBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer,
-                                              ExtImpTriplelift extImpBidder,
-                                              TripleliftNativeExtImpData extImpData) {
+                                              ExtImpTriplelift extImpBidder) {
 
-        return givenBidRequest(identity(), impCustomizer, extImpBidder, extImpData);
+        return givenBidRequest(identity(), impCustomizer, extImpBidder, null);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer,

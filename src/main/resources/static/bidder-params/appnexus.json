@@ -27,7 +27,10 @@
       "description": "Deprecated, use inv_code instead."
     },
     "member": {
-      "type": ["integer", "string"],
+      "type": [
+        "integer",
+        "string"
+      ],
       "description": "An ID which identifies the member selling the impression."
     },
     "keywords": {

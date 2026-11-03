@@ -12,6 +12,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -174,14 +175,14 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         final String priceAsString = price != null ? price.toPlainString() : "0";
 
         return bid.toBuilder()
-                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
-                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
-                .burl(StringUtils.replace(bid.getBurl(), PRICE_MACRO, priceAsString))
+                .nurl(Strings.CS.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(Strings.CS.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .burl(Strings.CS.replace(bid.getBurl(), PRICE_MACRO, priceAsString))
                 .build();
     }
 
     private static BidType getBidType(Bid bid) {
-        final Integer markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
+        final Integer markupType = ObjectUtils.getIfNull(bid.getMtype(), 0);
 
         return switch (markupType) {
             case 1 -> BidType.banner;

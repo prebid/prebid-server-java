@@ -95,7 +95,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         final BigDecimal resolvedCustomBidFloor = isValidBidFloor(customBidFloor) ? customBidFloor : null;
         final BigDecimal resolvedBidFloor = isValidBidFloor(bidFloor) ? bidFloor : null;
 
-        return ObjectUtils.defaultIfNull(resolvedBidFloor, resolvedCustomBidFloor);
+        return ObjectUtils.getIfNull(resolvedBidFloor, resolvedCustomBidFloor);
     }
 
     private static boolean isValidBidFloor(BigDecimal bidFloor) {
