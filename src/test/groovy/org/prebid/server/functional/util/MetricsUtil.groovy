@@ -243,6 +243,10 @@ class MetricsUtil {
             adapterMetric(accountId, bidder, "request_time")
         }
 
+        static String requestsGotBids(String accountId) {
+            baseMetric(accountId, "requests.gotbids")
+        }
+
         static String requestsGotBids(String accountId, BidderName bidder) {
             adapterMetric(accountId, bidder, "requests.gotbids")
         }
