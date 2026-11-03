@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smilewanted;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -230,6 +231,60 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidIfMtypeIsBannerOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(1).build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfMtypeIsVideoOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(2).build(), video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfMtypeIsAbsentOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+    }
+
+    @Test
     public void makeBidsShouldReturnMultipleBidsFromSingleSeatBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -348,6 +403,14 @@ public class SmileWantedBidderTest extends VertxTest {
         return Imp.builder()
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmilewanted.of(zoneId))))
+                .build();
+    }
+
+    private static Imp givenMultiFormatImp() {
+        return Imp.builder()
+                .id("123")
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
                 .build();
     }
 }
