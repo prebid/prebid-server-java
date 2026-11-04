@@ -2,8 +2,9 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "id",
+      "id": "imp_id",
       "banner": {
+        "id": "imp_id_banner",
         "w": 300,
         "h": 250
       },
@@ -13,6 +14,9 @@
         }
       }
     }
+  ],
+  "cur": [
+    "JPY"
   ],
   "device": {
     "pxratio": 4.2,
