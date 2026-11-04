@@ -3,6 +3,7 @@ package org.prebid.server.bidder.smilewanted;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -101,15 +102,35 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impid, List<Imp> imps) {
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null, default -> getBidTypeFromImp(bid.getImpid(), imps);
+        };
+    }
+
+    private static BidType getBidTypeFromImp(String impid, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impid) && imp.getVideo() != null) {
+            if (!imp.getId().equals(impid)) {
+                continue;
+            }
+            if (imp.getVideo() != null) {
                 return BidType.video;
             }
+            if (imp.getAudio() != null) {
+                return BidType.audio;
+            }
+            if (imp.getXNative() != null) {
+                return BidType.xNative;
+            }
+            return BidType.banner;
         }
         return BidType.banner;
     }

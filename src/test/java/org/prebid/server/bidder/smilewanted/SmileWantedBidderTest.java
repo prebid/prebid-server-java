@@ -1,8 +1,11 @@
 package org.prebid.server.bidder.smilewanted;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -31,8 +34,10 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SmileWantedBidderTest extends VertxTest {
 
@@ -230,6 +235,134 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidIfMtypeIsBannerOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(1).build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfMtypeIsVideoOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(2).build(), video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfMtypeIsAbsentOnMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidIfMtypeIsAudio() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(3)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(3).build(), audio, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfMtypeIsNative() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidIfMtypeIsAbsentAndAudioIsPresentInRequestImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), audio, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfMtypeIsAbsentAndNativeIsPresentInRequestImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, null));
+    }
+
+    @Test
     public void makeBidsShouldReturnMultipleBidsFromSingleSeatBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -348,6 +481,14 @@ public class SmileWantedBidderTest extends VertxTest {
         return Imp.builder()
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmilewanted.of(zoneId))))
+                .build();
+    }
+
+    private static Imp givenMultiFormatImp() {
+        return Imp.builder()
+                .id("123")
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
                 .build();
     }
 }
