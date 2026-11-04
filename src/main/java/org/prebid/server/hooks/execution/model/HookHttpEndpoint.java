@@ -6,6 +6,7 @@ import org.prebid.server.model.Endpoint;
 
 public enum HookHttpEndpoint {
 
+    GET_AUCTION(HttpMethod.GET, Endpoint.openrtb2_auction),
     POST_AUCTION(HttpMethod.POST, Endpoint.openrtb2_auction),
     AMP(HttpMethod.GET, Endpoint.openrtb2_amp),
     VIDEO(HttpMethod.POST, Endpoint.openrtb2_video);
