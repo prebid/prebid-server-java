@@ -12,4 +12,6 @@ class AccountSetting {
     Boolean geoLookup
     @JsonProperty("geo_lookup")
     Boolean geoLookupSnakeCase
+    @JsonProperty("bidderconfig")
+    AccountBidderConfig bidderConfig
 }
