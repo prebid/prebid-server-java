@@ -241,9 +241,9 @@ public class CachedAPIClientTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldUseNullInCacheKeyWhenHidIsNull() {
+    public void shouldUseEmptyStringInCacheKeyWhenHidIsEmpty() {
         // given
-        final Query query = Query.of("&id=e%3Aemail", null, "&gdpr=1", null);
+        final Query query = Query.of("&id=e%3Aemail", "", "&gdpr=1", "");
         final ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         when(cache.get(keyCaptor.capture())).thenReturn(Future.succeededFuture(givenTargetingResult()));
 
@@ -257,6 +257,6 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // then
         final String key = keyCaptor.getValue();
-        assertThat(key).endsWith(":null:null");
+        assertThat(key).isEqualTo("accountId:origin:8.8.8.8:%26id%3De%253Aemail::");
     }
 }

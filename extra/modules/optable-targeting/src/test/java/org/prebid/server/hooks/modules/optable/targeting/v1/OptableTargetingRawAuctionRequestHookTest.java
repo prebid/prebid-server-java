@@ -22,7 +22,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(VertxExtension.class)
-public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
+public class OptableTargetingRawAuctionRequestHookTest extends BaseOptableTest {
 
     @Mock
     private OptableTargeting optableTargeting;
@@ -67,7 +67,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
 
     private ConfigResolver configResolver;
     private TargetingRequestExecutor targetingRequestExecutor;
-    private OptableRawAuctionRequestHook target;
+    private OptableTargetingRawAuctionRequestHook target;
 
     @BeforeEach
     public void setUp() {
@@ -77,8 +77,8 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         targetingRequestExecutor = new TargetingRequestExecutor(
-                optableTargeting, userFpdActivityMask, timeoutFactory, ipAddressHelper, 0.01);
-        target = new OptableRawAuctionRequestHook(
+                optableTargeting, userFpdActivityMask, ipAddressHelper, 0.01);
+        target = new OptableTargetingRawAuctionRequestHook(
                 configResolver, givenEarlyOptableCallResolver(), 0.01);
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         when(invocationContext.timeout()).thenReturn(timeout);
@@ -86,11 +86,12 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         when(timeout.remaining()).thenReturn(1000L);
     }
 
-    private OptableTargetingFlowResolver givenEarlyOptableCallResolver() {
-        return new OptableTargetingFlowResolver(
+    private OptableTargetingFlowExecutor givenEarlyOptableCallResolver() {
+        return new OptableTargetingFlowExecutor(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty(), null),
+                timeoutFactory,
                 0.01);
     }
 
@@ -143,7 +144,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
 
         configResolver = new ConfigResolver(
                 mapper, jsonMerger, givenOptableTargetingProperties("key", "tenant", null, true));
-        target = new OptableRawAuctionRequestHook(
+        target = new OptableTargetingRawAuctionRequestHook(
                 configResolver, givenEarlyOptableCallResolver(), 0.01);
 
         // when
@@ -157,7 +158,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                     vertxTestContext.verify(() -> {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
-                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
+                        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
                     });
                     vertxTestContext.completeNow();
                 });
@@ -179,7 +180,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         .build());
 
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        target = new OptableRawAuctionRequestHook(
+        target = new OptableTargetingRawAuctionRequestHook(
                 configResolver, givenEarlyOptableCallResolver(), 0.01);
 
         // when

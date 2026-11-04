@@ -534,6 +534,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .httpRequest(givenHttpRequestContext(headers))
+                .gppContext(gppContext)
                 .activityInfrastructure(activityInfrastructure)
                 .build();
     }

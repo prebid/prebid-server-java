@@ -5,6 +5,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.Outcome;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
@@ -24,7 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
-public class OptableBidderRequestHook implements BidderRequestHook {
+public class OptableTargetingBidderRequestHook implements BidderRequestHook {
 
     public static final String CODE = "optable-targeting-bidder-request-hook";
 
@@ -34,14 +35,13 @@ public class OptableBidderRequestHook implements BidderRequestHook {
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         final OptableTargetingProperties properties = moduleContext.getOptableTargetingProperties();
+        final String bidder = invocationContext.bidder();
 
         final Set<String> biddersToEnrich = moduleContext.getBiddersToEnrich();
         if (CollectionUtils.isEmpty(biddersToEnrich)
-                || !biddersToEnrich.contains(invocationContext.bidder())) {
+                || !biddersToEnrich.contains(bidder)) {
             return noAction(moduleContext, null);
         }
-
-        final String bidder = invocationContext.bidder();
 
         return moduleContext.getOptableTargetingCall()
                 .compose(targetingResult ->
@@ -63,7 +63,7 @@ public class OptableBidderRequestHook implements BidderRequestHook {
             moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
         }
 
-        final String outcome = hasData ? "enriched" : "no-data";
+        final Outcome outcome = hasData ? Outcome.ENRICHED : Outcome.NO_DATA;
         final Tags analyticsTags = AnalyticTagsResolver.toBidderEnrichRequestAnalyticTags(
                 bidder, outcome, executionTime);
 
@@ -77,7 +77,7 @@ public class OptableBidderRequestHook implements BidderRequestHook {
                                                                          String bidder) {
 
         final long executionTime = calcExecutionTime(moduleContext);
-        final String outcome = throwable instanceof TimeoutException ? "timeout" : "error";
+        final Outcome outcome = throwable instanceof TimeoutException ? Outcome.TIMEOUT : Outcome.ERROR;
         final Tags analyticsTags = AnalyticTagsResolver.toBidderEnrichRequestAnalyticTags(
                 bidder, outcome, executionTime);
 

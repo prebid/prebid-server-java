@@ -61,10 +61,10 @@ public class CachedAPIClient implements APIClient {
                 encodeQuery
                         ? URLEncoder.encode(query.getIds(), StandardCharsets.UTF_8)
                         : query.getIds(),
-                encodeQuery && query.getHid() != null
+                encodeQuery
                         ? URLEncoder.encode(query.getHid(), StandardCharsets.UTF_8)
                         : query.getHid(),
-                encodeQuery && query.getHidAttributes() != null
+                encodeQuery
                         ? URLEncoder.encode(query.getHidAttributes(), StandardCharsets.UTF_8)
                         : query.getHidAttributes()
                 );

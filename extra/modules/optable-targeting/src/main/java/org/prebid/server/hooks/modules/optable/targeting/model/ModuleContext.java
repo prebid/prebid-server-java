@@ -33,7 +33,7 @@ public class ModuleContext {
 
     private boolean shouldSkipEnrichment;
 
-    private boolean isEarlyCallInitializationCompleted = true;
+    private boolean isEarlyCallInitializationCompleted = false;
 
     private String id5Signature;
 
@@ -49,9 +49,5 @@ public class ModuleContext {
     public void failAndRecordExecutionTime() {
         recordTargetingExecutionTime();
         setEnrichRequestStatus(EnrichmentStatus.failure());
-    }
-
-    public boolean hasOptableTargetingProperties() {
-        return optableTargetingProperties != null;
     }
 }

@@ -9,8 +9,8 @@ import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingBidderRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAsyncProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
@@ -21,7 +21,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookEx
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
@@ -101,22 +101,21 @@ public class OptableTargetingConfig {
     @Bean
     TargetingRequestExecutor targetingRequestExecutor(OptableTargeting optableTargeting,
                                                       UserFpdActivityMask userFpdActivityMask,
-                                                      TimeoutFactory timeoutFactory,
                                                       IpAddressHelper ipAddressHelper,
                                                       @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new TargetingRequestExecutor(
-                optableTargeting, userFpdActivityMask, timeoutFactory, ipAddressHelper, logSamplingRate);
+                optableTargeting, userFpdActivityMask, ipAddressHelper, logSamplingRate);
     }
 
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   JsonMerger jsonMerger,
-                                                  OptableTargetingFlowResolver earlyOptableCallResolver,
+                                                  OptableTargetingFlowExecutor earlyOptableCallResolver,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
-                new OptableRawAuctionRequestHook(
+                new OptableTargetingRawAuctionRequestHook(
                         configResolver,
                         earlyOptableCallResolver,
                         logSamplingRate),
@@ -125,12 +124,10 @@ public class OptableTargetingConfig {
                         earlyOptableCallResolver),
                 new OptableTargetingAsyncProcessedAuctionRequestHook(
                         configResolver,
-                        earlyOptableCallResolver),
-                new OptableBidderRequestHook(),
-                new OptableTargetingAuctionResponseHook(
-                        configResolver,
-                        ObjectMapperProvider.mapper(),
-                        jsonMerger)));
+                        earlyOptableCallResolver,
+                        logSamplingRate),
+                new OptableTargetingBidderRequestHook(),
+                new OptableTargetingAuctionResponseHook(ObjectMapperProvider.mapper(), jsonMerger)));
     }
 
     @Bean
@@ -139,7 +136,7 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    OptableTargetingFlowResolver earlyOptableCallResolver(
+    OptableTargetingFlowExecutor optableTargetingFlowExecutor(
             BidderEnrichmentSampler bidderEnrichmentSampler,
             TargetingRequestExecutor targetingRequestExecutor,
             @Value("${hooks.host-execution-plan:}")
@@ -147,6 +144,7 @@ public class OptableTargetingConfig {
             @Value("${hooks.default-account-execution-plan:}")
             String defaultAccountExecutionPlan,
             JacksonMapper mapper,
+            TimeoutFactory timeoutFactory,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         final CompositeHookExecutionPlan hooksExecutionPlan = CompositeHookExecutionPlan.of(
@@ -157,7 +155,7 @@ public class OptableTargetingConfig {
                         ? mapper.decodeValue(defaultAccountExecutionPlan, ExecutionPlan.class)
                         : null);
 
-        return new OptableTargetingFlowResolver(
-                bidderEnrichmentSampler, targetingRequestExecutor, hooksExecutionPlan, logSamplingRate);
+        return new OptableTargetingFlowExecutor(
+                bidderEnrichmentSampler, targetingRequestExecutor, hooksExecutionPlan, timeoutFactory, logSamplingRate);
     }
 }

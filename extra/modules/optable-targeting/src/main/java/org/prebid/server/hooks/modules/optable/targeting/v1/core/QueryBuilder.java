@@ -45,28 +45,6 @@ public class QueryBuilder {
                 buildHidAttributesString(optableAttributes));
     }
 
-    private static String buildHidString(List<Id> ids, String hidPrefixesString) {
-        if (CollectionUtils.isEmpty(ids) || StringUtils.isEmpty(hidPrefixesString)) {
-            return StringUtils.EMPTY;
-        }
-        final Map<String, Id> prefixToIdValue = ids.stream()
-                .collect(Collectors.toMap(Id::getName, it -> it, (a, b) -> b));
-
-        final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
-                .map(String::trim)
-                .filter(StringUtils::isNotEmpty)
-                .map(prefixToIdValue::get)
-                .filter(Objects::nonNull)
-                .map(it -> String.format(
-                        "hid=%s:%s", it.getName(), URLEncoder.encode(it.getValue(), StandardCharsets.UTF_8)))
-                .collect(Collectors.joining("&"));
-        if (StringUtils.isEmpty(hidParameters)) {
-            return StringUtils.EMPTY;
-        }
-
-        return "&" + hidParameters;
-    }
-
     private static String buildIdsString(List<Id> ids, String idPrefixOrder) {
         if (CollectionUtils.isEmpty(ids)) {
             return StringUtils.EMPTY;
@@ -99,6 +77,28 @@ public class QueryBuilder {
         orderedIds.sort(Comparator.comparing(item -> prefixToPriority.getOrDefault(item.getName(), Integer.MAX_VALUE)));
 
         return orderedIds;
+    }
+
+    private static String buildHidString(List<Id> ids, String hidPrefixesString) {
+        if (CollectionUtils.isEmpty(ids) || StringUtils.isEmpty(hidPrefixesString)) {
+            return StringUtils.EMPTY;
+        }
+        final Map<String, Id> prefixToIdValue = ids.stream()
+                .collect(Collectors.toMap(Id::getName, it -> it, (a, b) -> b));
+
+        final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
+                .map(String::trim)
+                .filter(StringUtils::isNotEmpty)
+                .map(prefixToIdValue::get)
+                .filter(Objects::nonNull)
+                .map(it -> String.format(
+                        "hid=%s:%s", it.getName(), URLEncoder.encode(it.getValue(), StandardCharsets.UTF_8)))
+                .collect(Collectors.joining("&"));
+        if (StringUtils.isEmpty(hidParameters)) {
+            return StringUtils.EMPTY;
+        }
+
+        return "&" + hidParameters;
     }
 
     private static String buildAttributesString(OptableAttributes optableAttributes) {

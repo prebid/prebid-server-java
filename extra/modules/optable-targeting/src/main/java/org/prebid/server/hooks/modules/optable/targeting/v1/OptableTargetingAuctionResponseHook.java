@@ -11,7 +11,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidResponseEnricher;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Id5SignatureBidResponseEnricher;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -29,15 +28,11 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
     private static final String CODE = "optable-targeting-auction-response-hook";
 
-    private final ConfigResolver configResolver;
     private final ObjectMapper objectMapper;
     private final JsonMerger jsonMerger;
 
-    public OptableTargetingAuctionResponseHook(ConfigResolver configResolver,
-                                               ObjectMapper objectMapper,
-                                               JsonMerger jsonMerger) {
+    public OptableTargetingAuctionResponseHook(ObjectMapper objectMapper, JsonMerger jsonMerger) {
 
-        this.configResolver = Objects.requireNonNull(configResolver);
         this.objectMapper = Objects.requireNonNull(objectMapper);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
@@ -46,10 +41,10 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     public Future<InvocationResult<AuctionResponsePayload>> call(AuctionResponsePayload auctionResponsePayload,
                                                                  AuctionInvocationContext invocationContext) {
 
-        final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
+        final ModuleContext moduleContext = ModuleContext.of(invocationContext);
+        final OptableTargetingProperties properties = moduleContext.getOptableTargetingProperties();
         final boolean adserverTargeting = properties.getAdserverTargeting();
 
-        final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
 
         if (moduleContext.isShouldSkipEnrichment() || !adserverTargeting) {
@@ -78,7 +73,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         final String id5Signature = moduleContext.getId5Signature();
         return id5Signature != null
                 ? update(id5SignatureEnrichmentChain(id5Signature), moduleContext)
-                : success(moduleContext);
+                : noAction(moduleContext);
     }
 
     private PayloadUpdate<AuctionResponsePayload> id5SignatureEnrichmentChain(String id5Signature) {
@@ -99,7 +94,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
                         .build());
     }
 
-    private Future<InvocationResult<AuctionResponsePayload>> success(ModuleContext moduleContext) {
+    private Future<InvocationResult<AuctionResponsePayload>> noAction(ModuleContext moduleContext) {
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionResponsePayload>builder()
                         .status(InvocationStatus.success)

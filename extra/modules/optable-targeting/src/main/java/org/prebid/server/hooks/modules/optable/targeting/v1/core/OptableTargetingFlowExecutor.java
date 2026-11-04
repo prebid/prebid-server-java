@@ -3,6 +3,8 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -21,10 +23,10 @@ import org.prebid.server.settings.model.Account;
 import java.util.Objects;
 import java.util.Set;
 
-public class OptableTargetingFlowResolver {
+public class OptableTargetingFlowExecutor {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
-            LoggerFactory.getLogger(OptableTargetingFlowResolver.class));
+            LoggerFactory.getLogger(OptableTargetingFlowExecutor.class));
 
     private static final String AUCTION_NOT_PROPERLY_CONFIGURED =
             "Account not properly configured: tenant and/or origin is missing.";
@@ -32,20 +34,23 @@ public class OptableTargetingFlowResolver {
     private final BidderEnrichmentSampler bidderEnrichmentSampler;
     private final TargetingRequestExecutor targetingRequestExecutor;
     private final CompositeHookExecutionPlan hooksExecutionPlan;
+    private final TimeoutFactory timeoutFactory;
     private final double logSamplingRate;
 
-    public OptableTargetingFlowResolver(BidderEnrichmentSampler bidderEnrichmentSampler,
+    public OptableTargetingFlowExecutor(BidderEnrichmentSampler bidderEnrichmentSampler,
                                         TargetingRequestExecutor targetingRequestExecutor,
                                         CompositeHookExecutionPlan hooksExecutionPlan,
+                                        TimeoutFactory timeoutFactory,
                                         double logSamplingRate) {
 
         this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
         this.targetingRequestExecutor = Objects.requireNonNull(targetingRequestExecutor);
         this.hooksExecutionPlan = hooksExecutionPlan;
+        this.timeoutFactory = timeoutFactory;
         this.logSamplingRate = logSamplingRate;
     }
 
-    public Future<InvocationResult<AuctionRequestPayload>> resolveAsyncOptableTargetingFlow(
+    public Future<InvocationResult<AuctionRequestPayload>> executeAsyncOptableTargetingFlow(
             ModuleContext moduleContext,
             AuctionRequestPayload payload,
             AuctionInvocationContext invocationContext,
@@ -61,11 +66,12 @@ public class OptableTargetingFlowResolver {
         final long crossHookFutureTimeout =
                 hooksExecutionPlan.getOptableTargetingBidderRequestTimeout(account);
 
+        final Timeout timeout = timeoutFactory.create(invocationContext.timeout().remaining() + crossHookFutureTimeout);
         final Future<TargetingResult> optableTargetingCall = targetingRequestExecutor.makeRequest(
                 payload,
                 invocationContext,
                 properties,
-                crossHookFutureTimeout);
+                timeout);
 
         moduleContext.setOptableTargetingCall(optableTargetingCall);
 
@@ -76,18 +82,13 @@ public class OptableTargetingFlowResolver {
      * @deprecated This call is deprecated and will be removed in a future release.
      */
     @Deprecated
-    public Future<InvocationResult<AuctionRequestPayload>> resolveOptableTargetingFlow(
+    public Future<InvocationResult<AuctionRequestPayload>> executeSyncOptableTargetingFlow(
             AuctionRequestPayload auctionRequestPayload,
             AuctionInvocationContext invocationContext,
             ModuleContext moduleContext,
             OptableTargetingProperties properties) {
 
-        final Account account = invocationContext.auctionContext().getAccount();
-        if (hooksExecutionPlan.hasBidderRequestHook(account)) {
-            return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
-        }
-
-        return resolvePreEarlyNetworkCall(auctionRequestPayload, invocationContext, moduleContext, properties)
+        return makeTargetingRequest(auctionRequestPayload, invocationContext, moduleContext, properties)
                 .compose(targetingResult -> {
                     moduleContext.recordTargetingExecutionTime();
                     return enrichPayload(targetingResult, moduleContext, properties);
@@ -96,6 +97,25 @@ public class OptableTargetingFlowResolver {
                     moduleContext.failAndRecordExecutionTime();
                     return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
                 });
+    }
+
+    private Future<TargetingResult> makeTargetingRequest(
+            AuctionRequestPayload payload,
+            AuctionInvocationContext invocationContext,
+            ModuleContext moduleContext,
+            OptableTargetingProperties properties) {
+
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis());
+        if (!PropertiesValidator.isValid(properties)) {
+            conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
+            return Future.failedFuture(AUCTION_NOT_PROPERLY_CONFIGURED);
+        }
+
+        return targetingRequestExecutor.makeRequest(
+                payload,
+                invocationContext,
+                properties,
+                null);
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichPayload(
@@ -108,30 +128,9 @@ public class OptableTargetingFlowResolver {
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
         final PayloadUpdate<AuctionRequestPayload> payloadUpdate =
-                AuctionRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
+                AuctionRequestCleaner.instance().andThen(AuctionRequestEnricher.of(targetingResult, properties))::apply;
 
         return updateWithAnalytics(payloadUpdate, moduleContext);
-    }
-
-    private Future<TargetingResult> resolvePreEarlyNetworkCall(
-            AuctionRequestPayload payload,
-            AuctionInvocationContext invocationContext,
-            ModuleContext moduleContext,
-            OptableTargetingProperties properties) {
-
-        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis());
-        if (!PropertiesValidator.isValid(properties)) {
-            conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
-
-            moduleContext.failAndRecordExecutionTime();
-            return Future.failedFuture(AUCTION_NOT_PROPERLY_CONFIGURED);
-        }
-
-        return targetingRequestExecutor.makeRequest(
-                payload,
-                invocationContext,
-                properties,
-                null);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(

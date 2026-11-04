@@ -23,7 +23,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
@@ -90,9 +90,9 @@ class OptableTargetingAsyncProcessedAuctionRequestHookTest extends BaseOptableTe
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         targetingRequestExecutor = new TargetingRequestExecutor(
-                optableTargeting, userFpdActivityMask, timeoutFactory, ipAddressHelper, 0.01);
+                optableTargeting, userFpdActivityMask, ipAddressHelper, 0.01);
         target = new OptableTargetingAsyncProcessedAuctionRequestHook(
-                configResolver, givenFlowResolver());
+                configResolver, givenFlowExecutor(), 0.01);
 
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(
@@ -102,11 +102,12 @@ class OptableTargetingAsyncProcessedAuctionRequestHookTest extends BaseOptableTe
         when(timeout.remaining()).thenReturn(1000L);
     }
 
-    private OptableTargetingFlowResolver givenFlowResolver() {
-        return new OptableTargetingFlowResolver(
+    private OptableTargetingFlowExecutor givenFlowExecutor() {
+        return new OptableTargetingFlowExecutor(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty(), null),
+                timeoutFactory,
                 0.01);
     }
 
@@ -117,7 +118,7 @@ class OptableTargetingAsyncProcessedAuctionRequestHookTest extends BaseOptableTe
     }
 
     @Test
-    void callShouldReturnResultWithNoActionWhenModuleContextIsAbsent() {
+    void callShouldReturnResultWithUpdateActionWhenModuleContextIsAbsent() {
         // given
         when(invocationContext.moduleContext()).thenReturn(null);
 
@@ -132,9 +133,8 @@ class OptableTargetingAsyncProcessedAuctionRequestHookTest extends BaseOptableTe
         final InvocationResult<AuctionRequestPayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.no_action, InvocationResult::action)
+                .returns(InvocationAction.update, InvocationResult::action)
                 .extracting(InvocationResult::errors).isNull();
-        assertThat(result.payloadUpdate()).isNull();
     }
 
     @Test

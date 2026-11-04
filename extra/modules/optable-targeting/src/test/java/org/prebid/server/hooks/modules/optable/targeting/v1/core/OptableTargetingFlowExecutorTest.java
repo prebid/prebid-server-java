@@ -8,6 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -28,7 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class OptableTargetingFlowResolverTest extends BaseOptableTest {
+public class OptableTargetingFlowExecutorTest extends BaseOptableTest {
 
     @Mock
     private BidderEnrichmentSampler bidderEnrichmentSampler;
@@ -42,19 +44,26 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
     @Mock
     private AuctionInvocationContext invocationContext;
 
-    private OptableTargetingFlowResolver target;
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private TimeoutFactory timeoutFactory;
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private Timeout timeout;
+
+    private OptableTargetingFlowExecutor target;
 
     @BeforeEach
     public void setUp() {
-        target = new OptableTargetingFlowResolver(
+        target = new OptableTargetingFlowExecutor(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty(), null),
+                timeoutFactory,
                 0.01);
     }
 
     @Test
-    public void resolveAsyncOptableTargetingFlowShouldProceedWhenBidRequestIsValid() {
+    public void executeAsyncOptableTargetingFlowShouldProceedWhenBidRequestIsValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
@@ -62,10 +71,12 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         final Future<TargetingResult> targetingResultFuture = Future.succeededFuture(givenTargetingResult());
         when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
         when(targetingRequestExecutor.makeRequest(any(), any(), any(), any())).thenReturn(targetingResultFuture);
+        when(invocationContext.timeout()).thenReturn(timeout);
+        when(timeout.remaining()).thenReturn(1000L);
         final ModuleContext moduleContext = new ModuleContext();
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.executeAsyncOptableTargetingFlow(
                 moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false));
 
         // then
@@ -79,11 +90,11 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         assertThat(result.payloadUpdate()).isNotNull();
         assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
         assertThat(moduleContext.getOptableTargetingCall()).isSameAs(targetingResultFuture);
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
+        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
     }
 
     @Test
-    public void resolveAsyncOptableTargetingFlowShouldCleanRequestWhenNoBiddersToEnrich() {
+    public void executeAsyncOptableTargetingFlowShouldCleanRequestWhenNoBiddersToEnrich() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
                 givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
@@ -92,7 +103,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         final ModuleContext moduleContext = new ModuleContext();
 
         // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.resolveAsyncOptableTargetingFlow(
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.executeAsyncOptableTargetingFlow(
                 moduleContext, auctionRequestPayload, invocationContext, givenOptableTargetingProperties(false));
 
         // then
@@ -106,7 +117,7 @@ public class OptableTargetingFlowResolverTest extends BaseOptableTest {
         assertThat(result.payloadUpdate()).isNotNull();
         assertThat(moduleContext.getBiddersToEnrich()).isNull();
         assertThat(moduleContext.getOptableTargetingCall()).isNull();
-        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isTrue();
+        assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
 
         final AuctionRequestPayload cleanedPayload = result.payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequestWithUser(givenUser())));

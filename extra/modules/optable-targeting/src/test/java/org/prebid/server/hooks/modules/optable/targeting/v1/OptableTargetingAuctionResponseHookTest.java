@@ -14,7 +14,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -41,14 +40,13 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @Mock(strictness = LENIENT)
     private AuctionInvocationContext invocationContext;
 
+    private OptableTargetingProperties properties;
+
     @BeforeEach
     public void setUp() {
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
-
-        target = new OptableTargetingAuctionResponseHook(
-                new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false)),
-                mapper,
-                jsonMerger);
+        properties = givenOptableTargetingProperties(false);
+        target = new OptableTargetingAuctionResponseHook(mapper, jsonMerger);
     }
 
     @Test
@@ -62,7 +60,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     public void shouldReturnResultWithNoActionAndWithPBSAnalyticsTagsWhenTargetingIsEmptyAndNoId5Signature() {
         // given
         when(invocationContext.moduleContext()).thenReturn(
-                givenModuleContext(null, Future.failedFuture(new RuntimeException("error"))));
+                givenModuleContext(properties, null, Future.failedFuture(new RuntimeException("error"))));
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =
@@ -93,7 +91,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         // given
         final String signature = "id5Signature";
         final ModuleContext moduleContext =
-                givenModuleContext(null, Future.failedFuture(new RuntimeException("error")));
+                givenModuleContext(properties, null, Future.failedFuture(new RuntimeException("error")));
         moduleContext.setId5Signature(signature);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
@@ -121,13 +119,14 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @Test
     public void shouldReturnResultWithUpdateActionWhenAdvertiserTargetingOptionIsOn() {
         // given
-        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
-                new Audience(
-                        "provider",
-                        List.of(new AudienceId("audienceId")),
-                        "keyspace",
-                        1)),
-                Future.succeededFuture(givenEmptyTargetingResult())));
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(properties,
+                List.of(
+                    new Audience(
+                            "provider",
+                            List.of(new AudienceId("audienceId")),
+                            "keyspace",
+                            1)),
+                    Future.succeededFuture(givenEmptyTargetingResult())));
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
 
         // when
@@ -171,6 +170,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                         "keyspace",
                         1)));
         moduleContext.setId5Signature(signature);
+        moduleContext.setOptableTargetingProperties(properties);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
 
@@ -208,7 +208,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         // given
         final String signature = "id5Signature";
         final ModuleContext moduleContext =
-                givenModuleContext(null, Future.succeededFuture(givenEmptyTargetingResult()));
+                givenModuleContext(properties, null, Future.succeededFuture(givenEmptyTargetingResult()));
         moduleContext.setId5Signature(signature);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
@@ -237,6 +237,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     public void shouldReturnUpdateActionWhenTargetingIsPresentEvenIfOptableTargetingCallFails() {
         // given
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext(
+                properties,
                 List.of(new Audience(
                         "provider",
                         List.of(new AudienceId("audienceId")),
@@ -274,7 +275,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     public void shouldReturnNoActionWhenOptableTargetingCallFailsAndTargetingIsEmptyAndNoId5Signature() {
         // given
         when(invocationContext.moduleContext()).thenReturn(
-                givenModuleContext(null, Future.failedFuture(new RuntimeException("error"))));
+                givenModuleContext(properties, null, Future.failedFuture(new RuntimeException("error"))));
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =
@@ -295,7 +296,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         // given
         final String signature = "id5Signature";
         final ModuleContext moduleContext =
-                givenModuleContext(null, Future.failedFuture(new RuntimeException("error")));
+                givenModuleContext(properties, null, Future.failedFuture(new RuntimeException("error")));
         moduleContext.setId5Signature(signature);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
@@ -323,12 +324,14 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @Test
     public void shouldReturnNoActionWhenTargetingCallFailsAndNoBidsAndNoId5Signature() {
         // given
-        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
-                new Audience(
-                        "provider",
-                        List.of(new AudienceId("audienceId")),
-                        "keyspace",
-                        1)),
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(
+                properties,
+                List.of(
+                    new Audience(
+                            "provider",
+                            List.of(new AudienceId("audienceId")),
+                            "keyspace",
+                            1)),
                 Future.failedFuture(new RuntimeException("error"))));
 
         // when
@@ -349,12 +352,14 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     public void shouldReturnUpdateActionWithId5SignatureWhenTargetingCallFailsAndNoBids() {
         // given
         final String signature = "id5Signature";
-        final ModuleContext moduleContext = givenModuleContext(List.of(
-                new Audience(
-                        "provider",
-                        List.of(new AudienceId("audienceId")),
-                        "keyspace",
-                        1)),
+        final ModuleContext moduleContext = givenModuleContext(
+                properties,
+                List.of(
+                    new Audience(
+                            "provider",
+                            List.of(new AudienceId("audienceId")),
+                            "keyspace",
+                            1)),
                 Future.failedFuture(new RuntimeException("error")));
         moduleContext.setId5Signature(signature);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
@@ -386,15 +391,15 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         // given
         final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
         properties.setAdserverTargeting(false);
-        final ConfigResolver configResolver = new ConfigResolver(mapper, jsonMerger, properties);
-        target = new OptableTargetingAuctionResponseHook(configResolver, mapper, jsonMerger);
+        target = new OptableTargetingAuctionResponseHook(mapper, jsonMerger);
         when(invocationContext.accountConfig()).thenReturn(mapper.valueToTree(properties));
-        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
-                new Audience(
-                        "provider",
-                        List.of(new AudienceId("audienceId")),
-                        "keyspace",
-                        1)),
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(properties,
+                List.of(
+                    new Audience(
+                            "provider",
+                            List.of(new AudienceId("audienceId")),
+                            "keyspace",
+                            1)),
                 Future.failedFuture(new RuntimeException("error"))));
 
         // when
@@ -417,15 +422,16 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         final String signature = "id5Signature";
         final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
         properties.setAdserverTargeting(false);
-        final ConfigResolver configResolver = new ConfigResolver(mapper, jsonMerger, properties);
-        target = new OptableTargetingAuctionResponseHook(configResolver, mapper, jsonMerger);
+        target = new OptableTargetingAuctionResponseHook(mapper, jsonMerger);
         when(invocationContext.accountConfig()).thenReturn(mapper.valueToTree(properties));
-        final ModuleContext moduleContext = givenModuleContext(List.of(
-                new Audience(
-                        "provider",
-                        List.of(new AudienceId("audienceId")),
-                        "keyspace",
-                        1)),
+        final ModuleContext moduleContext = givenModuleContext(
+                properties,
+                List.of(
+                    new Audience(
+                            "provider",
+                            List.of(new AudienceId("audienceId")),
+                            "keyspace",
+                            1)),
                 Future.failedFuture(new RuntimeException("error")));
         moduleContext.setId5Signature(signature);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
@@ -455,6 +461,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         // given
         final ModuleContext moduleContext = givenModuleContext();
         moduleContext.setShouldSkipEnrichment(true);
+        moduleContext.setOptableTargetingProperties(properties);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
 
         // when
@@ -478,6 +485,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         final ModuleContext moduleContext = givenModuleContext();
         moduleContext.setShouldSkipEnrichment(true);
         moduleContext.setId5Signature(signature);
+        moduleContext.setOptableTargetingProperties(properties);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
 
         // when

@@ -6,14 +6,14 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
-public class BidRequestEnricher extends RequestEnricher implements PayloadUpdate<AuctionRequestPayload> {
+public class AuctionRequestEnricher extends RequestEnricher implements PayloadUpdate<AuctionRequestPayload> {
 
-    private BidRequestEnricher(TargetingResult targetingResult, OptableTargetingProperties targetingProperties) {
+    private AuctionRequestEnricher(TargetingResult targetingResult, OptableTargetingProperties targetingProperties) {
         super(targetingResult, targetingProperties);
     }
 
-    public static BidRequestEnricher of(TargetingResult targetingResult, OptableTargetingProperties properties) {
-        return new BidRequestEnricher(targetingResult, properties);
+    public static AuctionRequestEnricher of(TargetingResult targetingResult, OptableTargetingProperties properties) {
+        return new AuctionRequestEnricher(targetingResult, properties);
     }
 
     @Override

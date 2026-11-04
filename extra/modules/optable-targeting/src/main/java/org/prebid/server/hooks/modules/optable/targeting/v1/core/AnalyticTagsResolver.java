@@ -7,6 +7,7 @@ import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.Outcome;
 import org.prebid.server.hooks.modules.optable.targeting.model.Reason;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.v1.analytics.Activity;
@@ -39,16 +40,16 @@ public class AnalyticTagsResolver {
     }
 
     public static Tags toBidderEnrichRequestAnalyticTags(String bidder,
-                                                           String outcome,
-                                                           long executionTime) {
+                                                         Outcome outcome,
+                                                         long executionTime) {
 
         final ObjectNode values = ObjectMapperProvider.mapper().createObjectNode()
-                .put(STATUS_OUTCOME, outcome)
+                .put(STATUS_OUTCOME, outcome.getValue())
                 .put(STATUS_EXECUTION_TIME, String.valueOf(executionTime));
 
         return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
                 ACTIVITY_ENRICH_BIDDER_REQUEST,
-                "enriched".equals(outcome) ? Status.SUCCESS.getValue() : Status.FAIL.getValue(),
+                Outcome.ENRICHED.equals(outcome) ? Status.SUCCESS.getValue() : Status.FAIL.getValue(),
                 Collections.singletonList(ResultImpl.of(
                         null,
                         values,

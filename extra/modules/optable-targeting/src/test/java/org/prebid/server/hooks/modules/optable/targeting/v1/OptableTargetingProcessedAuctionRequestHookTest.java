@@ -34,7 +34,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -101,9 +101,9 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         targetingRequestExecutor = new TargetingRequestExecutor(
-                optableTargeting, userFpdActivityMask, timeoutFactory, ipAddressHelper, 0.01);
+                optableTargeting, userFpdActivityMask, ipAddressHelper, 0.01);
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver, givenFlowResolver(ExecutionPlan.empty()));
+                configResolver, givenFlowExecutor(ExecutionPlan.empty()));
 
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(
@@ -113,11 +113,12 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         when(timeout.remaining()).thenReturn(1000L);
     }
 
-    private OptableTargetingFlowResolver givenFlowResolver(ExecutionPlan executionPlan) {
-        return new OptableTargetingFlowResolver(
+    private OptableTargetingFlowExecutor givenFlowExecutor(ExecutionPlan executionPlan) {
+        return new OptableTargetingFlowExecutor(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
                 CompositeHookExecutionPlan.of(executionPlan, null),
+                timeoutFactory,
                 0.01);
     }
 
@@ -281,35 +282,6 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    void callShouldReturnResultWithoutEnrichedBidRequestWhenBidderRequestHookIsPresent() {
-        // given
-        target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver,
-                givenFlowResolver(givenExecutionPlan(true)));
-        when(invocationContext.moduleContext()).thenReturn(new ModuleContext());
-
-        // when
-        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
-                invocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull()
-                .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action)
-                .extracting(InvocationResult::errors).isNull();
-        final BidRequest bidRequest = result
-                .payloadUpdate()
-                .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
-                .bidRequest();
-        assertThat(bidRequest.getUser().getEids()).isNull();
-        assertThat(bidRequest.getUser().getData()).isNull();
-    }
-
-    @Test
     void callShouldReturnFailWhenOriginIsAbsentInAccountConfiguration() {
         // given
         configResolver = new ConfigResolver(
@@ -317,7 +289,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 jsonMerger,
                 givenOptableTargetingProperties("key", "tenant", null, false));
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver, givenFlowResolver(ExecutionPlan.empty()));
+                configResolver, givenFlowExecutor(ExecutionPlan.empty()));
         when(invocationContext.accountConfig())
                 .thenReturn(givenAccountConfig("key", "tenant", null, true));
 
@@ -346,7 +318,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 jsonMerger,
                 givenOptableTargetingProperties("key", null, "origin", false));
         target = new OptableTargetingProcessedAuctionRequestHook(
-                configResolver, givenFlowResolver(ExecutionPlan.empty()));
+                configResolver, givenFlowExecutor(ExecutionPlan.empty()));
         when(invocationContext.accountConfig())
                 .thenReturn(givenAccountConfig("key", null, null, true));
 

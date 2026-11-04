@@ -14,6 +14,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class Id5SignatureBidResponseEnricher implements PayloadUpdate<AuctionResponsePayload> {
 
@@ -50,19 +51,15 @@ public class Id5SignatureBidResponseEnricher implements PayloadUpdate<AuctionRes
                 ? jsonMerger.merge(passthroughNode, existingPassthrough)
                 : passthroughNode;
 
-        final ExtBidResponsePrebid modifiedPrebid = existingPrebid != null
-                ? existingPrebid.toBuilder()
-                .passthrough(mergedPassthrough)
-                .build()
-                : ExtBidResponsePrebid.builder()
+        final ExtBidResponsePrebid modifiedPrebid = Optional.ofNullable(existingPrebid)
+                .map(ExtBidResponsePrebid::toBuilder)
+                .orElseGet(ExtBidResponsePrebid::builder)
                 .passthrough(mergedPassthrough)
                 .build();
 
-        final ExtBidResponse modifiedExt = existingExt != null
-                ? existingExt.toBuilder()
-                .prebid(modifiedPrebid)
-                .build()
-                : ExtBidResponse.builder()
+        final ExtBidResponse modifiedExt = Optional.ofNullable(existingExt)
+                .map(ExtBidResponse::toBuilder)
+                .orElseGet(ExtBidResponse::builder)
                 .prebid(modifiedPrebid)
                 .build();
 

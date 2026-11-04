@@ -21,12 +21,15 @@ public class AuctionRequestCleaner implements PayloadUpdate<AuctionRequestPayloa
         return INSTANCE;
     }
 
+    public AuctionRequestCleaner() {
+    }
+
     @Override
     public AuctionRequestPayload apply(AuctionRequestPayload payload) {
         return AuctionRequestPayloadImpl.of(clearExtUserOptable(payload.bidRequest()));
     }
 
-    protected static BidRequest clearExtUserOptable(BidRequest bidRequest) {
+    private static BidRequest clearExtUserOptable(BidRequest bidRequest) {
         final User user = bidRequest.getUser();
         final ExtUser extUser = user != null ? user.getExt() : null;
         final JsonNode optable = extUser != null ? extUser.getProperty(OPTABLE_FIELD) : null;
@@ -37,11 +40,7 @@ public class AuctionRequestCleaner implements PayloadUpdate<AuctionRequestPayloa
         final ObjectNode cleanedOptable = cleanOptable((ObjectNode) optable);
         final ExtUser extUserCopy = extUser.toBuilder().build();
         extUserCopy.addProperties(extUser.getProperties());
-        if (cleanedOptable.isEmpty()) {
-            extUserCopy.addProperty(OPTABLE_FIELD, null);
-        } else {
-            extUserCopy.addProperty(OPTABLE_FIELD, cleanedOptable);
-        }
+        extUserCopy.addProperty(OPTABLE_FIELD, cleanedOptable.isEmpty() ? null : cleanedOptable);
 
         return bidRequest.toBuilder()
                 .user(user.toBuilder()

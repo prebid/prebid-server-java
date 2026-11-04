@@ -7,7 +7,7 @@ import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingBidderRequestHook;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -20,7 +20,7 @@ public class CompositeHookExecutionPlan {
 
     private static final HookHttpEndpoint ENDPOINT_AUCTION = HookHttpEndpoint.POST_AUCTION;
     private static final String STAGE_BIDDER_REQUEST = "bidder_request";
-    private static final String HOOK_CODE_OPTABLE_BIDDER_REQUEST = OptableBidderRequestHook.CODE;
+    private static final String HOOK_CODE_OPTABLE_BIDDER_REQUEST = OptableTargetingBidderRequestHook.CODE;
 
     private final boolean hasHostBidderRequestHook;
 

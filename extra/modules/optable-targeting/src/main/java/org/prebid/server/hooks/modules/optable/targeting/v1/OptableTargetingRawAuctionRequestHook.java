@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
@@ -8,7 +9,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -25,26 +26,27 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
+public class OptableTargetingRawAuctionRequestHook implements RawAuctionRequestHook {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
-            LoggerFactory.getLogger(OptableRawAuctionRequestHook.class));
+            LoggerFactory.getLogger(OptableTargetingRawAuctionRequestHook.class));
 
-    private static final String PREBID_STORED_REQUEST_PATH = "/prebid/storedrequest";
+    private static final JsonPointer PREBID_STORED_JSON_POINTER = JsonPointer.valueOf("/prebid/storedrequest");
 
     public static final String CODE = "optable-targeting-raw-auction-request-hook";
 
     private final ConfigResolver configResolver;
-    private final OptableTargetingFlowResolver optableTargetingFlowResolver;
+    private final OptableTargetingFlowExecutor optableTargetingFlowExecutor;
     private final double logSamplingRate;
 
-    public OptableRawAuctionRequestHook(ConfigResolver configResolver,
-                                        OptableTargetingFlowResolver optableTargetingFlowResolver,
-                                        double logSamplingRate) {
+    public OptableTargetingRawAuctionRequestHook(ConfigResolver configResolver,
+                                                 OptableTargetingFlowExecutor optableTargetingFlowExecutor,
+                                                 double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.optableTargetingFlowResolver = optableTargetingFlowResolver;
+        this.optableTargetingFlowExecutor = optableTargetingFlowExecutor;
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -71,22 +73,20 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
                 || hasStoredRequest(bidRequest)
                 || hasStoredImps(bidRequest)) {
 
-            moduleContext.setEarlyCallInitializationCompleted(false);
-
-            return success(moduleContext);
+            return noAction(moduleContext);
         }
+        moduleContext.setEarlyCallInitializationCompleted(true);
 
-        return optableTargetingFlowResolver.resolveAsyncOptableTargetingFlow(
+        return optableTargetingFlowExecutor.executeAsyncOptableTargetingFlow(
                 moduleContext, payload, invocationContext, properties);
     }
 
     private static boolean hasStoredImps(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getImp())
-                .stream()
+        return Stream.ofNullable(bidRequest.getImp())
                 .flatMap(Collection::stream)
                 .map(Imp::getExt)
                 .filter(Objects::nonNull)
-                .anyMatch(impExt -> impExt.at(PREBID_STORED_REQUEST_PATH).isObject());
+                .anyMatch(impExt -> impExt.at(PREBID_STORED_JSON_POINTER).isObject());
     }
 
     private static boolean hasStoredRequest(BidRequest bidRequest) {
@@ -109,8 +109,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
                         .build());
     }
 
-    public static Future<InvocationResult<AuctionRequestPayload>> success(ModuleContext moduleContext) {
-
+    public static Future<InvocationResult<AuctionRequestPayload>> noAction(ModuleContext moduleContext) {
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)

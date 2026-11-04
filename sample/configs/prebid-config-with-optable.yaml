@@ -1,14 +1,8 @@
 status-response: "ok"
 adapters:
-  appnexus:
-    enabled: true
-  criteo:
-    enabled: true
   openx:
     enabled: true
   pubmatic:
-    enabled: true
-  magnite:
     enabled: true
   improvedigital:
     enabled: true
@@ -16,17 +10,11 @@ adapters:
     enabled: true
   triplelift:
     enabled: true
-  adf:
-    enabled: true
   yieldmo:
     enabled: true
   grid:
     enabled: true
   unruly:
-    enabled: true
-  epsilon:
-    enabled: true
-  thirtythreeacross:
     enabled: true
 metrics:
   prefix: prebid

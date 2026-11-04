@@ -4,7 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -15,7 +14,6 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
-import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
@@ -29,19 +27,16 @@ public class TargetingRequestExecutor {
 
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
-    private final TimeoutFactory timeoutFactory;
     private final IpAddressHelper ipAddressHelper;
     private final double logSamplingRate;
 
     public TargetingRequestExecutor(OptableTargeting optableTargeting,
                                     UserFpdActivityMask userFpdActivityMask,
-                                    TimeoutFactory timeoutFactory,
                                     IpAddressHelper ipAddressHelper,
                                     double logSamplingRate) {
 
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
-        this.timeoutFactory = ObjectUtils.requireNonEmpty(timeoutFactory);
         this.logSamplingRate = logSamplingRate;
         this.ipAddressHelper = ipAddressHelper;
     }
@@ -49,13 +44,10 @@ public class TargetingRequestExecutor {
     public Future<TargetingResult> makeRequest(AuctionRequestPayload payload,
                                                AuctionInvocationContext invocationContext,
                                                OptableTargetingProperties properties,
-                                               Long apiTimeout) {
+                                               Timeout apiTimeout) {
 
         final BidRequest bidRequest = applyActivityRestrictions(payload.bidRequest(), invocationContext);
 
-        final Timeout timeout = apiTimeout == null
-                ? invocationContext.timeout()
-                : timeoutFactory.create(invocationContext.timeout().remaining() + apiTimeout);
         final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
                 bidRequest,
@@ -63,7 +55,7 @@ public class TargetingRequestExecutor {
                 logSamplingRate,
                 ipAddressHelper);
 
-        return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout);
+        return optableTargeting.getTargeting(properties, bidRequest, attributes, apiTimeout);
     }
 
     private BidRequest applyActivityRestrictions(BidRequest bidRequest,

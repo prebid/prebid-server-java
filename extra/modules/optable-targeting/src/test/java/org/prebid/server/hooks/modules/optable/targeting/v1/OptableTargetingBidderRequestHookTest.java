@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class OptableBidderRequestHookTest extends BaseOptableTest {
+public class OptableTargetingBidderRequestHookTest extends BaseOptableTest {
 
     @Mock
     private BidderInvocationContext invocationContext;
@@ -43,11 +43,11 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     @Mock
     private BidderRequestPayload bidderRequestPayload;
 
-    private OptableBidderRequestHook target;
+    private OptableTargetingBidderRequestHook target;
 
     @BeforeEach
     public void setUp() {
-        target = new OptableBidderRequestHook();
+        target = new OptableTargetingBidderRequestHook();
         when(bidderRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         when(invocationContext.bidder()).thenReturn("bidder1");
     }

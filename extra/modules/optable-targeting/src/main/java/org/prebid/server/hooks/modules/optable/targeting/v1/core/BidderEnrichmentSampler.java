@@ -1,10 +1,12 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.BidderCatalog;
@@ -16,7 +18,6 @@ import org.prebid.server.util.StreamUtil;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ import java.util.stream.Stream;
 @AllArgsConstructor(staticName = "of")
 public class BidderEnrichmentSampler {
 
-    private static final String PREBID_BIDDER_PATH = "/prebid/bidder";
+    private static final JsonPointer PREBID_BIDDER_JSON_POINTER = JsonPointer.valueOf("/prebid/bidder");
 
     private final BidderCatalog bidderCatalog;
 
@@ -33,15 +34,19 @@ public class BidderEnrichmentSampler {
         final BidderAliases aliases = resolveBidderAliases(bidRequest);
         return extractUniqueBidders(bidRequest)
                 .stream()
-                .filter(bidder -> {
-                    final int percentage = resolvePercentage(
-                            aliases,
-                            bidder,
-                            optableTargetingProperties.getEnrichmentPercentage(),
-                            optableTargetingProperties.getBidderEnrichmentPercentages());
-                    return percentage > 0 && ThreadLocalRandom.current().nextInt(100) < percentage;
-                })
+                .filter(bidder -> shouldEnrichBidder(optableTargetingProperties, bidder, aliases))
                 .collect(Collectors.toSet());
+    }
+
+    private static boolean shouldEnrichBidder(OptableTargetingProperties optableTargetingProperties,
+                                              String bidder, BidderAliases aliases) {
+
+        final int percentage = resolvePercentage(
+                aliases,
+                bidder,
+                optableTargetingProperties.getEnrichmentPercentage(),
+                optableTargetingProperties.getBidderEnrichmentPercentages());
+        return percentage > 0 && ThreadLocalRandom.current().nextInt(100) < percentage;
     }
 
     private BidderAliases resolveBidderAliases(BidRequest bidRequest) {
@@ -53,8 +58,7 @@ public class BidderEnrichmentSampler {
     }
 
     private static Set<String> extractUniqueBidders(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getImp())
-                .stream()
+        return Stream.ofNullable(bidRequest.getImp())
                 .flatMap(Collection::stream)
                 .map(Imp::getExt)
                 .filter(Objects::nonNull)
@@ -67,7 +71,7 @@ public class BidderEnrichmentSampler {
      * for the imps that have no bidders there yet.
      */
     private static Stream<String> extractImpBidders(ObjectNode impExt) {
-        final JsonNode prebidBidders = impExt.at(PREBID_BIDDER_PATH);
+        final JsonNode prebidBidders = impExt.at(PREBID_BIDDER_JSON_POINTER);
         if (prebidBidders.isObject() && !prebidBidders.isEmpty()) {
             return StreamUtil.asStream(prebidBidders.fieldNames());
         }
@@ -81,8 +85,9 @@ public class BidderEnrichmentSampler {
                                          int defaultEnrichmentPercentage,
                                          Map<String, Integer> bidderEnrichmentPercentage) {
 
-        return Optional.ofNullable(bidderEnrichmentPercentage.get(bidder))
-                .or(() -> Optional.ofNullable(bidderEnrichmentPercentage.get(aliases.resolveBidder(bidder))))
-                .orElse(defaultEnrichmentPercentage);
+        return ObjectUtils.firstNonNull(
+                bidderEnrichmentPercentage.get(bidder),
+                bidderEnrichmentPercentage.get(aliases.resolveBidder(bidder)),
+                defaultEnrichmentPercentage);
     }
 }

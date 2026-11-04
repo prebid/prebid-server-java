@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetingFlowExecutor;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
@@ -23,13 +23,13 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
     private final ConfigResolver configResolver;
 
-    private final OptableTargetingFlowResolver optableTargetingFlowResolver;
+    private final OptableTargetingFlowExecutor optableTargetingFlowExecutor;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
-                                                        OptableTargetingFlowResolver earlyOptableCallResolver) {
+                                                        OptableTargetingFlowExecutor earlyOptableCallResolver) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.optableTargetingFlowResolver = Objects.requireNonNull(earlyOptableCallResolver);
+        this.optableTargetingFlowExecutor = Objects.requireNonNull(earlyOptableCallResolver);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
 
-        return optableTargetingFlowResolver.resolveOptableTargetingFlow(
+        return optableTargetingFlowExecutor.executeSyncOptableTargetingFlow(
                 auctionRequestPayload, invocationContext, moduleContext, properties);
     }
 

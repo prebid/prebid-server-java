@@ -78,9 +78,19 @@ public abstract class BaseOptableTest {
         return moduleContext;
     }
 
-    protected ModuleContext givenModuleContext(List<Audience> audiences, Future<TargetingResult> optableTargetingCall) {
+    protected ModuleContext givenModuleContext(List<Audience> audiences,
+                                               Future<TargetingResult> optableTargetingCall) {
+
+        return givenModuleContext(null, audiences, optableTargetingCall);
+    }
+
+    protected ModuleContext givenModuleContext(OptableTargetingProperties properties,
+                                               List<Audience> audiences,
+                                               Future<TargetingResult> optableTargetingCall) {
+
         final ModuleContext moduleContext = givenModuleContext(audiences);
         moduleContext.setOptableTargetingCall(optableTargetingCall);
+        moduleContext.setOptableTargetingProperties(properties);
         return moduleContext;
     }
 

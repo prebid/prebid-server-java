@@ -44,20 +44,17 @@ public class OptableAttributesResolver {
                                                       double logSamplingRate,
                                                       IpAddressHelper ipAddressHelper) {
 
-        final GppContext.Scope gppScope = Optional.ofNullable(auctionContext.getGppContext())
-                .map(GppContext::scope)
-                .orElse(null);
+        final GppContext.Scope gppScope = auctionContext.getGppContext().scope();
 
         final TcfContext tcfContext = Optional.ofNullable(auctionContext.getPrivacyContext())
                 .map(PrivacyContext::getTcfContext)
                 .orElse(null);
 
-        final Optional<User> user = Optional.ofNullable(maskedBidRequest.getUser());
-
         final OptableAttributes.OptableAttributesBuilder builder = OptableAttributes.builder()
                 .ips(resolveIp(auctionContext, maskedBidRequest.getDevice(), ipAddressHelper))
                 .userAgent(resolveUserAgent(maskedBidRequest.getDevice()))
                 .app(resolveApp(maskedBidRequest.getApp()))
+                .id5Signature(resolveId5Signature(maskedBidRequest.getUser(), logSamplingRate))
                 .timeout(timeout);
 
         if (tcfContext != null) {
@@ -72,59 +69,7 @@ public class OptableAttributesResolver {
                     .gppSid(SetUtils.emptyIfNull(gppScope.getSectionsIds()));
         }
 
-        user.map(User::getExt)
-                .map(ext -> ext.getProperty("optable"))
-                .map(it -> ExtUserOptableResolver.resolveExtUserOptable(it, logSamplingRate))
-                .map(ExtUserOptable::getId5Signature)
-                .filter(StringUtils::isNotBlank)
-                .ifPresent(builder::id5Signature);
-
         return builder.build();
-    }
-
-    private static void resolveGdprAttributes(TcfContext tcfContext,
-                                               OptableAttributes.OptableAttributesBuilder builder) {
-
-        if (tcfContext.isConsentValid()) {
-            builder
-                    .gdprApplies(tcfContext.isInGdprScope())
-                    .gdprConsent(tcfContext.getConsentString());
-        }
-    }
-
-    private static void resolveGdprAttributesFromRegs(BidRequest maskedBidRequest,
-                                                      OptableAttributes.OptableAttributesBuilder builder) {
-
-        final Optional<Regs> regs = Optional.ofNullable(maskedBidRequest.getRegs());
-        final Integer gdpr = regs
-                .map(Regs::getGdpr)
-                .orElseGet(() -> regs.map(Regs::getExt)
-                        .map(ExtRegs::getGdpr)
-                        .orElse(null));
-
-        if (gdpr == null || gdpr <= 0) {
-            return;
-        }
-
-        final Optional<User> user = Optional.ofNullable(maskedBidRequest.getUser());
-        final String consent = user.map(User::getConsent)
-                .orElseGet(() -> user.map(User::getExt)
-                        .map(ExtUser::getConsent)
-                        .orElse(null));
-
-        if (StringUtils.isNotEmpty(consent)) {
-            builder
-                    .gdprApplies(true)
-                    .gdprConsent(consent);
-        }
-    }
-
-    public static String resolveUserAgent(Device device) {
-        return device != null ? device.getUa() : null;
-    }
-
-    private static App resolveApp(com.iab.openrtb.request.App app) {
-        return app != null ? App.of(app.getBundle(), app.getVer()) : null;
     }
 
     private static List<String> resolveIp(AuctionContext auctionContext,
@@ -143,7 +88,7 @@ public class OptableAttributesResolver {
                     .map(it -> it.split(X_FORWARDED_FOR_HEADER_DELIMITER))
                     .filter(it -> it.length > 0)
                     .map(it -> it[0])
-                    .filter(StringUtils::isNoneEmpty)
+                    .filter(StringUtils::isNotEmpty)
                     .map(ip -> maskIp(auctionContext.getBidRequest(),
                             ip,
                             ipAddressHelper,
@@ -182,5 +127,59 @@ public class OptableAttributesResolver {
         }
 
         return null;
+    }
+
+    public static String resolveUserAgent(Device device) {
+        return device != null ? device.getUa() : null;
+    }
+
+    private static App resolveApp(com.iab.openrtb.request.App app) {
+        return app != null ? App.of(app.getBundle(), app.getVer()) : null;
+    }
+
+    private static String resolveId5Signature(User user, double logSamplingRate) {
+        return Optional.ofNullable(user).map(User::getExt)
+                .map(ext -> ext.getProperty("optable"))
+                .map(it -> ExtUserOptableResolver.resolveExtUserOptable(it, logSamplingRate))
+                .map(ExtUserOptable::getId5Signature)
+                .filter(StringUtils::isNotBlank)
+                .orElse(null);
+    }
+
+    private static void resolveGdprAttributes(TcfContext tcfContext,
+                                              OptableAttributes.OptableAttributesBuilder builder) {
+
+        if (tcfContext.isConsentValid()) {
+            builder
+                    .gdprApplies(tcfContext.isInGdprScope())
+                    .gdprConsent(tcfContext.getConsentString());
+        }
+    }
+
+    private static void resolveGdprAttributesFromRegs(BidRequest maskedBidRequest,
+                                                      OptableAttributes.OptableAttributesBuilder builder) {
+
+        final Optional<Regs> regs = Optional.ofNullable(maskedBidRequest.getRegs());
+        final Integer gdpr = regs
+                .map(Regs::getGdpr)
+                .orElseGet(() -> regs.map(Regs::getExt)
+                        .map(ExtRegs::getGdpr)
+                        .orElse(null));
+
+        if (gdpr == null || gdpr <= 0) {
+            return;
+        }
+
+        final Optional<User> user = Optional.ofNullable(maskedBidRequest.getUser());
+        final String consent = user.map(User::getConsent)
+                .orElseGet(() -> user.map(User::getExt)
+                        .map(ExtUser::getConsent)
+                        .orElse(null));
+
+        if (StringUtils.isNotEmpty(consent)) {
+            builder
+                    .gdprApplies(true)
+                    .gdprConsent(consent);
+        }
     }
 }
