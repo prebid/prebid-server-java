@@ -27,6 +27,7 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
@@ -40,6 +41,7 @@ import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
@@ -60,11 +62,6 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.CONSENT
 import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.NOT_APPLICABLE
 import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.NO_CONSENT
@@ -129,8 +126,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity),
@@ -179,9 +176,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
@@ -402,8 +399,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         where:
         regsGppSid        | conditionGppSid
@@ -464,9 +461,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should process rule when device.geo doesn't intersection"() {
@@ -524,8 +521,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -590,9 +587,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -654,8 +651,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
     }
 
     def "PBS auction should disallowed rule when regs.ext.gpc intersection with condition.gpc"() {
@@ -713,9 +710,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should process rule when header gpc doesn't intersection with condition.gpc"() {
@@ -772,8 +769,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
     }
 
     def "PBS auction should disallowed rule when header gpc intersection with condition.gpc"() {
@@ -830,9 +827,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction call when privacy regulation match and rejecting should remove UFPD fields in request"() {
@@ -1322,9 +1319,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
@@ -1392,8 +1389,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
     }
 
     def "PBS auction call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
@@ -1566,11 +1563,11 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         and: "General alert metric shouldn't be updated"
-        !metrics[ALERT_GENERAL]
+        !metrics[MetricsUtil.General.alert()]
 
         where:
         regsGpp << [null, "", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
@@ -1627,9 +1624,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Generic bidder request should have data in EIDS fields"
         assert bidderRequest.user.eids == bidRequest.user.eids
 
-        and: "Metrics for disallowed activities should be updated"
+        and: "Alerts.general metrics should be populated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
@@ -1826,9 +1823,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Response should not contain any errors"
         assert !response.ext.errors
 
-        and: "Metrics for disallowed activities should be updated"
+        and: "Alerts.general metrics should be populated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -2086,7 +2083,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
     }
 
     def "PBS amp call when transmit UFPD activities is rejecting request should remove UFPD fields field in active request and update disallowed metrics"() {
@@ -2141,8 +2138,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should remove UFPD fields from request"() {
@@ -2399,8 +2396,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp should allowed rule when gpc header doesn't intersection with condition.gpc"() {
@@ -2461,7 +2458,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
     }
 
     def "PBS amp call when privacy regulation match and rejecting should remove UFPD fields in request"() {
@@ -2936,8 +2933,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "Response should not contain any warnings"
         assert !response.ext.warnings
@@ -3014,7 +3011,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
 
         and: "Should add a warning when in debug mode"
         assert response.ext.warnings[PREBID]?.message.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
@@ -3218,10 +3215,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestProcessedActivityCount()] == 1
 
         and: "General alert metric shouldn't be updated"
-        !metrics[ALERT_GENERAL]
+        !metrics[MetricsUtil.General.alert()]
 
         where:
         regsGpp << [null, ""]
@@ -3354,9 +3351,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Generic bidder request should have data in EIDS fields"
         assert bidderRequest.user.eids == ampStoredRequest.user.eids
 
-        and: "Metrics for disallowed activities should be updated"
+        and: "Alerts.general metrics should be populated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
@@ -3588,9 +3585,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Response should contain consent_string error"
         assert response.ext.errors[PREBID].message == ["Amp request parameter consent_string has invalid format: $gppConsent"]
 
-        and: "Metrics for disallowed activities should be updated"
+        and: "Alerts.general metrics should be populated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -3851,9 +3848,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
 
         where:
         eid << [new PurposeEid(activityTransition: false),

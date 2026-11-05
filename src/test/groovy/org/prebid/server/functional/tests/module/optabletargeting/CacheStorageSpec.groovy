@@ -17,22 +17,14 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.StoredCache
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.apache.commons.codec.binary.Base64.encodeBase64
 import static org.apache.http.HttpStatus.SC_NOT_FOUND
 import static org.prebid.server.functional.model.config.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheStorageSpec extends ModuleBaseSpec {
-
-    private static final String METRIC_CREATIVE_SIZE_TEXT = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.entry_size.text"
-    private static final String METRIC_CREATIVE_TTL_TEXT = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.entry_ttl.text"
-
-    private static final String METRIC_CREATIVE_READ_OK = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.read.ok"
-    private static final String METRIC_CREATIVE_READ_ERR = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.read.err"
-    private static final String METRIC_CREATIVE_WRITE_OK = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.write.ok"
-    private static final String METRIC_CREATIVE_WRITE_ERR = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.write.err"
 
     private static final StoredCache storedCache = new StoredCache(networkServiceContainer)
 
@@ -72,12 +64,12 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
         then: "PBS should update metrics for new saved text storage cache"
         def metrics = prebidServerStoredCacheService.sendCollectedMetricsRequest()
-        assert metrics[METRIC_CREATIVE_READ_ERR] == 1
+        assert metrics[MetricsUtil.Cache.readErr(OPTABLE_TARGETING)] == 1
 
         and: "No updates for success metrics"
-        assert !metrics[METRIC_CREATIVE_SIZE_TEXT]
-        assert !metrics[METRIC_CREATIVE_TTL_TEXT]
-        assert !metrics[METRIC_CREATIVE_READ_OK]
+        assert !metrics[MetricsUtil.Cache.creativeSizeText(OPTABLE_TARGETING)]
+        assert !metrics[MetricsUtil.Cache.creativeTtlText(OPTABLE_TARGETING)]
+        assert !metrics[MetricsUtil.Cache.readOk(OPTABLE_TARGETING)]
     }
 
     def "PBS should update error metrics when external service responded with invalid values"() {
@@ -103,15 +95,15 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
         then: "PBS should update error metrics"
         def metrics = prebidServerStoredCacheService.sendCollectedMetricsRequest()
-        assert metrics[METRIC_CREATIVE_WRITE_ERR] == 1
+        assert metrics[MetricsUtil.Cache.writeErr(OPTABLE_TARGETING)] == 1
 
         and: "No updates for success metrics"
-        assert !metrics[METRIC_CREATIVE_WRITE_OK]
+        assert !metrics[MetricsUtil.Cache.writeOk(OPTABLE_TARGETING)]
     }
 
     def "PBS should update metrics for new saved text storage cache when no cached requests"() {
         given: "Current value of metric prebid cache"
-        def okInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_WRITE_OK)
+        def okInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, MetricsUtil.Cache.writeOk(OPTABLE_TARGETING))
 
         and: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
@@ -135,20 +127,20 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
         then: "PBS should update metrics for new saved text storage cache"
         def metrics = prebidServerStoredCacheService.sendCollectedMetricsRequest()
-        assert metrics[METRIC_CREATIVE_SIZE_TEXT] != 0
-        assert metrics[METRIC_CREATIVE_WRITE_OK] == okInitialValue + 1
+        assert metrics[MetricsUtil.Cache.creativeSizeText(OPTABLE_TARGETING)] != 0
+        assert metrics[MetricsUtil.Cache.writeOk(OPTABLE_TARGETING)] == okInitialValue + 1
 
         and: "PBS should include histogram metric"
-        assert metrics[METRIC_CREATIVE_TTL_TEXT]
+        assert metrics[MetricsUtil.Cache.creativeTtlText(OPTABLE_TARGETING)]
     }
 
     def "PBS should update metrics for stored cached requests cache when proper record present"() {
         given: "Current value of metric prebid cache"
-        def textInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_SIZE_TEXT)
-        def ttlInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_TTL_TEXT)
-        def writeInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_WRITE_OK)
-        def readErrorInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_READ_ERR)
-        def writeErrorInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_WRITE_ERR)
+        def textInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, MetricsUtil.Cache.creativeSizeText(OPTABLE_TARGETING))
+        def ttlInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, MetricsUtil.Cache.creativeTtlText(OPTABLE_TARGETING))
+        def writeInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, MetricsUtil.Cache.writeOk(OPTABLE_TARGETING))
+        def readErrorInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, MetricsUtil.Cache.readErr(OPTABLE_TARGETING))
+        def writeErrorInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, MetricsUtil.Cache.writeErr(OPTABLE_TARGETING))
 
         and: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
@@ -172,16 +164,16 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
         then: "PBS should update metrics for stored cached requests"
         def metrics = prebidServerStoredCacheService.sendCollectedMetricsRequest()
-        assert metrics[METRIC_CREATIVE_READ_OK] == 1
+        assert metrics[MetricsUtil.Cache.readOk(OPTABLE_TARGETING)] == 1
 
         and: "No updates for new saved text storage metrics"
-        assert metrics[METRIC_CREATIVE_SIZE_TEXT] == textInitialValue
-        assert metrics[METRIC_CREATIVE_TTL_TEXT] == ttlInitialValue
-        assert metrics[METRIC_CREATIVE_WRITE_OK] == writeInitialValue
+        assert metrics[MetricsUtil.Cache.creativeSizeText(OPTABLE_TARGETING)] == textInitialValue
+        assert metrics[MetricsUtil.Cache.creativeTtlText(OPTABLE_TARGETING)] == ttlInitialValue
+        assert metrics[MetricsUtil.Cache.writeOk(OPTABLE_TARGETING)] == writeInitialValue
 
         and: "No update for error metrics"
-        assert metrics[METRIC_CREATIVE_READ_ERR] == readErrorInitialValue
-        assert metrics[METRIC_CREATIVE_WRITE_ERR] == writeErrorInitialValue
+        assert metrics[MetricsUtil.Cache.readErr(OPTABLE_TARGETING)] == readErrorInitialValue
+        assert metrics[MetricsUtil.Cache.writeErr(OPTABLE_TARGETING)] == writeErrorInitialValue
     }
 
     private static BidRequest getBidRequestForModuleCacheStorage(String ifa, OperatingSystem os) {

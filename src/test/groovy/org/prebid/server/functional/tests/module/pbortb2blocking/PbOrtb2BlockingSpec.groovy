@@ -19,7 +19,7 @@ import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidderControls
 import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
-import org.prebid.server.functional.model.request.auction.Ix
+import org.prebid.server.functional.model.bidder.Ix
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Video

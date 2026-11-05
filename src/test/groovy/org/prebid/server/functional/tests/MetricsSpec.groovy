@@ -1,5 +1,7 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountMetricsConfig
 import org.prebid.server.functional.model.db.Account
@@ -8,8 +10,10 @@ import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.MetricsUtil
 
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.NONE
@@ -58,11 +62,11 @@ class MetricsSpec extends BaseSpec {
 
         then: "account.<account-id>.requests should be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests" as String] == 1
+        assert metrics[MetricsUtil.Account.requests(accountId)] == 1
 
         and: "account.<account-id>.generic and requests.type.openrtb2-web metrics shouldn't populated"
         assert !metrics.findAll({ it.key.startsWith("account.${accountId}.generic") })
-        assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, WEB)]
 
         where:
         accountMetricsConfig << [new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC)),
@@ -91,13 +95,13 @@ class MetricsSpec extends BaseSpec {
 
         then: "account.<account-id>.* should be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.adapter.generic.bids_received"     as String] == 1
-        assert metrics["account.${accountId}.adapter.generic.prices"            as String] == bidPrice
-        assert metrics["account.${accountId}.adapter.generic.request_time"      as String] == 1
-        assert metrics["account.${accountId}.adapter.generic.requests.gotbids"  as String] == 1
-        assert metrics["account.${accountId}.requests"                          as String] == 1
-        assert metrics["account.${accountId}.requests.gotbids"                  as String] == 1
-        assert metrics["account.${accountId}.requests.type.openrtb2-web"        as String] == 1
+        assert metrics[MetricsUtil.Account.bidsReceived(accountId, BidderName.GENERIC)] == 1
+        assert metrics[MetricsUtil.Account.prices(accountId, BidderName.GENERIC)] == bidPrice
+        assert metrics[MetricsUtil.Account.requestTime(accountId, BidderName.GENERIC)] == 1
+        assert metrics[MetricsUtil.Account.requestsGotBids(accountId, BidderName.GENERIC)] == 1
+        assert metrics[MetricsUtil.Account.requests(accountId)] == 1
+        assert metrics[MetricsUtil.Account.requestsGotBids(accountId)] == 1
+        assert metrics[MetricsUtil.Account.requestType(accountId, WEB)] == 1
     }
 
     def "PBS should not populate bid-related account metrics for failed bidder response when verbosity level is detailed"() {
@@ -121,17 +125,17 @@ class MetricsSpec extends BaseSpec {
 
         then: "General request metrics should be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests" as String] == 1
-        assert metrics["account.${accountId}.requests.type.openrtb2-web" as String] == 1
+        assert metrics[MetricsUtil.Account.requests(accountId)] == 1
+        assert metrics[MetricsUtil.Account.requestType(accountId, WEB)] == 1
 
         and: "Adapter request time should be populated"
-        assert metrics["account.${accountId}.adapter.generic.request_time" as String] == 1
+        assert metrics[MetricsUtil.Account.requestTime(accountId, BidderName.GENERIC)] == 1
 
         and: "Bid-related metrics should not be populated due to bidder error"
-        assert !metrics["account.${accountId}.requests.gotbids" as String]
-        assert !metrics["account.${accountId}.adapter.generic.requests.gotbids" as String]
-        assert !metrics["account.${accountId}.adapter.generic.bids_received" as String]
-        assert !metrics["account.${accountId}.adapter.generic.prices" as String]
+        assert !metrics[MetricsUtil.Account.requestsGotBids(accountId)]
+        assert !metrics[MetricsUtil.Account.requestsGotBids(accountId, BidderName.GENERIC)]
+        assert !metrics[MetricsUtil.Account.bidsReceived(accountId, BidderName.GENERIC)]
+        assert !metrics[MetricsUtil.Account.prices(accountId, BidderName.GENERIC)]
     }
 
     def "PBS should update hood metrics when bid request contains hood channel type and verbosity level is detailed"() {
@@ -149,12 +153,12 @@ class MetricsSpec extends BaseSpec {
 
         then: "account.<account-id>.* should be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests.type.openrtb2-dooh" as String] == 1
-        assert metrics["adapter.generic.requests.type.openrtb2-dooh" as String] == 1
+        assert metrics[MetricsUtil.Account.requestType(accountId, ChannelType.DOOH)] == 1
+        assert metrics[MetricsUtil.Adapter.requestType(BidderName.GENERIC, ChannelType.DOOH)] == 1
 
         and: "ather channel types should not be populated"
-        assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
-        assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, WEB)]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, ChannelType.APP)]
     }
 
     def "PBS with soft setup should ignore site distribution channel and update only dooh metrics when presented dooh and site in request"() {
@@ -179,15 +183,15 @@ class MetricsSpec extends BaseSpec {
 
         and: "Metrics processed across site should be updated"
         def metrics = softPrebidService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests.type.openrtb2-dooh" as String] == 1
-        assert metrics["adapter.generic.requests.type.openrtb2-dooh" as String] == 1
+        assert metrics[MetricsUtil.Account.requestType(accountId, ChannelType.DOOH)] == 1
+        assert metrics[MetricsUtil.Adapter.requestType(BidderName.GENERIC, ChannelType.DOOH)] == 1
 
         and: "alert.general metric should be updated"
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "Other channel types should not be populated"
-        assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
-        assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, WEB)]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, ChannelType.APP)]
     }
 
     def "PBS with soft setup should ignore other distribution channel and update only app metrics when presented app ant other channels in request"() {
@@ -208,15 +212,15 @@ class MetricsSpec extends BaseSpec {
 
         and: "Metrics processed across site should be updated"
         def metrics = softPrebidService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests.type.openrtb2-app" as String] == 1
-        assert metrics["adapter.generic.requests.type.openrtb2-app" as String] == 1
+        assert metrics[MetricsUtil.Account.requestType(accountId, ChannelType.APP)] == 1
+        assert metrics[MetricsUtil.Adapter.requestType(BidderName.GENERIC, ChannelType.APP)] == 1
 
         and: "alert.general metric should be updated"
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "Other channel types should not be populated"
-        assert !metrics["account.${accountId}.requests.type.openrtb2-dooh" as String]
-        assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, ChannelType.DOOH)]
+        assert !metrics[MetricsUtil.Account.requestType(accountId, WEB)]
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(APP).tap {

@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -61,9 +62,9 @@ class BidValidationSpec extends BaseSpec {
         assert exception.statusCode == 400
         assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
 
-        and: "Bid validation metric value is incremented"
+        and: "Alerts.general metrics should be populated"
         def metrics = strictPrebidService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
@@ -103,9 +104,9 @@ class BidValidationSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["BidRequest contains $warningChannelsValues. Only the first one is applicable, the others are ignored" as String]
 
-        and: "Bid validation metric value is incremented"
+        and: "Alerts.general metrics should be populated"
         def metrics = softPrebidService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         and: "PBS log should contain message"
         def logs = softPrebidService.getLogsByTime(startTime)
@@ -376,7 +377,7 @@ class BidValidationSpec extends BaseSpec {
 
         then: "Bid validation metric value is incremented"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["adapter.generic.requests.bid_validation"] == 1
+        assert metrics[MetricsUtil.Adapter.bidValidation(GENERIC)] == 1
     }
 
     def "PBS shouldn't throw error when two separate eids with same eids.source"() {
