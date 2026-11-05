@@ -4,17 +4,15 @@
     {
       "id": "imp_id",
       "secure": 1,
+      "bidfloor": 1.5,
+      "bidfloorcur": "USD",
       "banner": {
         "w": 300,
         "h": 250
       },
+      "tagid": "placementId",
       "ext": {
-        "tid": "${json-unit.any-string}",
-        "bidder": {
-          "publisherId": "publisherId",
-          "placementId": "placementId",
-          "region": "us"
-        }
+        "tid": "${json-unit.any-string}"
       }
     }
   ],
@@ -42,9 +40,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

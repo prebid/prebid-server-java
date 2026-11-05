@@ -1,6 +1,6 @@
 adapters:
   peak226:
-    endpoint: https://{{Region}}.a.viddea.com/edge_direct
+    endpoint: https://{Region}.a.viddea.com/edge_direct
     ortb-version: "2.6"
     modifying-vast-xml-allowed: true
     geoscope:

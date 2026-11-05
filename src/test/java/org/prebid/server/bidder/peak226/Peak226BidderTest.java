@@ -67,6 +67,19 @@ public class Peak226BidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnEmptyResponseWhenImpsAreMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldAddErrorsOnInvalidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
