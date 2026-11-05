@@ -80,7 +80,7 @@ public class Peak226Bidder implements Bidder<BidRequest> {
         }
 
         if (impsByRegion.isEmpty()) {
-            return Result.empty();
+            return Result.withErrors(errors);
         }
 
         final Device device = sanitizeDevice(bidRequest.getDevice());
