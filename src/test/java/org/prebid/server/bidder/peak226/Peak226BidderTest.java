@@ -95,9 +95,8 @@ public class Peak226BidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .hasSize(1)
-                .satisfies(errors -> {
-                    assertThat(errors.getFirst()).startsWith("Invalid ext. Imp.Id:");
-                });
+                .satisfies(errors ->
+                        assertThat(errors.getFirst()).startsWith("Invalid ext. Imp.Id:"));
     }
 
     @Test

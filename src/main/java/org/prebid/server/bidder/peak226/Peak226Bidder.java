@@ -278,10 +278,8 @@ public class Peak226Bidder implements Bidder<BidRequest> {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            case null, default -> {
-                throw new PreBidException(
-                        "Unrecognized bid type for impression %s".formatted(bid.getImpid()));
-            }
+            case null, default -> throw new PreBidException(
+                    "Unrecognized bid type for impression %s".formatted(bid.getImpid()));
         };
     }
 }
