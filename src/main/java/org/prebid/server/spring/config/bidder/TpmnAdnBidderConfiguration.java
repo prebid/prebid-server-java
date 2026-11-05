@@ -26,8 +26,8 @@ public class TpmnAdnBidderConfiguration {
 
     @Bean
     BidderDeps tpmnBidderDeps(BidderConfigurationProperties tpmnConfigurationProperties,
-                                 CurrencyConversionService currencyConversionService,
-                                 JacksonMapper mapper) {
+                              CurrencyConversionService currencyConversionService,
+                              JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(tpmnConfigurationProperties)

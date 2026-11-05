@@ -19,7 +19,7 @@
           "ext": {
             "prebid": {
               "type": "banner",
-              "meta":{
+              "meta": {
                 "adaptercode": "feedad"
               }
             },

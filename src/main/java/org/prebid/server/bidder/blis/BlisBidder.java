@@ -8,7 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -118,9 +118,9 @@ public class BlisBidder implements Bidder<BidRequest> {
         final String priceAsString = price != null ? price.toPlainString() : "0";
 
         return bid.toBuilder()
-                .nurl(StringUtils.replace(bid.getNurl(), AUCTION_PRICE_MACRO, priceAsString))
-                .adm(StringUtils.replace(bid.getAdm(), AUCTION_PRICE_MACRO, priceAsString))
-                .burl(StringUtils.replace(bid.getBurl(), AUCTION_PRICE_MACRO, priceAsString))
+                .nurl(Strings.CS.replace(bid.getNurl(), AUCTION_PRICE_MACRO, priceAsString))
+                .adm(Strings.CS.replace(bid.getAdm(), AUCTION_PRICE_MACRO, priceAsString))
+                .burl(Strings.CS.replace(bid.getBurl(), AUCTION_PRICE_MACRO, priceAsString))
                 .build();
     }
 

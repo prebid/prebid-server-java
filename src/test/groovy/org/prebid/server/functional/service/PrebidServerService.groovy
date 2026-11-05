@@ -59,6 +59,7 @@ import static org.prebid.server.functional.model.config.Endpoint.SETUID
 import static org.prebid.server.functional.model.config.Endpoint.STATUS
 import static org.prebid.server.functional.model.config.Endpoint.VTRACK
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
+import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 
 class PrebidServerService implements ObjectMapperWrapper {
@@ -410,33 +411,17 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    List<String> getLogsByTime(Instant testStart, Instant testEnd = Instant.now()) {
-        if (testEnd.isBefore(testStart)) {
-            throw new IllegalArgumentException("The end time of the test is less than the start time")
-        }
-        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                .withZone(ZoneId.from(UTC))
-        def logs = Arrays.asList(pbsContainer.logs.split("\n"))
-        def filteredLogs = []
-
-        def deltaTime = Duration.between(testStart, testEnd).plusSeconds(1).seconds
-
-        for (int i = 0; i <= deltaTime; i++) {
-            def time = testStart.plusSeconds(i)
-            def element = logs.find { it.contains(formatter.format(time)) }
-            if (element) {
-                filteredLogs.addAll(logs.subList(logs.indexOf(element), logs.size()))
-                break
-            }
-        }
-        filteredLogs
-    }
-
     String getLogsByValue(String value) {
         if (!value) {
             throw new IllegalArgumentException("Value is null or empty")
         }
-        getPbsLogsByValue(value)
+        def matches = getPbsLogsByValue(value)
+        if (matches.size() > 1) {
+            throw new IllegalStateException(
+                    "Expected exactly one log containing '$value', but found ${matches.size()}"
+            )
+        }
+        matches ? matches.first() : null
     }
 
     Boolean isContainLogsByValue(String value) {
@@ -448,14 +433,41 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    Boolean isMetricFilled(String metricName) {
-        try {
-            PBSUtils.waitUntil({ this.sendCollectedMetricsRequest()[metricName] != 0 })
-            true
-        } catch (IllegalStateException ignored) {
-            false
-        }
+    private List<String> getPbsLogsByValue(String value) {
+        getPbsLogs().findAll { it.contains(value) }
     }
+
+    private List<String> getPbsLogs() {
+        pbsContainer.logs?.readLines() ?: []
+    }
+
+    List<String> getLogsByTime(Instant testStart, long timeoutMs = DEFAULT_TIMEOUT) {
+        if (!testStart) {
+            throw new IllegalArgumentException("Test start time is null")
+        }
+        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(UTC)
+        List<String> result = []
+
+        PBSUtils.waitUntil({
+            result = findLogsByTime(testStart, getPbsLogs(), formatter)
+            !result.isEmpty()
+        }, timeoutMs)
+        result
+    }
+
+    private static List<String> findLogsByTime(Instant testStart, List<String> logs, DateTimeFormatter formatter) {
+        def deltaTime = Duration.between(testStart, Instant.now()).plusSeconds(1).seconds
+        for (long i = 0; i <= deltaTime; i++) {
+            def timestamp = formatter.format(testStart.plusSeconds(i))
+            def index = logs.findIndexOf { it.contains(timestamp) }
+
+            if (index >= 0) {
+                return logs[index..-1]
+            }
+        }
+        []
+    }
+
 
     Boolean isContainMetricByValue(String value) {
         try {
@@ -464,10 +476,6 @@ class PrebidServerService implements ObjectMapperWrapper {
         } catch (IllegalStateException ignored) {
             false
         }
-    }
-
-    private String getPbsLogsByValue(String value) {
-        pbsContainer.logs.split("\n").find { it.contains(value) }
     }
 
     <T> T getValueFromContainer(String path, Class<T> clazz) {

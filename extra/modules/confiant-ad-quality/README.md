@@ -5,6 +5,7 @@ This module obtains all bid responses for any given auction, sends the results t
 ## Configuration
 
 To start using current module you have to enable module and add ``confiant-ad-quality-bid-responses-scan-hook`` into hooks execution plan inside your yaml file:
+
 ```yaml
 hooks:
     confiant-ad-quality:
@@ -32,25 +33,26 @@ hooks:
           }
         }
 ```
+
 And configure
 
 ## List of module configuration options
 
 - `api-key` - Confiant's API key.
 - `redis-config`
-  - `write-node`
-    - `host` - Host value of the Confiant's Write Redis Node.
-    - `port` - Port value of the Confiant's Write Redis Node.
-    - `password` - User password value of the Confiant's Write Redis Node.
-  - `read-node`
-      - `host` - Host value of the Confiant's Read Redis Node.
-      - `port` - Port value of the Confiant's Read Redis Node.
-      - `password` - User password value of the Confiant's Read Redis Node.
+    - `write-node`
+        - `host` - Host value of the Confiant's Write Redis Node.
+        - `port` - Port value of the Confiant's Write Redis Node.
+        - `password` - User password value of the Confiant's Write Redis Node.
+    - `read-node`
+        - `host` - Host value of the Confiant's Read Redis Node.
+        - `port` - Port value of the Confiant's Read Redis Node.
+        - `password` - User password value of the Confiant's Read Redis Node.
 - `redis-retry-config`
-  - `short-interval-attempts` - Maximum attempts with short interval value to try to reconnect to Confiant's Redis server in case any connection error happens.
-  - `short-interval` - Short time interval in milliseconds after which another one attempt to connect to Redis will be executed.
-  - `long-interval-attempts` - Maximum attempts with long interval value to try to reconnect to Confiant's Redis server in case any connection error happens. This attempts are used when short-attempts were not successful.
-  - `long-interval` - Long time interval in milliseconds after which another one attempt to connect to Redis will be executed.
+    - `short-interval-attempts` - Maximum attempts with short interval value to try to reconnect to Confiant's Redis server in case any connection error happens.
+    - `short-interval` - Short time interval in milliseconds after which another one attempt to connect to Redis will be executed.
+    - `long-interval-attempts` - Maximum attempts with long interval value to try to reconnect to Confiant's Redis server in case any connection error happens. This attempts are used when short-attempts were not successful.
+    - `long-interval` - Long time interval in milliseconds after which another one attempt to connect to Redis will be executed.
 - `scan-state-check-interval` - Time interval in milliseconds between periodic calls to check if scan state is enabled on the side of Redis server.
 - `bidders-to-exclude-from-scan` - List of bidders which won't be scanned by Confiant
 

@@ -29,5 +29,7 @@
       "description": "Arbitrary id used for debug purpose"
     }
   },
-  "required": ["placement"]
+  "required": [
+    "placement"
+  ]
 }

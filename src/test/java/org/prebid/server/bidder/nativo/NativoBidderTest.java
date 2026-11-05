@@ -54,7 +54,7 @@ public class NativoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload()).isEqualTo(bidRequest);
+        assertThat(result.getValue().getFirst().getPayload()).isEqualTo(bidRequest);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        final ObjectNode resultExt = result.getValue().getFirst().getBid().getExt();
         assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("1.2.3");
     }
 
@@ -212,7 +212,7 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        final ObjectNode resultExt = result.getValue().getFirst().getBid().getExt();
         assertThat(resultExt.get("prebid").get("meta").get("adaptercode").textValue()).isEqualTo("nativo");
         assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("2.0.0");
     }
@@ -234,7 +234,7 @@ public class NativoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        final ObjectNode resultExt = result.getValue().getFirst().getBid().getExt();
         assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("3.0.0");
     }
 
@@ -261,7 +261,84 @@ public class NativoBidderTest extends VertxTest {
                     assertThat(error.getMessage()).contains("Invalid ext passed in bid with id: bid1");
                 });
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getBid().getExt()).isEqualTo(invalidExt);
+        assertThat(result.getValue().getFirst().getBid().getExt()).isEqualTo(invalidExt);
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidWhenMtypeIsNative() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
+        final Bid bid = givenBid("bid1", "imp1", 4);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWhenMtypeIsBanner() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
+        final Bid bid = givenBid("bid1", "imp1", 1);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWhenMtypeIsVideo() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
+        final Bid bid = givenBid("bid1", "imp1", 2);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidWhenMtypeIsAudio() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1"));
+        final Bid bid = givenBid("bid1", "imp1", 3);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.audio, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidTypeFromImpWhenMtypeIsUnrecognized() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1")
+                .banner(Banner.builder().build())
+                .xNative(Native.builder().build()));
+        final Bid bid = givenBid("bid1", "imp1", 7);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -282,11 +359,16 @@ public class NativoBidderTest extends VertxTest {
     }
 
     private static Bid givenBid(String id, String impId) {
+        return givenBid(id, impId, null);
+    }
+
+    private static Bid givenBid(String id, String impId, Integer mtype) {
         return Bid.builder()
                 .id(id)
                 .impid(impId)
                 .price(BigDecimal.valueOf(1.5))
                 .adm("adm001")
+                .mtype(mtype)
                 .build();
     }
 

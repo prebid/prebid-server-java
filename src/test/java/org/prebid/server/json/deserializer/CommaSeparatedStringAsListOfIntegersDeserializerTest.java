@@ -39,7 +39,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
     public void deserializeShouldThrowExceptionOnWrongJsonToken() throws IOException {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_FALSE);
-        given(parser.getCurrentName()).willReturn("FIELD");
+        given(parser.currentName()).willReturn("FIELD");
         doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
@@ -59,7 +59,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
         given(parser.getValueAsString()).willReturn(null);
-        given(parser.getCurrentName()).willReturn("FIELD");
+        given(parser.currentName()).willReturn("FIELD");
         doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
@@ -79,7 +79,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
         given(parser.getValueAsString()).willReturn("invalid");
-        given(parser.getCurrentName()).willReturn("FIELD");
+        given(parser.currentName()).willReturn("FIELD");
         doThrow(RuntimeException.class)
                 .when(context)
                 .reportPropertyInputMismatch(

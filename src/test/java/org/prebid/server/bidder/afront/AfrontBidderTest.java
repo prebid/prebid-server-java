@@ -219,9 +219,10 @@ public class AfrontBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("impId")
-                .ext(givenImpExt("accountId", "sourceId")))
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("impId")
+                                .ext(givenImpExt("accountId", "sourceId")))
                 .build();
     }
 

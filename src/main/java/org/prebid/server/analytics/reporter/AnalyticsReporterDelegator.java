@@ -277,8 +277,8 @@ public class AnalyticsReporterDelegator {
 
         return updatedBidRequest != null
                 ? context.toBuilder()
-                .bidRequest(updatedBidRequest)
-                .build()
+                  .bidRequest(updatedBidRequest)
+                  .build()
                 : null;
     }
 
@@ -305,10 +305,10 @@ public class AnalyticsReporterDelegator {
 
         return resolvedUser != null || resolvedDevice != null || updatedExtRequest != null
                 ? bidRequest.toBuilder()
-                .user(resolvedUser != null ? resolvedUser : user)
-                .device(resolvedDevice != null ? resolvedDevice : device)
-                .ext(updatedExtRequest != null ? updatedExtRequest : requestExt)
-                .build()
+                  .user(resolvedUser != null ? resolvedUser : user)
+                  .device(resolvedDevice != null ? resolvedDevice : device)
+                  .ext(updatedExtRequest != null ? updatedExtRequest : requestExt)
+                  .build()
                 : null;
     }
 
@@ -377,12 +377,12 @@ public class AnalyticsReporterDelegator {
 
     private <T> void updateMetricsByEventType(T event, String analyticsCode, MetricName result) {
         final MetricName eventType = switch (event) {
-            case AmpEvent ampEvent -> MetricName.event_amp;
-            case AuctionEvent auctionEvent -> MetricName.event_auction;
-            case CookieSyncEvent cookieSyncEvent -> MetricName.event_cookie_sync;
-            case NotificationEvent notificationEvent -> MetricName.event_notification;
-            case SetuidEvent setuidEvent -> MetricName.event_setuid;
-            case VideoEvent videoEvent -> MetricName.event_video;
+            case AmpEvent _ -> MetricName.event_amp;
+            case AuctionEvent _ -> MetricName.event_auction;
+            case CookieSyncEvent _ -> MetricName.event_cookie_sync;
+            case NotificationEvent _ -> MetricName.event_notification;
+            case SetuidEvent _ -> MetricName.event_setuid;
+            case VideoEvent _ -> MetricName.event_video;
             case null, default -> MetricName.event_unknown;
         };
 

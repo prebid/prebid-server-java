@@ -19,5 +19,8 @@
       "description": "User-defined targeting key-value pairs."
     }
   },
-  "required" : [ "placementId", "host" ]
+  "required": [
+    "placementId",
+    "host"
+  ]
 }

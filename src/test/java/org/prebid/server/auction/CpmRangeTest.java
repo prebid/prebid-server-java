@@ -219,17 +219,23 @@ public class CpmRangeTest {
 
     @Test
     public void fromCpmShouldReturnResultWithDefaultPrecisionTwoIfRangePrecisionInNull() {
-        assertThat(CpmRange.fromCpm(BigDecimal.valueOf(2.3333), createFromExtPriceGranularity(
-                                ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
-                                        BigDecimal.valueOf(0.01))))), givenAccount()))
+        assertThat(CpmRange.fromCpm(
+                BigDecimal.valueOf(2.3333),
+                createFromExtPriceGranularity(ExtPriceGranularity.of(
+                        null,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01))))),
+                givenAccount()))
                 .isEqualTo("2.33");
     }
 
     @Test
     public void fromCpmShouldReturnResultWithPrecisionZero() {
-        assertThat(CpmRange.fromCpm(BigDecimal.valueOf(2.3333), createFromExtPriceGranularity(
-                                ExtPriceGranularity.of(0, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
-                                        BigDecimal.valueOf(0.01))))), givenAccount()))
+        assertThat(CpmRange.fromCpm(
+                BigDecimal.valueOf(2.3333),
+                createFromExtPriceGranularity(ExtPriceGranularity.of(
+                        0,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01))))),
+                givenAccount()))
                 .isEqualTo("2");
     }
 

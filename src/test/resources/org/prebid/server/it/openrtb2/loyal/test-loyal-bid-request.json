@@ -32,9 +32,11 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
-  "cur": ["USD"],
-  "source" : {
-    "tid" : "${json-unit.any-string}"
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
   },
   "regs": {
     "ext": {

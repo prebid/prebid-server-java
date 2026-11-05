@@ -11,8 +11,8 @@
       "tagid": "123",
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder" : {
-          "tagid" : "123"
+        "bidder": {
+          "tagid": "123"
         }
       }
     }

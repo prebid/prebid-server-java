@@ -88,12 +88,12 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     @Override
     public <T> Future<Void> processEvent(T event) {
         final EventType eventType = switch (event) {
-            case AmpEvent ampEvent -> EventType.amp;
-            case AuctionEvent auctionEvent -> EventType.auction;
-            case CookieSyncEvent cookieSyncEvent -> EventType.cookiesync;
-            case NotificationEvent notificationEvent -> EventType.notification;
-            case SetuidEvent setuidEvent -> EventType.setuid;
-            case VideoEvent videoEvent -> EventType.video;
+            case AmpEvent _ -> EventType.amp;
+            case AuctionEvent _ -> EventType.auction;
+            case CookieSyncEvent _ -> EventType.cookiesync;
+            case NotificationEvent _ -> EventType.notification;
+            case SetuidEvent _ -> EventType.setuid;
+            case VideoEvent _ -> EventType.video;
             case null, default -> null;
         };
 

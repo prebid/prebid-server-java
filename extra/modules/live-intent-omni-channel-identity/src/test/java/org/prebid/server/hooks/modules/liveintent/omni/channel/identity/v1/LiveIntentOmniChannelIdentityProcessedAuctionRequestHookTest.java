@@ -76,13 +76,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
 
-    private Set<String> configuredBidders;
-
     private ExtRequestPrebidDataEidPermissions defaultPermissions;
 
     @BeforeEach
     public void setUp() {
-        configuredBidders = Set.of("bidder1", "bidder2");
+        final Set<String> configuredBidders = Set.of("bidder1", "bidder2");
+
         given(properties.getRequestTimeoutMs()).willReturn(5L);
         given(properties.getIdentityResolutionEndpoint()).willReturn("https://test.com/idres");
         given(properties.getAuthToken()).willReturn("auth_token");

@@ -472,9 +472,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                                 .build(),
                         Asset.builder()
                                 .img(ImageObject.builder().w(1080).h(1920).wmin(1080).hmin(1620).type(3).build())
-                                .build()
-                        )
-                )
+                                .build()))
                 .build();
         final Imp givenImp = Imp.builder()
                 .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())

@@ -25,7 +25,7 @@ public class BeopConfiguration {
 
     @Bean
     BidderDeps beopBidderDeps(BidderConfigurationProperties beopConfigurationProperties,
-                               JacksonMapper mapper) {
+                              JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(beopConfigurationProperties)

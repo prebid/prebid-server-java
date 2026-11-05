@@ -247,7 +247,7 @@ public class CurrencyConversionService implements Initializable {
                                                           String fromCurrency,
                                                           String toCurrency) {
 
-        return ObjectUtils.defaultIfNull(
+        return ObjectUtils.getIfNull(
                 getConversionRate(firstPriorityRates, fromCurrency, toCurrency),
                 getConversionRate(secondPriorityRates, fromCurrency, toCurrency));
     }

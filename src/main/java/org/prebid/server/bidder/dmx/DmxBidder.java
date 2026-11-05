@@ -260,7 +260,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                     .build();
         } else {
             return publisher.toBuilder()
-                    .id(ObjectUtils.defaultIfNull(publisher.getId(), updatedPublisherId))
+                    .id(ObjectUtils.getIfNull(publisher.getId(), updatedPublisherId))
                     .ext(extPublisher)
                     .build();
         }

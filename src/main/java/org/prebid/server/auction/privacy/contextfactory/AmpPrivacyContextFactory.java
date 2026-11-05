@@ -121,8 +121,8 @@ public class AmpPrivacyContextFactory {
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
         final String referrerUrl = MetricName.openrtb2web == requestType
                 ? Optional.ofNullable(bidRequest.getSite())
-                .map(Site::getRef)
-                .orElse(null)
+                  .map(Site::getRef)
+                  .orElse(null)
                 : null;
 
         return RequestLogInfo.of(requestType, referrerUrl, accountId);

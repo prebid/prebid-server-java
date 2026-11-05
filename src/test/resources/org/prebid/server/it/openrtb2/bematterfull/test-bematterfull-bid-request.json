@@ -10,9 +10,9 @@
       },
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder" : {
-          "env" : "testHost",
-          "pid" : "testPid"
+        "bidder": {
+          "env": "testHost",
+          "pid": "testPid"
         }
       }
     }

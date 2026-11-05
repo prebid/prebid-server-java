@@ -11,6 +11,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -100,7 +101,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
     }
 
     private static Boolean isInvalidHost(String host) {
-        return !StringUtils.equalsAny(host, "eu", "us", "apac", "global");
+        return !Strings.CS.equalsAny(host, "eu", "us", "apac", "global");
     }
 
     private String resolveEndpoint(ExtImpSilvermob extImp) {

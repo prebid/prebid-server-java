@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 
 import com.iab.openrtb.response.Bid;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,7 +32,7 @@ public class BidResponsesMraidFilter {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
             final List<BidderBid> originalBids = seatBid.getBids();
             final Map<Boolean, List<BidderBid>> bidsMap = originalBids.stream().collect(
-                    Collectors.groupingBy(bid -> StringUtils.contains(bid.getBid().getAdm(), mraidScriptPattern)));
+                    Collectors.groupingBy(bid -> Strings.CS.contains(bid.getBid().getAdm(), mraidScriptPattern)));
 
             final List<BidderBid> validBids = bidsMap.getOrDefault(false, Collections.emptyList());
             final List<BidderBid> invalidBids = bidsMap.getOrDefault(true, Collections.emptyList());

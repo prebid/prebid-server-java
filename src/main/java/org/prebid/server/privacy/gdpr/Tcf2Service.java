@@ -52,7 +52,7 @@ public class Tcf2Service {
                        BidderCatalog bidderCatalog) {
 
         this.defaultPurposes = gdprConfig.getPurposes() == null ? Purposes.builder().build() : gdprConfig.getPurposes();
-        this.defaultSpecialFeatures = ObjectUtils.defaultIfNull(
+        this.defaultSpecialFeatures = ObjectUtils.getIfNull(
                 gdprConfig.getSpecialFeatures(),
                 SpecialFeatures.builder().build());
         this.purposeOneTreatmentInterpretation = gdprConfig.getPurposeOneTreatmentInterpretation();

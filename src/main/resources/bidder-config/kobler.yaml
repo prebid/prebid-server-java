@@ -10,7 +10,7 @@ adapters:
     meta-info:
       maintainer-email: bidding-support@kobler.no
       site-media-types:
-      - banner
+        - banner
       app-media-types:
-      - banner
+        - banner
       vendor-id: 0

@@ -15,10 +15,14 @@
   },
   "oneOf": [
     {
-      "required": ["placement"]
+      "required": [
+        "placement"
+      ]
     },
     {
-      "required": ["placement_code"]
+      "required": [
+        "placement_code"
+      ]
     }
   ]
 }

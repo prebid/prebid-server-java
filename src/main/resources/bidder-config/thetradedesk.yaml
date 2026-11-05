@@ -1,6 +1,7 @@
 adapters:
   thetradedesk:
     endpoint: https://direct.adsrvr.org/bid/bidder/{SupplyId}
+    ortb-version: "2.6"
     aliases:
       ttd:
         meta-info:
@@ -10,10 +11,12 @@ adapters:
       app-media-types:
         - banner
         - video
+        - audio
         - native
       site-media-types:
         - banner
         - video
+        - audio
         - native
       supported-vendors:
       vendor-id: 21

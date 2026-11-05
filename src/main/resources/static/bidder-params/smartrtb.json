@@ -23,5 +23,7 @@
       "description": "Force bids with a test creative"
     }
   },
-  "required": [ "pub_id" ]
+  "required": [
+    "pub_id"
+  ]
 }

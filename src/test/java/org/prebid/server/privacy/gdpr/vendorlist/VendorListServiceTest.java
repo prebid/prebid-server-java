@@ -71,7 +71,7 @@ public class VendorListServiceTest extends VertxTest {
     private VendorListService target;
 
     @BeforeEach
-    public void setUp() throws JsonProcessingException {
+    public void setUp() {
         given(bidderCatalog.knownVendorIds()).willReturn(singleton(52));
         given(fetchThrottler.registerFetchAttempt(anyInt())).willReturn(true);
         given(vendorListFileStore.readFallbackVendorList(isNull())).willReturn(null);

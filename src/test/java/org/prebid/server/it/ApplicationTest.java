@@ -17,6 +17,7 @@ import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.apache.commons.collections4.CollectionUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
@@ -369,7 +370,7 @@ public class ApplicationTest extends IntegrationTest {
         assertThat(uids.getUids())
                 .extracting(Map::keySet)
                 .extracting(ArrayList::new)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(MAGNITE_COOKIE);
         assertThat(uids.getUids().get(MAGNITE_COOKIE).getUid()).isEqualTo("updatedUid");
         assertThat(uids.getUids().get(MAGNITE_COOKIE).getExpires().toInstant())

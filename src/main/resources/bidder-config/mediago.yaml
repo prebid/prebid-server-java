@@ -11,11 +11,20 @@ adapters:
       - CAN
       - FRA
       - ITA
+    aliases:
+      mgtechnology:
+        enabled: false
+        endpoint: https://gbid.mediagotechnology.com/api/bid?tn={AccountID}
+        meta-info:
+          vendor-id: 1575
+        usersync:
+          cookie-family-name: mgtechnology
+          redirect:
+            url: https://go.mediagotechnology.com/ju/cs/prebid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
+            uid-macro: '$UID'
     meta-info:
       maintainer-email: ext_mediago_cm@baidu.com
       app-media-types:
-        - banner
-        - native
       site-media-types:
         - banner
         - native

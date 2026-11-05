@@ -3,8 +3,8 @@ package org.prebid.server.auction;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountAuctionBidRoundingMode;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -38,7 +38,7 @@ public class CpmRange {
      * Formats {@link BigDecimal} value with a given precision and return its string representation.
      */
     public static String format(BigDecimal value, Integer precision) {
-        return numberFormat(ObjectUtils.defaultIfNull(precision, DEFAULT_PRECISION)).format(value);
+        return numberFormat(ObjectUtils.getIfNull(precision, DEFAULT_PRECISION)).format(value);
     }
 
     private static NumberFormat numberFormat(int precision) {

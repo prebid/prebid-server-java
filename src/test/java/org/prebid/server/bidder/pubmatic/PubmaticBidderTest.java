@@ -388,7 +388,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMergeWrappersFromImpAndBidRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(givenBidRequestExt(123, null)),
+                bidRequestBuilder -> bidRequestBuilder.ext(givenBidRequestExt(123)),
                 identity(),
                 extBuilder -> extBuilder.wrapper(PubmaticWrapper.of(321, 456)));
 
@@ -1560,10 +1560,10 @@ public class PubmaticBidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpPubmatic.builder().kadfloor(kadfloor).build()));
     }
 
-    private static ExtRequest givenBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
+    private static ExtRequest givenBidRequestExt(Integer wrapperProfile) {
         final ObjectNode pubmaticNode = mapper.createObjectNode()
                 .set("pubmatic", mapper.createObjectNode()
-                        .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion))));
+                        .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, null))));
 
         return ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
     }

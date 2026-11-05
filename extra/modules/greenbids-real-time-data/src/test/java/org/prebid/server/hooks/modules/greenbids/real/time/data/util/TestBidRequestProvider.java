@@ -19,7 +19,8 @@ public class TestBidRequestProvider {
 
     public static final ObjectMapper MAPPER = ObjectMapperProvider.mapper();
 
-    private TestBidRequestProvider() { }
+    private TestBidRequestProvider() {
+    }
 
     public static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                              List<Imp> imps) {

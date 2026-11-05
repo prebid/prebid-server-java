@@ -12,9 +12,15 @@
     "region": {
       "type": "string",
       "description": "Regional endpoint identifier (us, usw, eu, apac)",
-      "enum": ["us", "usw", "eu", "apac"]
+      "enum": [
+        "us",
+        "usw",
+        "eu",
+        "apac"
+      ]
     }
   },
-
-  "required": ["partnerId"]
+  "required": [
+    "partnerId"
+  ]
 }

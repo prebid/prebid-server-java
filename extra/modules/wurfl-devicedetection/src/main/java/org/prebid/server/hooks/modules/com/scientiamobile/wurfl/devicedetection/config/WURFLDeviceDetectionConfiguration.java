@@ -1,20 +1,20 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config;
 
+import io.vertx.core.Vertx;
+import org.prebid.server.execution.file.FileUtil;
+import org.prebid.server.execution.file.syncer.FileSyncer;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineUtils;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionEntrypointHook;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionModule;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import io.vertx.core.Vertx;
-import org.prebid.server.execution.file.syncer.FileSyncer;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.model.FileSyncerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
-import org.prebid.server.execution.file.FileUtil;
-import org.prebid.server.json.JacksonMapper;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Path;
 import java.util.List;

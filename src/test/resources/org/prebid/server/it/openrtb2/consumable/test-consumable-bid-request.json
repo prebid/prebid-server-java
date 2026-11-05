@@ -52,7 +52,9 @@
     }
   },
   "at": 1,
-  "cur": ["USD"],
+  "cur": [
+    "USD"
+  ],
   "tmax": "${json-unit.any-number}",
   "source": {
     "tid": "${json-unit.any-string}"

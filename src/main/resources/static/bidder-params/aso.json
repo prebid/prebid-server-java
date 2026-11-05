@@ -9,5 +9,7 @@
       "description": "An ID which identifies the zone selling the impression"
     }
   },
-  "required": ["zone"]
+  "required": [
+    "zone"
+  ]
 }

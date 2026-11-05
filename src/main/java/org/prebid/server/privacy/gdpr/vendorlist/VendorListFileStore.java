@@ -6,6 +6,7 @@ import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -92,7 +93,7 @@ public class VendorListFileStore {
 
     private static Integer parseCachedFileVersion(String filepath) {
         final String filename = new File(filepath).getName();
-        final String filenameWithoutExtension = StringUtils.removeEnd(filename, JSON_SUFFIX);
+        final String filenameWithoutExtension = Strings.CS.removeEnd(filename, JSON_SUFFIX);
         return Integer.valueOf(filenameWithoutExtension);
     }
 

@@ -25,7 +25,7 @@ public class DefineMediaConfiguration {
 
     @Bean
     BidderDeps definemediaBidderDeps(BidderConfigurationProperties definemediaConfigurationProperties,
-                             JacksonMapper mapper) {
+                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(definemediaConfigurationProperties)

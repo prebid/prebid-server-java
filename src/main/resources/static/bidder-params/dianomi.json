@@ -5,16 +5,22 @@
   "type": "object",
   "properties": {
     "smartadId": {
-      "type": ["integer", "string"],
+      "type": [
+        "integer",
+        "string"
+      ],
       "pattern": "^\\d+$",
       "description": "An ID which identifies the smartad/placement selling the impression"
     },
     "priceType": {
-      "type": ["string"],
+      "type": [
+        "string"
+      ],
       "description": "gross or net. Default is net.",
       "pattern": "gross|net"
     }
   },
-
-  "required": ["smartadId"]
+  "required": [
+    "smartadId"
+  ]
 }

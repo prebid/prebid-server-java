@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Smartadserver Adapter Params",
   "description": "A schema which validates params accepted by the Smartadserver adapter",
-
   "type": "object",
   "properties": {
     "siteId": {
@@ -24,12 +23,33 @@
       "type": "integer",
       "description": "The network id.",
       "minimum": 1
+    },
+    "placementuuid": {
+      "type": "string",
+      "description": "The placement UUID (new inventory structure). Preferred over siteId/pageId/formatId; forwarded to Equativ as plcmtuuid."
     }
   },
   "dependencies": {
-    "siteId": { "required": ["pageId", "formatId"] },
-    "pageId": { "required": ["siteId", "formatId"] },
-    "formatId": { "required": ["siteId", "pageId"] }
+    "siteId": {
+      "required": [
+        "pageId",
+        "formatId"
+      ]
+    },
+    "pageId": {
+      "required": [
+        "siteId",
+        "formatId"
+      ]
+    },
+    "formatId": {
+      "required": [
+        "siteId",
+        "pageId"
+      ]
+    }
   },
-  "required": ["networkId"]
+  "required": [
+    "networkId"
+  ]
 }

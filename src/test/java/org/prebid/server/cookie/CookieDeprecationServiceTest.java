@@ -168,7 +168,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         // given
         final Map<String, String> headers = Map.of(
                 "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(101));
+                "sec-cookie-deprecation", RandomStringUtils.insecure().next(101));
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(true, 100L);
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
@@ -188,7 +188,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         // given
         final Map<String, String> headers = Map.of(
                 "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(100));
+                "sec-cookie-deprecation", RandomStringUtils.insecure().next(100));
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(true, 100L);
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
@@ -207,7 +207,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         // given
         final Map<String, String> headers = Map.of(
                 "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(100));
+                "sec-cookie-deprecation", RandomStringUtils.insecure().next(100));
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = Account.empty("accountId");
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
@@ -226,7 +226,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         // given
         final Map<String, String> headers = Map.of(
                 "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(100));
+                "sec-cookie-deprecation", RandomStringUtils.insecure().next(100));
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(null, null);
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
@@ -245,7 +245,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         // given
         final Map<String, String> headers = Map.of(
                 "header", "value",
-                "sec-cookie-deprecation", RandomStringUtils.random(100));
+                "sec-cookie-deprecation", RandomStringUtils.insecure().next(100));
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(false, 100L);
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
@@ -262,7 +262,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
     @Test
     public void updateBidRequestDeviceShouldAddCdepValueWhenDeviceExtIsAbsent() {
         // given
-        final String cdep = RandomStringUtils.random(100);
+        final String cdep = RandomStringUtils.insecure().next(100);
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", cdep);
@@ -282,7 +282,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
     @Test
     public void updateBidRequestDeviceShouldAddCdepValueWhenDeviceIsAbsent() {
         // given
-        final String cdep = RandomStringUtils.random(100);
+        final String cdep = RandomStringUtils.insecure().next(100);
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", cdep);
@@ -302,7 +302,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
     @Test
     public void updateBidRequestDeviceShouldAddCdepValueWhenDeviceExtIsPresentButWithoutCdep() {
         // given
-        final String cdep = RandomStringUtils.random(100);
+        final String cdep = RandomStringUtils.insecure().next(100);
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", cdep);

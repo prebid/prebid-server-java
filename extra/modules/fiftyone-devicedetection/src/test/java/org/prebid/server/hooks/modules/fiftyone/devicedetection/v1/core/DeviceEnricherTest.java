@@ -236,7 +236,7 @@ public class DeviceEnricherTest {
 
         final List<Map.Entry<String, String>> evidenceFragments = evidence.entrySet().stream().toList();
         assertThat(evidenceFragments.size()).isEqualTo(1);
-        assertThat(evidenceFragments.get(0).getValue()).isEqualTo(rawHeaders.get(1).getValue());
+        assertThat(evidenceFragments.getFirst().getValue()).isEqualTo(rawHeaders.get(1).getValue());
     }
 
     @Test

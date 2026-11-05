@@ -8,5 +8,7 @@
       "type": "string"
     }
   },
-  "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }

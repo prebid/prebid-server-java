@@ -107,9 +107,9 @@ public class RequestUpdater {
 
         return CollectionUtils.isEmpty(existingBtype) || CollectionUtils.isEmpty(existingBattr)
                 ? banner.toBuilder()
-                .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btype)
-                .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battr)
-                .build()
+                  .btype(CollectionUtils.isNotEmpty(existingBtype) ? existingBtype : btype)
+                  .battr(CollectionUtils.isNotEmpty(existingBattr) ? existingBattr : battr)
+                  .build()
                 : banner;
     }
 
@@ -121,8 +121,8 @@ public class RequestUpdater {
         final List<Integer> existingBattr = video.getBattr();
         return CollectionUtils.isEmpty(existingBattr)
                 ? video.toBuilder()
-                .battr(battr)
-                .build()
+                  .battr(battr)
+                  .build()
                 : video;
     }
 
@@ -134,8 +134,8 @@ public class RequestUpdater {
         final List<Integer> existingBattr = audio.getBattr();
         return CollectionUtils.isEmpty(existingBattr)
                 ? audio.toBuilder()
-                .battr(battr)
-                .build()
+                  .battr(battr)
+                  .build()
                 : audio;
     }
 }

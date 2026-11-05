@@ -264,7 +264,7 @@ public class PriceFloorFetcher {
         }
 
         final Long effectiveCacheTtl =
-                ObjectUtils.defaultIfNull(
+                ObjectUtils.getIfNull(
                         ObjectUtil.getIfNotNull(debugProperties, PriceFloorDebugProperties::getMinMaxAgeSec),
                         cacheTtl);
 
@@ -299,7 +299,7 @@ public class PriceFloorFetcher {
         final long accountPeriodicTimeSec =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
         final long periodicTimeSec =
-                ObjectUtils.defaultIfNull(
+                ObjectUtils.getIfNull(
                         ObjectUtil.getIfNotNull(debugProperties, PriceFloorDebugProperties::getMinPeriodSec),
                         accountPeriodicTimeSec);
         vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTimeSec), ignored -> periodicFetch(accountId));

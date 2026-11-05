@@ -68,7 +68,7 @@ public class SettingsCache<T> implements CacheNotificationListener<T> {
                                             String id,
                                             T value) {
 
-        final Set<StoredItem<T>> values = ObjectUtils.defaultIfNull(cache.get(id), new HashSet<>());
+        final Set<StoredItem<T>> values = ObjectUtils.getIfNull(cache.get(id), new HashSet<>());
         values.add(StoredItem.of(accountId, value));
         cache.put(id, values);
     }

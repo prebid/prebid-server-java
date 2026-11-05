@@ -14,7 +14,7 @@ class Audio {
     List<Integer> protocols
     Integer startdelay
     List<Integer> rqddurs
-    Integer podid
+    String podid
     Integer podseq
     Integer sequence
     Integer slotinpod

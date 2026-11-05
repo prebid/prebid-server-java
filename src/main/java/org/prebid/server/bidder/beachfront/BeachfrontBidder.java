@@ -21,6 +21,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
@@ -314,7 +315,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private static int getSecure(String page) {
-        return StringUtils.contains(page, "https") ? 1 : 0;
+        return Strings.CS.contains(page, "https") ? 1 : 0;
     }
 
     private static SupplyChain getSchain(BidRequest bidRequest) {
@@ -378,8 +379,8 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             final App app = bidRequest.getApp();
             if (app != null && StringUtils.isBlank(app.getDomain()) && StringUtils.isNotBlank(app.getBundle())) {
-                final String trimmedBundle = StringUtils.removeStart(app.getBundle(), "_");
-                final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split("\\.");
+                final String trimmedBundle = Strings.CS.removeStart(app.getBundle(), "_");
+                final String[] split = Strings.CS.removeEnd(trimmedBundle, "_").split("\\.");
 
                 if (split.length > 1) {
                     bidRequestBuilder.app(app.toBuilder().domain("%s.%s".formatted(split[1], split[0])).build());

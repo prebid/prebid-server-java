@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -105,7 +106,7 @@ public class DisplayioBidder implements Bidder<BidRequest> {
 
         if (BidderUtil.isValidPrice(bidFloor)
                 && StringUtils.isNotBlank(bidFloorCurrency)
-                && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
+                && !Strings.CI.equals(bidFloorCurrency, BIDDER_CURRENCY)) {
             return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY);
         }
 

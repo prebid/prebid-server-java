@@ -1,7 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 public enum BidType {
 
@@ -17,7 +17,7 @@ public enum BidType {
 
     public static BidType fromString(String bidType) {
         try {
-            return StringUtils.equals(bidType, "native") ? xNative : valueOf(bidType);
+            return Strings.CS.equals(bidType, "native") ? xNative : valueOf(bidType);
         } catch (IllegalArgumentException e) {
             return null;
         }

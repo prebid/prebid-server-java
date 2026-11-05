@@ -40,8 +40,10 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
-  "cur": ["USD"],
-  "source" : {
+  "cur": [
+    "USD"
+  ],
+  "source": {
     "tid": "${json-unit.any-string}"
   },
   "regs": {

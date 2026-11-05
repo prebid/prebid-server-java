@@ -28,8 +28,8 @@ public class VidazooConfiguration {
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                       .withConfig(vidazooConfigurationProperties)
-                       .bidderCreator(config -> new VidazooBidder(config.getEndpoint(), mapper))
-                       .assemble();
+                .withConfig(vidazooConfigurationProperties)
+                .bidderCreator(config -> new VidazooBidder(config.getEndpoint(), mapper))
+                .assemble();
     }
 }

@@ -185,6 +185,7 @@ public class MabidderBidderTest extends VertxTest {
 
     @Value(staticConstructor = "of")
     private static class MabidderImpExt {
+
         String ppid;
     }
 

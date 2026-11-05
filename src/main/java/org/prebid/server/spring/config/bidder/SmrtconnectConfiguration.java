@@ -25,7 +25,7 @@ public class SmrtconnectConfiguration {
 
     @Bean
     BidderDeps smrtconnectBidderDeps(BidderConfigurationProperties smrtconnectConfigurationProperties,
-                                   JacksonMapper mapper) {
+                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(smrtconnectConfigurationProperties)

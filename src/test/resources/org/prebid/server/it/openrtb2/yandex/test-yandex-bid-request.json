@@ -8,8 +8,8 @@
         "w": 300,
         "h": 600
       },
-      "displaymanager" : "prebid.java",
-      "displaymanagerver" : "1.1",
+      "displaymanager": "prebid.java",
+      "displaymanagerver": "1.1",
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
@@ -38,7 +38,7 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
-  "cur" : [
+  "cur": [
     "USD"
   ],
   "regs": {

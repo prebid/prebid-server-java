@@ -9,7 +9,7 @@
       },
       "ext": {
         "adagio": {
-          "organizationId" : "organizationId",
+          "organizationId": "organizationId",
           "placement": "placement"
         }
       }

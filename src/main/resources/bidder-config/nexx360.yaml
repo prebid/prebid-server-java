@@ -5,13 +5,13 @@ adapters:
     aliases:
       1accord:
         meta-info:
-          vendor-id: 0
+          vendor-id: 965
       easybid:
         meta-info:
-          vendor-id: 0
+          vendor-id: 1068
       prismassp:
         meta-info:
-          vendor-id: 0
+          vendor-id: 1185
       ybidder:
         enabled: false
         meta-info:

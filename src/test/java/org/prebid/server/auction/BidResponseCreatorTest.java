@@ -170,7 +170,6 @@ public class BidResponseCreatorTest extends VertxTest {
     private static final String IMP_ID = "impId1";
     private static final String BID_ADM = "adm";
     private static final String BID_NURL = "nurl";
-    private static final String PREBID = "prebid";
 
     @Mock
     private CoreCacheService coreCacheService;
@@ -3882,7 +3881,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getSeatnonbid)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(expectedSeatNonBid);
     }
 

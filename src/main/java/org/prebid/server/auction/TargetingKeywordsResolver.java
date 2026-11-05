@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -60,7 +61,7 @@ public class TargetingKeywordsResolver {
         final List<ExtRequestPrebidAdservertargetingRule> rules =
                 get(get(extRequest, ExtRequest::getPrebid), ExtRequestPrebid::getAdservertargeting);
 
-        return ObjectUtils.<List<ExtRequestPrebidAdservertargetingRule>>defaultIfNull(rules, Collections.emptyList())
+        return ObjectUtils.<List<ExtRequestPrebidAdservertargetingRule>>getIfNull(rules, Collections.emptyList())
                 .stream()
                 .filter(TargetingKeywordsResolver::isValid)
                 .collect(Collectors.groupingBy(ExtRequestPrebidAdservertargetingRule::getSource));
@@ -160,7 +161,7 @@ public class TargetingKeywordsResolver {
                     mapper.mapper().valueToTree(bid),
                     responseRules,
                     value -> StringUtils.substringAfter(value, SEATBID_BID_PREFIX),
-                    key -> StringUtils.replace(key, BIDDER_MACRO, bidder));
+                    key -> Strings.CS.replace(key, BIDDER_MACRO, bidder));
         }
 
         return Collections.emptyMap();

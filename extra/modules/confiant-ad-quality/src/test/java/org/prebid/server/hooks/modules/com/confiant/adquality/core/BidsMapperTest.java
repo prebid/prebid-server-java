@@ -36,12 +36,12 @@ public class BidsMapperTest {
         assertThat(result.getBreq()).isEqualTo(bidRequest);
         assertThat(result.getBresps()).hasSize(2);
 
-        final RedisBidResponseData redisBidResponseData1 = result.getBresps().get(0);
+        final RedisBidResponseData redisBidResponseData1 = result.getBresps().getFirst();
         assertThat(redisBidResponseData1.getDspId()).isEqualTo(bidderResponse1.getBidder());
         assertThat(redisBidResponseData1.getBidresponse().getId()).isEqualTo(bidRequest.getId());
-        assertThat(redisBidResponseData1.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().get(0));
+        assertThat(redisBidResponseData1.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().getFirst());
         assertThat(redisBidResponseData1.getBidresponse().getSeatbid()).hasSize(1);
-        final SeatBid seatBid1 = redisBidResponseData1.getBidresponse().getSeatbid().get(0);
+        final SeatBid seatBid1 = redisBidResponseData1.getBidresponse().getSeatbid().getFirst();
         assertThat(seatBid1.getBid()).hasSize(1);
         assertThat(seatBid1.getBid().getFirst().getId())
                 .isEqualTo(bidderResponse1.getSeatBid().getBids().getFirst().getBid().getId());
@@ -49,10 +49,10 @@ public class BidsMapperTest {
         final RedisBidResponseData redisBidResponseData2 = result.getBresps().get(1);
         assertThat(redisBidResponseData2.getDspId()).isEqualTo(bidderResponse2.getBidder());
         assertThat(redisBidResponseData2.getBidresponse().getId()).isEqualTo(bidRequest.getId());
-        assertThat(redisBidResponseData2.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().get(0));
+        assertThat(redisBidResponseData2.getBidresponse().getCur()).isEqualTo(bidRequest.getCur().getFirst());
         assertThat(redisBidResponseData2.getBidresponse().getSeatbid()).hasSize(1);
 
-        final SeatBid seatBid2 = redisBidResponseData2.getBidresponse().getSeatbid().get(0);
+        final SeatBid seatBid2 = redisBidResponseData2.getBidresponse().getSeatbid().getFirst();
         assertThat(seatBid2.getBid()).hasSize(1);
         assertThat(seatBid2.getBid().getFirst().getId())
                 .isEqualTo(bidderResponse2.getSeatBid().getBids().getFirst().getBid().getId());

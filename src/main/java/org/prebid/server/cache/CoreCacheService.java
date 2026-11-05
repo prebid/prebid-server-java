@@ -567,7 +567,7 @@ public class CoreCacheService {
         for (CachedCreative cachedCreative : cachedCreatives) {
             final BidPutObject payload = cachedCreative.getPayload();
             final MetricName creativeType = resolveCreativeTypeName(payload);
-            final Integer creativeTtl = ObjectUtils.defaultIfNull(payload.getTtlseconds(), payload.getExpiry());
+            final Integer creativeTtl = ObjectUtils.getIfNull(payload.getTtlseconds(), payload.getExpiry());
 
             if (creativeTtl != null) {
                 updateCreativeTtlMetric.accept(creativeTtl, creativeType);

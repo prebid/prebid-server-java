@@ -142,7 +142,7 @@ public class GammaBidder implements Bidder<Void> {
                 .addQueryParam("id", extImpGamma.getId())
                 .addQueryParam("zid", extImpGamma.getZid())
                 .addQueryParam("wid", extImpGamma.getWid())
-                .addQueryParam("bidid", ObjectUtils.defaultIfNull(impId, ""))
+                .addQueryParam("bidid", ObjectUtils.getIfNull(impId, ""))
                 .addQueryParam("hb", "pbmobile");
 
         if (device != null) {

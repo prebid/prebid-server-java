@@ -28,7 +28,7 @@ public class ParametrizedQueryMySqlHelper implements ParametrizedQueryHelper {
         return paramsSize == 0
                 ? "NULL"
                 : IntStream.range(0, paramsSize)
-                .mapToObj(i -> PARAMETER_PLACEHOLDER)
-                .collect(Collectors.joining(","));
+                  .mapToObj(i -> PARAMETER_PLACEHOLDER)
+                  .collect(Collectors.joining(","));
     }
 }

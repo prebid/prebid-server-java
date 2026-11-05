@@ -8,10 +8,16 @@
         "h": 250
       },
       "ext": {
-        "nextmillennium" : {
+        "nextmillennium": {
           "placement_id": "placement_id",
-          "adSlots": ["slot-1", "slot-2"],
-          "allowedAds": ["banner", "native"]
+          "adSlots": [
+            "slot-1",
+            "slot-2"
+          ],
+          "allowedAds": [
+            "banner",
+            "native"
+          ]
         }
       }
     }

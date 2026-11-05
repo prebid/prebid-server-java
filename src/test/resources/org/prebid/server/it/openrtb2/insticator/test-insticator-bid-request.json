@@ -24,7 +24,7 @@
     "page": "http://www.example.com",
     "publisher": {
       "domain": "example.com",
-      "id" : "adUnitId"
+      "id": "adUnitId"
     },
     "ext": {
       "amp": 0

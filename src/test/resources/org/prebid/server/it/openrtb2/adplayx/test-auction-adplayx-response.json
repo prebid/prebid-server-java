@@ -1,0 +1,41 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "test-bid-id",
+          "impid": "test-imp-id",
+          "price": 2.5,
+          "adm": "<div>AdPlayx Creative Content</div>",
+          "crid": "test-creative-id",
+          "w": 300,
+          "h": 250,
+          "exp": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adplayx"
+              }
+            },
+            "origbidcpm": 2.5,
+            "origbidcur": "USD"
+          }
+        }
+      ],
+      "seat": "adplayx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adplayx": "{{ adplayx.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 1000
+  }
+}

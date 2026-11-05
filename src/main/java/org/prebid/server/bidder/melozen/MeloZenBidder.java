@@ -14,6 +14,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -104,7 +105,7 @@ public class MeloZenBidder implements Bidder<BidRequest> {
 
         if (BidderUtil.isValidPrice(bidFloor)
                 && StringUtils.isNotBlank(bidFloorCurrency)
-                && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY)) {
+                && !Strings.CI.equals(bidFloorCurrency, BIDDER_CURRENCY)) {
 
             final BigDecimal convertedFloor = currencyConversionService.convertCurrency(
                     bidFloor,

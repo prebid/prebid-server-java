@@ -142,7 +142,7 @@ public class RequestValidator {
                 validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateAlternateBidderCodes(extRequestPrebid.getAlternateBidderCodes(), aliases);
 
-                final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.defaultIfNull(
+                final AlternateBidderCodesConfig alternateBidderCodesConfig = ObjectUtils.getIfNull(
                         extRequestPrebid.getAlternateBidderCodes(),
                         account == null ? null : account.getAlternateBidderCodes());
 

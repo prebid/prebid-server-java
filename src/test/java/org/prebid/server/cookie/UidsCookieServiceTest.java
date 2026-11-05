@@ -6,6 +6,7 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +19,9 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.UpdateResult;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -53,6 +56,8 @@ public class UidsCookieServiceTest extends VertxTest {
     private static final String ADNXS = "adnxs";
     // Zero means size checking is disabled
     private static final int MAX_COOKIE_SIZE_BYTES = 0;
+
+    private static final Clock CLOCK = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
     @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
@@ -698,7 +703,7 @@ public class UidsCookieServiceTest extends VertxTest {
                 .extracting(Uids::getUids)
                 .extracting(Map::values)
                 .extracting(ArrayList::new)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .extracting(object -> (UidWithExpiry) object)
                 .extracting(UidWithExpiry::getExpires)
                 .allMatch(ZonedDateTime.now()::isBefore);
@@ -819,9 +824,9 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
-                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
-                "family", UidWithExpiry.live("uid")));
+                "very-very-very-very-long-family", givenUidWithExpiry("some-very-very-very-long-uid", 10),
+                "another-very-very-very-long-family", givenUidWithExpiry("another-very-very-very-long-uid", 11),
+                "family", givenUidWithExpiry("uid", 12)));
 
         // when
         final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
@@ -853,9 +858,9 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
-                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
-                "family", UidWithExpiry.live("uid")));
+                "very-very-very-very-long-family", givenUidWithExpiry("some-very-very-very-long-uid", 10),
+                "another-very-very-very-long-family", givenUidWithExpiry("another-very-very-very-long-uid", 11),
+                "family", givenUidWithExpiry("uid", 12)));
 
         // when
         final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
@@ -889,9 +894,9 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // cookie of encoded size 450 bytes
         final UidsCookie uidsCookie = givenUidsCookie(Map.of(
-                "very-very-very-very-long-family", UidWithExpiry.live("some-very-very-very-long-uid"),
-                "another-very-very-very-long-family", UidWithExpiry.live("another-very-very-very-long-uid"),
-                "family", UidWithExpiry.live("uid")));
+                "very-very-very-very-long-family", givenUidWithExpiry("some-very-very-very-long-uid", 10),
+                "another-very-very-very-long-family", givenUidWithExpiry("another-very-very-very-long-uid", 11),
+                "family", givenUidWithExpiry("uid", 12)));
 
         // when
         final List<Cookie> result = target.splitUidsIntoCookies(uidsCookie);
@@ -973,5 +978,9 @@ public class UidsCookieServiceTest extends VertxTest {
             Assertions.fail(e.getMessage());
             throw new RuntimeException("Fail decoding cookie value");
         }
+    }
+
+    private static UidWithExpiry givenUidWithExpiry(String uid, long expiry) {
+        return new UidWithExpiry(uid, ZonedDateTime.now(CLOCK).plusSeconds(expiry));
     }
 }

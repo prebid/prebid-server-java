@@ -1,0 +1,35 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "adapex": {
+          "seat": "pub-seat-1"
+        }
+      }
+    }
+  ],
+  "source": {
+    "schain": {
+      "complete": 1,
+      "ver": "1.0",
+      "nodes": [
+        {
+          "asi": "adapex.io",
+          "sid": "pub-seat-1",
+          "hp": 1
+        }
+      ]
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

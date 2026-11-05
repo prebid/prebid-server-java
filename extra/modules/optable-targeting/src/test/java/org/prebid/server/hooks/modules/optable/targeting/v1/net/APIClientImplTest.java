@@ -40,7 +40,7 @@ public class APIClientImplTest extends BaseOptableTest {
 
     @BeforeEach
     public void setUp() {
-        target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, 100);
+        target = new APIClientImpl("https://endpoint.optable.com", httpClient, jacksonMapper, 100);
     }
 
     @Test
@@ -140,7 +140,7 @@ public class APIClientImplTest extends BaseOptableTest {
     @Test
     public void shouldUseAuthorizationHeaderIfApiKeyIsPresent() {
         //  given
-        target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, 10);
+        target = new APIClientImpl("https://endpoint.optable.com", httpClient, jacksonMapper, 10);
 
         when(httpClient.get(any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenFailHttpResponse(
@@ -162,7 +162,7 @@ public class APIClientImplTest extends BaseOptableTest {
     public void shouldBuildApiUrlByReplacingTenantAndOriginMacros() {
         //  given
         target = new APIClientImpl(
-                "http://endpoint.optable.com?t={TENANT}&o={ORIGIN}",
+                "https://endpoint.optable.com?t={TENANT}&o={ORIGIN}",
                 httpClient,
                 jacksonMapper,
                 10);
@@ -179,7 +179,7 @@ public class APIClientImplTest extends BaseOptableTest {
         final ArgumentCaptor<String> endpointCaptor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).get(endpointCaptor.capture(), any(), anyLong());
         assertThat(endpointCaptor.getValue())
-                .isEqualTo("http://endpoint.optable.com?t=accountId&o=origin?query");
+                .isEqualTo("https://endpoint.optable.com?t=accountId&o=origin?query");
         assertThat(result.result()).isNull();
     }
 

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import lombok.Builder;
 import lombok.Value;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ public class AccountAuctionEventConfig {
     }
 
     private static String resolveKey(String key) {
-        if (StringUtils.equalsIgnoreCase("pbjs", key)) {
+        if (Strings.CI.equals("pbjs", key)) {
             return "web";
         }
 

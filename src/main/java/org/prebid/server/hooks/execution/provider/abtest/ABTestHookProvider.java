@@ -68,7 +68,7 @@ public class ABTestHookProvider<PAYLOAD, CONTEXT extends InvocationContext> impl
             return hookExecutionOutcome.getAction() != ExecutionAction.no_invocation;
         }
 
-        final int percent = ObjectUtils.defaultIfNull(abTest.getPercentActive(), 100);
+        final int percent = ObjectUtils.getIfNull(abTest.getPercentActive(), 100);
         return ThreadLocalRandom.current().nextInt(100) < percent;
     }
 

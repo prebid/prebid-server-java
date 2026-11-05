@@ -384,11 +384,12 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue / bidAdjustment, pbsService)
+        def expectedFloorValue = PBSUtils.divide(floorsProviderFloorValue, bidAdjustment)
+        cacheFloorsProviderRules(bidRequest, expectedFloorValue, pbsService)
 
         then: "Bidder request bidFloor should be update according to bidAdjustment"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue / bidAdjustment
+        assert bidderRequest.imp[0].bidFloor == expectedFloorValue
 
         and: "Bidder request shouldn't include imp.ext.prebid.floors"
         assert !bidderRequest.imp[0].ext.prebid.floors
@@ -481,7 +482,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should be update according to bidAdjustment"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0].bidFloor == getAdjustedValue(floorValue, bidAdjustment)
+        assert bidderRequest.imp[0].bidFloor == PBSUtils.divide(floorValue, bidAdjustment, FLOOR_VALUE_PRECISION)
 
         and: "Bidder request shouldn't include imp.ext.prebid.floors"
         assert !bidderRequest.imp[0].ext.prebid.floors
@@ -1145,9 +1146,5 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     private static int getRuleSize(BidRequest bidRequest) {
         bidRequest?.ext?.prebid?.floors?.data?.modelGroups[0].values.size()
-    }
-
-    private static BigDecimal getAdjustedValue(BigDecimal floorValue, BigDecimal bidAdjustment) {
-        floorValue.divide(bidAdjustment, FLOOR_VALUE_PRECISION, RoundingMode.HALF_UP)
     }
 }

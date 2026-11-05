@@ -6,6 +6,7 @@ The filtering logic can be provided by enabling the hook.
 ## Configuration
 
 To start using current module you have to enable module and add ``pb-richmedia-filter-all-processed-bid-responses-hook`` into hooks execution plan inside your yaml file:
+
 ```yaml
 hooks:
   pb-richmedia-filter:
@@ -33,6 +34,7 @@ hooks:
       }
     }
 ```
+
 And configure
 
 ## List of module configuration options
