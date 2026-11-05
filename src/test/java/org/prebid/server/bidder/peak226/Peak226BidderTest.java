@@ -1,0 +1,182 @@
+package org.prebid.server.bidder.peak226;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.peak226.ExtImpPeak226;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.UnaryOperator;
+
+import static java.util.function.UnaryOperator.identity;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.BDDMockito.given;
+
+@ExtendWith(MockitoExtension.class)
+public class Peak226BidderTest extends VertxTest {
+
+    private static final String ENDPOINT_URL = "https://{Region}.test.endpoint.com";
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String DEFAULT_REGION = "us";
+
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private Peak226Bidder target;
+
+    @BeforeEach
+    public void setUp() {
+        target = new Peak226Bidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                new Peak226Bidder("invalid_url", currencyConversionService, jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorsWithoutRequestWhenAllImpsAreInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddErrorsOnInvalidImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                givenImp(imp -> imp.ext(
+                        givenImpExt(ExtImpPeak226.of(null, null, DEFAULT_REGION)))),
+                givenImp(imp -> imp.ext(
+                        givenImpExt(ExtImpPeak226.of("", null, DEFAULT_REGION)))),
+                // valid imps
+                givenImp(identity()),
+                givenImp(imp -> imp.tagid("test-tag").ext(
+                        givenImpExt(ExtImpPeak226.of(null, null, DEFAULT_REGION)))),
+                givenImp(imp -> imp.tagid("test-tag").ext(
+                        givenImpExt(ExtImpPeak226.of("", null, DEFAULT_REGION)))),
+                givenImp(imp -> imp.ext(
+                        givenImpExt(ExtImpPeak226.of("publisherId", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(6);
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .hasSize(1)
+                .satisfies(errors -> {
+                    assertThat(errors.getFirst()).startsWith("Invalid ext. Imp.Id:");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreferPlacementIdOverTagId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp
+                        .tagid("tagId")
+                        .ext(givenImpExt(ExtImpPeak226.of("publisherId", "placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .singleElement()
+                .extracting(Imp::getTagid)
+                .isEqualTo("placementId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertBidFloorIfCurrencyIsDifferent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur("EUR")));
+
+        given(currencyConversionService.convertCurrency(BigDecimal.TEN, bidRequest, "EUR", DEFAULT_BID_CURRENCY))
+                .willReturn(BigDecimal.ONE);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(tuple(BigDecimal.ONE, DEFAULT_BID_CURRENCY));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotConvertBidfloorAndAssignUSDCurrencyWhenBidfloorHasEmptyCurrency() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur(null)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(tuple(BigDecimal.TEN, DEFAULT_BID_CURRENCY));
+    }
+
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return BidRequest.builder()
+                .cur(List.of("USD"))
+                .imp(Arrays.stream(imps).toList())
+                .build();
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id(UUID.randomUUID().toString())
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(givenImpExt(ExtImpPeak226.of("placementId", "placementId", "us"))))
+                .build();
+    }
+
+    private static ObjectNode givenImpExt(ExtImpPeak226 extImpPeak226) {
+        return mapper.valueToTree(ExtPrebid.of(null, extImpPeak226));
+    }
+
+}
