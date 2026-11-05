@@ -11,13 +11,17 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.List;
 
-public class BidRequestCleaner implements PayloadUpdate<AuctionRequestPayload> {
+public class AuctionRequestCleaner implements PayloadUpdate<AuctionRequestPayload> {
 
+    private static final AuctionRequestCleaner INSTANCE = new AuctionRequestCleaner();
     private static final String OPTABLE_FIELD = "optable";
-    private static final List<String> FIELDS_TO_REMOVE = List.of("email", "phone", "zip", "vid");
+    private static final List<String> FIELDS_TO_REMOVE = List.of("email", "phone", "zip", "vid", "id5_signature");
 
-    public static BidRequestCleaner instance() {
-        return new BidRequestCleaner();
+    public static AuctionRequestCleaner instance() {
+        return INSTANCE;
+    }
+
+    public AuctionRequestCleaner() {
     }
 
     @Override
@@ -34,16 +38,18 @@ public class BidRequestCleaner implements PayloadUpdate<AuctionRequestPayload> {
         }
 
         final ObjectNode cleanedOptable = cleanOptable((ObjectNode) optable);
-        if (cleanedOptable.isEmpty()) {
-            extUser.addProperty(OPTABLE_FIELD, null);
-        } else {
-            extUser.addProperty(OPTABLE_FIELD, cleanedOptable);
-        }
+        final ExtUser extUserCopy = extUser.toBuilder().build();
+        extUserCopy.addProperties(extUser.getProperties());
+        extUserCopy.addProperty(OPTABLE_FIELD, cleanedOptable.isEmpty() ? null : cleanedOptable);
 
-        return bidRequest;
+        return bidRequest.toBuilder()
+                .user(user.toBuilder()
+                        .ext(extUserCopy)
+                        .build())
+                .build();
     }
 
-    public static ObjectNode cleanOptable(ObjectNode optable) {
+    private static ObjectNode cleanOptable(ObjectNode optable) {
         return optable.deepCopy().remove(FIELDS_TO_REMOVE);
     }
 }

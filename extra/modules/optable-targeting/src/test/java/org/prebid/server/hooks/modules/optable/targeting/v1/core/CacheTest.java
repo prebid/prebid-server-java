@@ -109,6 +109,7 @@ public class CacheTest {
                         List.of(new AudienceId("1")),
                         "keyspace",
                         0)),
-                new Ortb2(new User(null, null)));
+                new Ortb2(new User(null, null)),
+                null);
     }
 }
