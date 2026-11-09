@@ -69,7 +69,6 @@ public class Peak226Bidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final Map<RegionPublisher, List<Imp>> impsByRegion = new LinkedHashMap<>();
-        final List<HttpRequest<BidRequest>> result = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
@@ -92,14 +91,10 @@ public class Peak226Bidder implements Bidder<BidRequest> {
 
         final Device device = sanitizeDevice(bidRequest.getDevice());
 
-        for (RegionPublisher regionPublisher : impsByRegion.keySet()) {
-            final List<Imp> imps = impsByRegion.get(regionPublisher);
-
-            final HttpRequest<BidRequest> singleRequest = createSingleRequest(
-                    imps, bidRequest, regionPublisher, device);
-
-            result.add(singleRequest);
-        }
+        final List<HttpRequest<BidRequest>> result = impsByRegion.entrySet().stream()
+                .map(entry ->
+                        createSingleRequest(entry.getValue(), bidRequest, entry.getKey(), device))
+                .toList();
 
         return Result.of(result, errors);
     }

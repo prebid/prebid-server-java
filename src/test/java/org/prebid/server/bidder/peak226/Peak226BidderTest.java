@@ -133,10 +133,10 @@ public class Peak226BidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldStripBidderExt() {
         // given
+        ObjectNode extImp = givenImpExt(ExtImpPeak226.of("publisherId", null, null))
+                .put("pid", "testValue");
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp
-                        .tagid("tagId")
-                        .ext(givenImpExt(ExtImpPeak226.of("publisherId", null, null)))));
+                givenImp(imp -> imp.tagid("tagId").ext(extImp)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -148,6 +148,7 @@ public class Peak226BidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .singleElement()
                 .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("bidder"))
                 .isNull();
     }
 
