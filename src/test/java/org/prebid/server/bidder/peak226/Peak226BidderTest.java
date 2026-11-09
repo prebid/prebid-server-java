@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,9 +29,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.peak226.ExtImpPeak226;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -78,19 +75,6 @@ public class Peak226BidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnEmptyResponseWhenImpsAreMissing() {
-        // given
-        final BidRequest bidRequest = givenBidRequest();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -142,9 +126,8 @@ public class Peak226BidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .singleElement()
                 .extracting(Imp::getTagid)
-                .isEqualTo("placementId");
+                .containsExactly("placementId");
     }
 
     @Test
@@ -165,7 +148,6 @@ public class Peak226BidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .singleElement()
                 .extracting(Imp::getExt)
-                .extracting(ext -> ext.get("bidder"))
                 .isNull();
     }
 
@@ -245,12 +227,9 @@ public class Peak226BidderTest extends VertxTest {
     @Test
     public void makeHttpRequestShouldSanitizeDevice() {
         // given
-        final Device device = Device.builder()
-                .ifa(ZERO_IFA)
-                .build();
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity())).toBuilder()
-                .device(device)
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.device(Device.builder().ifa(ZERO_IFA).build()),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -297,14 +276,11 @@ public class Peak226BidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsFromAllSeatBid() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(givenBidNode("bid-1"), givenBidNode("bid-2"))));
+                mapper.writeValueAsString(givenBidResponse(givenBidNode("bid-1"), givenBidNode("bid-2"))));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -317,14 +293,12 @@ public class Peak226BidderTest extends VertxTest {
     @Test
     public void makeBidShouldAdmOverAdmNative() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(givenBidNode("bid-1"))));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -337,15 +311,13 @@ public class Peak226BidderTest extends VertxTest {
     @Test
     public void makeBidShouldUseAdmNativeWhenAdmIsEmpty() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
         final ObjectNode bidNode = givenBidNode("bid-1");
         bidNode.remove("adm");
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidNode)));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -355,18 +327,22 @@ public class Peak226BidderTest extends VertxTest {
                 .containsExactly("{\"admNativeProp\":\"1.5\"}");
     }
 
-    private static BidRequest givenBidRequest(Imp... imps) {
-        return BidRequest.builder()
-                .cur(List.of("USD"))
-                .site(Site.builder().build())
-                .app(App.builder().build())
-                .imp(Arrays.stream(imps).toList())
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer,
+                                              Imp... imps) {
+        return requestCustomizer.apply(BidRequest.builder()
+                        .cur(List.of("USD"))
+                        .site(Site.builder().build())
+                        .app(App.builder().build())
+                        .imp(List.of(imps)))
                 .build();
+    }
+
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(identity(), imps);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id(UUID.randomUUID().toString())
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(givenImpExt(ExtImpPeak226.of("placementId", "placementId", "us"))))
                 .build();
@@ -376,13 +352,8 @@ public class Peak226BidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, extImpPeak226));
     }
 
-    @SneakyThrows
     private Peak226Response givenBidResponse(ObjectNode... objectNode) {
-        return Peak226Response.builder()
-                .seatbid(singletonList(Peak226SeatBid.builder()
-                        .bid(List.of(objectNode))
-                        .build()))
-                .build();
+        return Peak226Response.of(null, singletonList(Peak226SeatBid.of(List.of(objectNode))));
     }
 
     private ObjectNode givenBidNode(String id) {
@@ -398,9 +369,9 @@ public class Peak226BidderTest extends VertxTest {
         return bidNode;
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

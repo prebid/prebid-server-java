@@ -12,6 +12,5 @@ public class ExtImpPeak226 {
     @JsonProperty("placementId")
     String placementId;
 
-    @JsonProperty("region")
     String region;
 }

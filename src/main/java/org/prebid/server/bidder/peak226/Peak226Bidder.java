@@ -45,14 +45,14 @@ import java.util.Optional;
 
 public class Peak226Bidder implements Bidder<BidRequest> {
 
+    private static final TypeReference<ExtPrebid<?, ExtImpPeak226>> EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
     private static final String USD_CURRENCY = "USD";
     private static final String DEFAULT_REGION = "us";
     private static final String ZERO_IFA = "00000000-0000-0000-0000-000000000000";
     private static final String REGION_MACRO = "Region";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpPeak226>> EXT_TYPE_REFERENCE = new TypeReference<>() {
-    };
     private final Uri endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
@@ -60,6 +60,7 @@ public class Peak226Bidder implements Bidder<BidRequest> {
     public Peak226Bidder(String endpointUrl,
                          CurrencyConversionService currencyConversionService,
                          JacksonMapper mapper) {
+
         this.endpointUrl = Uri.of(endpointUrl);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -73,7 +74,13 @@ public class Peak226Bidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                modifyAndMapImp(imp, bidRequest, impsByRegion);
+                final ExtImpPeak226 impExt = parseImpExt(imp);
+                final RegionPublisher regionPublisher = computeRegionPublisher(impExt);
+                final Price impFloorPrice = getBidFloor(imp, bidRequest);
+                final Imp modifiedImp = modifyImp(imp, impExt, impFloorPrice);
+
+                impsByRegion.computeIfAbsent(regionPublisher, _ -> new ArrayList<>())
+                        .add(modifiedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -97,29 +104,6 @@ public class Peak226Bidder implements Bidder<BidRequest> {
         return Result.of(result, errors);
     }
 
-    private void modifyAndMapImp(Imp imp,
-                          BidRequest bidRequest,
-                          Map<RegionPublisher, List<Imp>> impsByRegion) {
-
-        final ExtImpPeak226 impExt = parseImpExt(imp);
-
-        final Price impFloorPrice = getBidFloor(imp, bidRequest);
-
-        final String region = StringUtils.isBlank(impExt.getRegion())
-                ? DEFAULT_REGION
-                : impExt.getRegion().toLowerCase(Locale.ROOT);
-
-        final RegionPublisher regionPublisher = RegionPublisher.of(region, impExt.getPublisherId());
-        final Imp modifiedImp = imp.toBuilder()
-                .ext(stripBidderExt(imp))
-                .tagid(impExt.getPlacementId())
-                .bidfloor(impFloorPrice.getValue())
-                .bidfloorcur(impFloorPrice.getCurrency())
-                .build();
-        impsByRegion.computeIfAbsent(regionPublisher, _ -> new ArrayList<>())
-                .add(modifiedImp);
-    }
-
     private ExtImpPeak226 parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), EXT_TYPE_REFERENCE).getBidder();
@@ -128,10 +112,27 @@ public class Peak226Bidder implements Bidder<BidRequest> {
         }
     }
 
+    private RegionPublisher computeRegionPublisher(ExtImpPeak226 impExt) {
+        final String region = StringUtils.isBlank(impExt.getRegion())
+                ? DEFAULT_REGION
+                : impExt.getRegion().toLowerCase(Locale.ROOT);
+
+        return RegionPublisher.of(region, impExt.getPublisherId());
+    }
+
+    private Imp modifyImp(Imp imp, ExtImpPeak226 impExt, Price impFloorPrice) {
+        return imp.toBuilder()
+                .ext(stripBidderExt(imp))
+                .tagid(impExt.getPlacementId())
+                .bidfloor(impFloorPrice.getValue())
+                .bidfloorcur(impFloorPrice.getCurrency())
+                .build();
+    }
+
     private ObjectNode stripBidderExt(Imp imp) {
         final ObjectNode modifiedExt = imp.getExt().deepCopy();
         modifiedExt.remove("bidder");
-        return modifiedExt;
+        return modifiedExt.isEmpty() ? null : modifiedExt;
     }
 
     private Price getBidFloor(Imp imp, BidRequest bidRequest) {
@@ -155,12 +156,9 @@ public class Peak226Bidder implements Bidder<BidRequest> {
     }
 
     private Device sanitizeDevice(Device device) {
-        if (device == null || !ZERO_IFA.equals(device.getIfa())) {
-            return device;
-        }
-        return device.toBuilder()
-                .ifa("")
-                .build();
+        return device == null || !ZERO_IFA.equals(device.getIfa())
+                ? device
+                : device.toBuilder().ifa("").build();
     }
 
     private HttpRequest<BidRequest> createSingleRequest(List<Imp> imps,
@@ -254,11 +252,9 @@ public class Peak226Bidder implements Bidder<BidRequest> {
         final JsonNode admNative = bidNode.at("/adm_native");
         final String bidAdm = bid.getAdm();
 
-        if (admNative != null && !admNative.isEmpty() && StringUtils.isBlank(bidAdm)) {
-            return mapper.encodeToString(admNative);
-        }
-
-        return bidAdm;
+        return admNative != null && !admNative.isEmpty() && StringUtils.isBlank(bidAdm)
+                ? mapper.encodeToString(admNative)
+                : bidAdm;
     }
 
     private Bid resolveMacros(Bid bid) {

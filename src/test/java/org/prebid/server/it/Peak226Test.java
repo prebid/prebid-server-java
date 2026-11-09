@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 
 import java.io.IOException;
-import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.Collections.singletonList;
 
 public class Peak226Test extends IntegrationTest {
 
@@ -28,6 +28,6 @@ public class Peak226Test extends IntegrationTest {
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/peak226/test-auction-peak226-response.json", response, List.of("peak226"));
+        assertJsonEquals("openrtb2/peak226/test-auction-peak226-response.json", response, singletonList("peak226"));
     }
 }
