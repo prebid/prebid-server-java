@@ -133,7 +133,7 @@ public class Peak226BidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldStripBidderExt() {
         // given
-        ObjectNode extImp = givenImpExt(ExtImpPeak226.of("publisherId", null, null))
+        final ObjectNode extImp = givenImpExt(ExtImpPeak226.of("publisherId", null, null))
                 .put("pid", "testValue");
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.tagid("tagId").ext(extImp)));
