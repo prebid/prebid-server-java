@@ -1,0 +1,17 @@
+adapters:
+  matterfullrtb:
+    endpoint: "https://us.matterfull.co/?uqhash={PublisherID}"
+    geoscope:
+      - USA
+    ortb-version: "2.6"
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: prebid_support@bematterfull.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
