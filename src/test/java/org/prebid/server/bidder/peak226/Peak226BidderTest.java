@@ -27,6 +27,7 @@ import org.prebid.server.bidder.peak226.model.Peak226SeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.peak226.ExtImpPeak226;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,11 +39,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
+import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class Peak226BidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{Region}.test.endpoint.com";
+    private static final String ADM_VALUE = "https://test_adm.com?price=${AUCTION_PRICE}";
+    private static final String NURL_VALUE = "https://test_nurl.com?price=${AUCTION_PRICE}";
+    private static final String BURL_VALUE = "https://test_burl.com?price=${AUCTION_PRICE}";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String ZERO_IFA = "00000000-0000-0000-0000-000000000000";
     private static final String DEFAULT_REGION = "us";
@@ -229,7 +234,7 @@ public class Peak226BidderTest extends VertxTest {
     public void makeHttpRequestShouldSanitizeDevice() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                request -> request.device(Device.builder().ifa(ZERO_IFA).build()),
+                requestBuilder -> requestBuilder.device(Device.builder().ifa(ZERO_IFA).build()),
                 givenImp(identity()));
 
         // when
@@ -275,10 +280,36 @@ public class Peak226BidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyWhenSiteAndAppPublisherWhenAreNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.app(null).site(null),
+                givenImp(imp -> imp
+                        .tagid("tagId")
+                        .ext(givenImpExt(ExtImpPeak226.of("newPublisher", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .singleElement()
+                .isNull();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .singleElement()
+                .isNull();
+    }
+
+    @Test
     public void makeBidsShouldReturnBidsFromAllSeatBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(givenBidNode("bid-1"), givenBidNode("bid-2"))));
+                givenBidResponse(givenBidNode("bid-1"), givenBidNode("bid-2")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -292,11 +323,12 @@ public class Peak226BidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidShouldAdmOverAdmNative() throws JsonProcessingException {
+    public void makeBidShouldUseAdmOverAdmNative() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(givenBidNode("bid-1"))));
+        final ObjectNode bidNode = givenBidNode("bid-1");
+        bidNode.set("adm_native", mapper.createObjectNode().put("admNativeProp", "${AUCTION_PRICE}"));
+        bidNode.put("adm", ADM_VALUE);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidNode));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -306,16 +338,43 @@ public class Peak226BidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .containsExactly("https://https://test_adm.com?price=1.5");
+                .containsExactly("https://test_adm.com?price=1.5");
+    }
+
+    @Test
+    public void makeBidShouldResolveMacros() throws JsonProcessingException {
+        // given
+        final ObjectNode bidNode = givenBidNode("bid-1");
+        bidNode.put("adm", ADM_VALUE);
+        bidNode.put("nurl", NURL_VALUE);
+        bidNode.put("burl", BURL_VALUE);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidNode));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("https://test_adm.com?price=1.5");
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl)
+                .containsExactly("https://test_nurl.com?price=1.5");
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getBurl)
+                .containsExactly("https://test_burl.com?price=1.5");
     }
 
     @Test
     public void makeBidShouldUseAdmNativeWhenAdmIsEmpty() throws JsonProcessingException {
         // given
         final ObjectNode bidNode = givenBidNode("bid-1");
-        bidNode.remove("adm");
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidNode)));
+        bidNode.set("adm_native", mapper.createObjectNode().put("admNativeProp", "${AUCTION_PRICE}"));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidNode));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -326,6 +385,56 @@ public class Peak226BidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
                 .containsExactly("{\"admNativeProp\":\"1.5\"}");
+    }
+
+    @Test
+    public void makeBidShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
+        // given
+        final ObjectNode bannerBid = givenBidNode("bid-1", "imp-1", 2);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bannerBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
+        // given
+        final ObjectNode bannerBid = givenBidNode("bid-1", "imp-1", 1);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bannerBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidShouldReturnErrorForUnsupportedMtypes() throws JsonProcessingException {
+        // given
+        final ObjectNode invalidNode = givenBidNode("bid-1", "imp-1", 3);
+        final ObjectNode validBid = givenBidNode("bid-2", "imp-2", 1);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(invalidNode, validBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(badServerResponse("Unrecognized bid type for impression imp-1"));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer,
@@ -353,20 +462,21 @@ public class Peak226BidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, extImpPeak226));
     }
 
-    private Peak226Response givenBidResponse(ObjectNode... objectNode) {
-        return Peak226Response.of(null, singletonList(Peak226SeatBid.of(List.of(objectNode))));
+    private String givenBidResponse(ObjectNode... objectNode) throws JsonProcessingException {
+        return mapper.writeValueAsString(
+                Peak226Response.of(null, singletonList(Peak226SeatBid.of(List.of(objectNode)))));
     }
 
     private ObjectNode givenBidNode(String id) {
+        return givenBidNode(id, null, 1);
+    }
+
+    private ObjectNode givenBidNode(String id, String impId, Integer mType) {
         final ObjectNode bidNode = mapper.createObjectNode();
         bidNode.put("id", id);
+        bidNode.put("impid", impId);
         bidNode.put("price", "1.5");
-        bidNode.put("adm", "https://https://test_adm.com?price=${AUCTION_PRICE}");
-        bidNode.set("adm_native",
-                mapper.createObjectNode().put("admNativeProp", "${AUCTION_PRICE}"));
-        bidNode.put("nurl", "https://test.com?price=${AUCTION_PRICE}");
-        bidNode.put("burl", "https://test.com?price=${AUCTION_PRICE}");
-        bidNode.put("mtype", "1");
+        bidNode.put("mtype", mType);
         return bidNode;
     }
 
@@ -376,5 +486,4 @@ public class Peak226BidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
-
 }
