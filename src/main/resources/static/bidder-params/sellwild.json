@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Sellwild Adapter Params",
+  "description": "A schema which validates params accepted by the Sellwild adapter",
+  "type": "object",
+  "properties": {
+    "partnerCode": {
+      "type": "string",
+      "description": "Partner code assigned by Sellwild",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "token": {
+      "type": "string",
+      "description": "Partner auth token assigned by Sellwild",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "partnerCode",
+    "token"
+  ]
+}
