@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests
+package org.prebid.server.functional.tests.bidder
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 import spock.lang.Shared

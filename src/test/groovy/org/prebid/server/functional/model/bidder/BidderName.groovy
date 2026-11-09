@@ -14,7 +14,7 @@ enum BidderName {
     ALIAS_UPPER_CASE("ALIAS"),
     GENERIC_CAMEL_CASE("GeNerIc"),
     GENERIC("generic"),
-    GENER_X("gener_x"),
+    GENER_X("gener-x"),
     MAGNITE("magnite"),
     APPNEXUS("appnexus"),
     MAGNITE_ALIAS("magniteAlias"),

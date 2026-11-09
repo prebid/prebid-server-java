@@ -11,4 +11,6 @@ class GeneralBidderAdapter extends Generic {
     String demandSource
     @JsonProperty("bc")
     BidderName bidderCode
+    @JsonProperty("placement_id")
+    String placementId
 }

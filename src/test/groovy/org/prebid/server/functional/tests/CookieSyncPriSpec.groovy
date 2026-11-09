@@ -290,6 +290,4 @@ class CookieSyncPriSpec extends BaseSpec {
         assert genericBidder?.userSync?.url
         assert genericBidder?.userSync?.type
     }
-
-
 }

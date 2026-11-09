@@ -15,7 +15,7 @@ class Bidder {
     @JsonProperty("ALIAS")
     Generic aliasUpperCase
     Generic generic
-    @JsonProperty("gener_x")
+    @JsonProperty("gener-x")
     Generic generX
     @JsonProperty("GeNerIc")
     Generic genericCamelCase
