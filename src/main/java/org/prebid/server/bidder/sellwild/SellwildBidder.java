@@ -55,20 +55,22 @@ public class SellwildBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final Map<String, List<Imp>> partnerCodeToImps = new LinkedHashMap<>();
+        // The exchange authenticates a request with the token of its first imp, so imps are only
+        // grouped when they share both partner code and token.
+        final Map<ExtImpSellwild, List<Imp>> paramsToImps = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpSellwild extImp = parseImpExt(imp);
                 validateImpExt(extImp, imp.getId());
-                partnerCodeToImps.computeIfAbsent(extImp.getPartnerCode(), key -> new ArrayList<>()).add(imp);
+                paramsToImps.computeIfAbsent(extImp, key -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = partnerCodeToImps.entrySet().stream()
-                .map(entry -> makeHttpRequest(request, entry.getKey(), entry.getValue()))
+        final List<HttpRequest<BidRequest>> httpRequests = paramsToImps.entrySet().stream()
+                .map(entry -> makeHttpRequest(request, entry.getKey().getPartnerCode(), entry.getValue()))
                 .toList();
 
         return Result.of(httpRequests, errors);
