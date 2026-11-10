@@ -71,6 +71,7 @@ import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 import org.prebid.server.vertx.verticles.server.application.DeprecatedResource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -387,6 +388,7 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
+    @ConditionalOnBooleanProperty(prefix = "vtrack", name = "enabled", matchIfMissing = true)
     PostVtrackHandler postVtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${vtrack.allow-unknown-bidder}") boolean allowUnknownBidder,
