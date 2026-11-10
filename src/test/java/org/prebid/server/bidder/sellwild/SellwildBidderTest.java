@@ -116,7 +116,7 @@ public class SellwildBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.id("imp1"), ExtImpSellwild.of("partnerB", "token1")),
                 givenImp(imp -> imp.id("imp2"), ExtImpSellwild.of("partnerA", "token2")),
-                givenImp(imp -> imp.id("imp3"), ExtImpSellwild.of("partnerB", "token3")));
+                givenImp(imp -> imp.id("imp3"), ExtImpSellwild.of("partnerB", "token1")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -133,6 +133,29 @@ public class SellwildBidderTest extends VertxTest {
                     assertThat(request.getUri()).isEqualTo("https://test.endpoint.com/openrtb2/partnerA");
                     assertThat(request.getPayload().getImp()).extracting(Imp::getId).containsExactly("imp2");
                     assertThat(request.getImpIds()).containsExactly("imp2");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSplitImpsWithSamePartnerCodeAndDifferentTokens() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("imp1"), ExtImpSellwild.of("partner", "token1")),
+                givenImp(imp -> imp.id("imp2"), ExtImpSellwild.of("partner", "token2")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).satisfiesExactly(
+                request -> {
+                    assertThat(request.getUri()).isEqualTo("https://test.endpoint.com/openrtb2/partner");
+                    assertThat(request.getPayload().getImp()).extracting(Imp::getId).containsExactly("imp1");
+                },
+                request -> {
+                    assertThat(request.getUri()).isEqualTo("https://test.endpoint.com/openrtb2/partner");
+                    assertThat(request.getPayload().getImp()).extracting(Imp::getId).containsExactly("imp2");
                 });
     }
 
