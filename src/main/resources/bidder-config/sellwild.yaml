@@ -3,7 +3,7 @@ adapters:
     endpoint: https://exchange.sellwild.com/exchange/openrtb2/{PublisherId}
     ortb-version: "2.6"
     meta-info:
-      maintainer-email: prebid@sellwild.com
+      maintainer-email: support@sellwild.com
       app-media-types:
         - banner
         - video
