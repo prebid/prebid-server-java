@@ -21,7 +21,7 @@ public class AuctionRequestCleaner implements PayloadUpdate<AuctionRequestPayloa
         return INSTANCE;
     }
 
-    public AuctionRequestCleaner() {
+    private AuctionRequestCleaner() {
     }
 
     @Override

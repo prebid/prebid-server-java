@@ -60,12 +60,6 @@ public class CompositeHookExecutionPlan {
                 : defaultValue;
     }
 
-    public boolean hasBidderRequestHook(Account account) {
-        return computeFromAccount(account, bidderRequestHookCache, false,
-                plan -> hasHook(plan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST)
-                        || hasHostBidderRequestHook);
-    }
-
     public long getOptableTargetingBidderRequestTimeout(Account account) {
         return computeFromAccount(account, bidderRequestHookTimeoutCache, hostBidderRequestHookTimeout,
                 plan -> {
