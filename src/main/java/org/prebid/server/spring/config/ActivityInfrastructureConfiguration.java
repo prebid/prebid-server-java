@@ -14,7 +14,10 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.GdprConfig;
+import org.prebid.server.settings.model.HostActivityInfrastructureConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -88,16 +91,27 @@ public class ActivityInfrastructureConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty("activity-infrastructure")
+    HostActivityInfrastructureConfiguration hostActivityInfrastructureConfiguration(
+            @Value("activity-infrastructure") String configAsString,
+            JacksonMapper mapper) {
+
+        return mapper.decodeValue(configAsString, HostActivityInfrastructureConfiguration.class);
+    }
+
+    @Bean
     ActivityRuleFactory activityRuleFactory(List<RuleCreator<?>> ruleCreators) {
         return new ActivityRuleFactory(ruleCreators);
     }
 
     @Bean
-    ActivityInfrastructureCreator activityInfrastructureCreator(ActivityRuleFactory activityRuleFactory,
-                                                                GdprConfig gdprConfig,
-                                                                Metrics metrics,
-                                                                JacksonMapper jacksonMapper) {
+    ActivityInfrastructureCreator activityInfrastructureCreator(
+            ActivityRuleFactory activityRuleFactory,
+            @Autowired(required = false) HostActivityInfrastructureConfiguration hostConfig,
+            GdprConfig gdprConfig,
+            Metrics metrics,
+            JacksonMapper jacksonMapper) {
 
-        return new ActivityInfrastructureCreator(activityRuleFactory, gdprConfig, metrics, jacksonMapper);
+        return new ActivityInfrastructureCreator(activityRuleFactory, hostConfig, gdprConfig, metrics, jacksonMapper);
     }
 }
