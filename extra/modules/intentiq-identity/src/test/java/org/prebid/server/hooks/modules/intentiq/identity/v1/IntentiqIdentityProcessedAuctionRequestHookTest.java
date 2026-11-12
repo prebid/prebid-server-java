@@ -16,6 +16,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,6 +58,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -901,6 +903,74 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         final List<Eid> eids = applyUpdate(result, payload).getUser().getEids();
         assertThat(eids).extracting(Eid::getSource).containsExactly("intentiq.com", "liveramp.com");
         assertThat(eids.getFirst().getUids().getFirst().getId()).isEqualTo("page-iiq");
+    }
+
+    @Test
+    public void callShouldJoinResolutionAlreadyInFlightForTheSameUser() {
+        // given — two auctions for the same user while the first one's API call is still open
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.miss()));
+        final Promise<HttpClientResponse> apiResponse = Promise.promise();
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(apiResponse.future());
+        final IntentiqIdentityProcessedAuctionRequestHook hook = target(API_ENDPOINT, "123", cache);
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> first = hook.call(payload, invocationContext);
+        final Future<InvocationResult<AuctionRequestPayload>> second = hook.call(payload, invocationContext);
+        apiResponse.complete(HttpClientResponse.of(200, null, "{\"data\":{\"eids\":[{\"source\":\"intentiq.com\","
+                + "\"uids\":[{\"id\":\"abc\"}]}]},\"abTestUuid\":\"S2S_ab\",\"tc\":0}"));
+
+        // then — one API call; both auctions enriched and attributed to the A/B group
+        verify(httpClient, times(1)).get(any(), any(), anyLong());
+        assertThat(first.result().action()).isEqualTo(InvocationAction.update);
+        assertThat(second.result().action()).isEqualTo(InvocationAction.update);
+        assertThat(((IntentiqIdentityModuleContext) second.result().moduleContext()).abTestUuid())
+                .isEqualTo("S2S_ab");
+        assertThat(counter("cache.in_flight.joined")).isEqualTo(1);
+    }
+
+    @Test
+    public void callShouldCallApiAgainOnceTheInFlightCallCompleted() {
+        // given
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.miss()));
+        givenResponse(EIDS_BODY);
+        final IntentiqIdentityProcessedAuctionRequestHook hook = target(API_ENDPOINT, "123", cache);
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        hook.call(payload, invocationContext).result();
+        hook.call(payload, invocationContext).result();
+
+        // then — nothing stays registered as in flight
+        verify(httpClient, times(2)).get(any(), any(), anyLong());
+        assertThat(counter("cache.in_flight.joined")).isZero();
+    }
+
+    @Test
+    public void callShouldJoinWhileTheCacheLookupIsStillOpen() {
+        // given — the second auction arrives before the first one's cache lookup has answered
+        final IdentityCache cache = mock(IdentityCache.class);
+        final Promise<CacheResult> lookup = Promise.promise();
+        when(cache.get(any())).thenReturn(lookup.future());
+        givenResponse(EIDS_BODY);
+        final IntentiqIdentityProcessedAuctionRequestHook hook = target(API_ENDPOINT, "123", cache);
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> first = hook.call(payload, invocationContext);
+        final Future<InvocationResult<AuctionRequestPayload>> second = hook.call(payload, invocationContext);
+        lookup.complete(CacheResult.miss());
+
+        // then — one lookup, one API call, both enriched
+        verify(cache, times(1)).get(any());
+        verify(httpClient, times(1)).get(any(), any(), anyLong());
+        assertThat(first.result().action()).isEqualTo(InvocationAction.update);
+        assertThat(second.result().action()).isEqualTo(InvocationAction.update);
     }
 
     private void givenResponse(String body) {

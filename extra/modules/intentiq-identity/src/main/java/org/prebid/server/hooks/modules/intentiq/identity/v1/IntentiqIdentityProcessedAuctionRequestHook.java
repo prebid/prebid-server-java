@@ -18,6 +18,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.UserAgent;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +34,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqId
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PrivacySignals;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -59,6 +61,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
@@ -87,6 +90,9 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
     private final IdentityCache cache;
     private final FirstPartyKeyExtractor keyExtractor;
     private final IntentiqIdentityMetrics metrics;
+    // Resolution calls in flight on this instance, by cache key: a concurrent request for the same user
+    // waits for the call instead of going without enrichment and A/B attribution.
+    private final Map<String, Future<Resolution>> inFlightByKey = new ConcurrentHashMap<>();
 
     public IntentiqIdentityProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        HttpClient httpClient,
@@ -117,7 +123,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
             return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
         }
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
-        if (isGdprWithoutConsent(bidRequest)) {
+        if (PrivacySignals.isGdprWithoutConsent(bidRequest)) {
             metrics.skipNoConsent(dpi);
             return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
         }
@@ -144,7 +150,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
 
     private Future<Resolution> resolveEids(IntentiqIdentityProperties properties, BidRequest bidRequest) {
         final boolean cacheEnabled = cache != null && properties.getCache().isEnabled();
-        final List<CacheKey> keys = cacheEnabled ? keyExtractor.candidateKeys(bidRequest) : List.of();
+        final List<CacheKey> keys = cacheEnabled ? keyExtractor.candidateKeys(bidRequest, properties.getPartnerId())
+                : List.of();
         if (keys.isEmpty()) {
             return fetch(properties, bidRequest)
                     .map(response -> new Resolution(
@@ -156,6 +163,41 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         // HIT/NEGATIVE/IN_PROGRESS, and the request's primary (highest-priority) candidate type for a
         // full MISS, where no key matched.
         final String primaryType = keyTypeToken(keys.getFirst().type());
+        // Claim the user's keys before the cache lookup, so a concurrent request on this instance shares this
+        // lookup (and the API call, if any) instead of racing it.
+        final Promise<Resolution> owned = Promise.promise();
+        final Future<Resolution> inFlight = claimOrJoin(keys, owned.future());
+        if (inFlight != null) {
+            metrics.inFlightJoined(dpi);
+            // The failure of the shared call is counted once, by the request that made it.
+            return inFlight.recover(ignored -> Future.succeededFuture(new Resolution(null, null, null)));
+        }
+
+        owned.future().onComplete(ignored -> keys.forEach(key -> inFlightByKey.remove(key.key(), owned.future())));
+        lookupAndResolve(properties, bidRequest, keys, dpi, primaryType).onComplete(owned);
+        return owned.future();
+    }
+
+    // Returns the resolution another request already claimed for one of these keys, or null after claiming
+    // all of them for the given resolution.
+    private Future<Resolution> claimOrJoin(List<CacheKey> keys, Future<Resolution> resolution) {
+        for (int i = 0; i < keys.size(); i++) {
+            final Future<Resolution> existing = inFlightByKey.putIfAbsent(keys.get(i).key(), resolution);
+            if (existing != null) {
+                for (int j = 0; j < i; j++) {
+                    inFlightByKey.remove(keys.get(j).key(), resolution);
+                }
+                return existing;
+            }
+        }
+        return null;
+    }
+
+    private Future<Resolution> lookupAndResolve(IntentiqIdentityProperties properties,
+                                                BidRequest bidRequest,
+                                                List<CacheKey> keys,
+                                                String dpi,
+                                                String primaryType) {
         return cache.get(keys).compose(result -> switch (result.state()) {
             case HIT -> {
                 metrics.cacheHit(layerToken(result.layer()), keyTypeToken(result.keyType()), dpi);
@@ -266,20 +308,12 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         return url.toString();
     }
 
-    // Under GDPR the IntentIQ API rejects a request without a TCF consent string, so do not send one.
-    private static boolean isGdprWithoutConsent(BidRequest bidRequest) {
-        final Regs regs = bidRequest.getRegs();
-        return regs != null
-                && "1".equals(resolveGdpr(regs))
-                && StringUtils.isBlank(resolveConsent(bidRequest.getUser()));
-    }
-
     private static void appendConsent(StringBuilder url, BidRequest bidRequest) {
         final Regs regs = bidRequest.getRegs();
         if (regs != null) {
-            appendIfPresent(url, IiqParam.GDPR, resolveGdpr(regs));
-            appendIfPresent(url, IiqParam.US_PRIVACY, resolveUsPrivacy(regs));
-            appendIfPresent(url, IiqParam.GPP, regs.getGpp());
+            appendIfPresent(url, IiqParam.GDPR, PrivacySignals.gdpr(bidRequest));
+            appendIfPresent(url, IiqParam.US_PRIVACY, PrivacySignals.usPrivacy(bidRequest));
+            appendIfPresent(url, IiqParam.GPP, PrivacySignals.gpp(bidRequest));
             // Forwarded ahead of backend support so the GPP section ids are available if the backend adds gpp_sid.
             appendIfPresent(url, IiqParam.GPP_SID, StringUtils.join(regs.getGppSid(), ','));
         }
@@ -287,31 +321,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
 
     private static MultiMap resolveHeaders(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers();
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, GDPR_CONSENT_HEADER, resolveConsent(bidRequest.getUser()));
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, GDPR_CONSENT_HEADER, PrivacySignals.consent(bidRequest));
         return headers;
-    }
-
-    private static String resolveGdpr(Regs regs) {
-        final Integer gdpr = regs.getGdpr() != null ? regs.getGdpr()
-                : regs.getExt() != null ? regs.getExt().getGdpr() : null;
-        return gdpr != null ? String.valueOf(gdpr) : null;
-    }
-
-    private static String resolveUsPrivacy(Regs regs) {
-        if (StringUtils.isNotBlank(regs.getUsPrivacy())) {
-            return regs.getUsPrivacy();
-        }
-        return regs.getExt() != null ? regs.getExt().getUsPrivacy() : null;
-    }
-
-    private static String resolveConsent(User user) {
-        if (user == null) {
-            return null;
-        }
-        if (StringUtils.isNotBlank(user.getConsent())) {
-            return user.getConsent();
-        }
-        return user.getExt() != null ? user.getExt().getConsent() : null;
     }
 
     private static void appendIfPresent(StringBuilder url, IiqParam param, String value) {

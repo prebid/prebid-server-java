@@ -4,7 +4,9 @@ import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -283,6 +285,51 @@ public class IntentiqIdentityAuctionResponseHookTest {
                 .getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("modules.module.intentiq-identity.custom.impression.reported_999")
                 .getCount()).isZero();
+    }
+
+    @Test
+    public void callShouldNotReportWhenGdprAppliesWithoutConsent() {
+        // given
+        givenRequest(BidRequest.builder()
+                .regs(Regs.builder().gdpr(1).build())
+                .device(Device.builder().ip("1.2.3.4").ua("UA").build())
+                .build());
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldReportWhenGdprAppliesWithConsent() {
+        // given
+        givenRequest(BidRequest.builder()
+                .regs(Regs.builder().gdpr(1).build())
+                .user(User.builder().consent("TCF").build())
+                .build());
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        verify(httpClient).get(any(), any(), anyLong());
+    }
+
+    @Test
+    public void callShouldNotReportWithoutPartnerId() {
+        // given
+        givenRequest(BidRequest.builder().build());
+
+        // when
+        target(REPORTS, "").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        verifyNoInteractions(httpClient);
     }
 
     @Test

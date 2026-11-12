@@ -24,10 +24,14 @@ import java.util.stream.Stream;
  * becomes one namespaced key; the resolved identity is aliased across all of them so a later request
  * carrying any of those ids hits the cache.
  *
- * <p>Priority (highest first): IIQ eid, shared id / pubcid, device MAID, any other eid source, then a
- * probabilistic device composite as last resort. Keys are lower-cased, de-duplicated (first occurrence
- * wins) and capped at {@code maxKeys}. {@code device.lmt == 1} suppresses the MAID key; CTV ifas are
- * upper-cased to match the resolution request's {@code idtype 8} handling.
+ * <p>Priority (highest first): IIQ eid, shared id / pubcid, device MAID, any other eid source. Only when
+ * the request carries none of these is a probabilistic device composite (ifa / normalized UA / IP) used, so a
+ * resolution is never shared between users through a common IP. Keys are de-duplicated (first occurrence
+ * wins) and capped at {@code maxKeys}. {@code device.lmt == 1} and an all-zero ifa suppress the ifa; CTV
+ * ifas are upper-cased to match the resolution request's {@code idtype 8} handling.
+ *
+ * <p>Every key is scoped by the partner id and the request's privacy-signal fingerprint, so one partner's
+ * resolution is never served to another, and a user whose consent or opt-out changed is resolved again.
  */
 public class FirstPartyKeyExtractor {
 
@@ -40,7 +44,7 @@ public class FirstPartyKeyExtractor {
         this.maxKeys = maxKeys;
     }
 
-    public List<CacheKey> candidateKeys(BidRequest bidRequest) {
+    public List<CacheKey> candidateKeys(BidRequest bidRequest, String partnerId) {
         final List<CacheKey> keys = new ArrayList<>();
         final User user = bidRequest.getUser();
         final List<Eid> eids = user != null ? user.getEids() : null;
@@ -50,9 +54,14 @@ public class FirstPartyKeyExtractor {
         addEidKeys(keys, eids, "pubcid", KeyType.FIRST_PARTY, SHARED_SOURCES::contains);
         addMaidKey(keys, device);
         addOtherEidKeys(keys, eids);
-        addDeviceComposite(keys, device);
+        if (keys.isEmpty()) {
+            addDeviceComposite(keys, device);
+        }
 
-        return dedupAndCap(keys);
+        final String scope = StringUtils.defaultString(partnerId) + ":" + PrivacySignals.fingerprint(bidRequest) + ":";
+        return dedupAndCap(keys).stream()
+                .map(key -> new CacheKey(scope + key.key(), key.type()))
+                .collect(Collectors.toList());
     }
 
     private static void addEidKeys(List<CacheKey> keys,
@@ -121,7 +130,9 @@ public class FirstPartyKeyExtractor {
         final String ip = StringUtils.isNotBlank(device.getIp()) ? device.getIp() : device.getIpv6();
         // Normalized UA fields (not the raw UA string) to avoid fragmenting the cache per request.
         final String ua = DeviceUserAgent.normalize(device.getUa());
-        final String ifa = isZeroIfa(device.getIfa()) ? null : device.getIfa();
+        final String ifa = isZeroIfa(device.getIfa()) || Integer.valueOf(1).equals(device.getLmt())
+                ? null
+                : device.getIfa();
         final String composite = Stream.of(ifa, StringUtils.trimToNull(ua), ip)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.joining("_"));

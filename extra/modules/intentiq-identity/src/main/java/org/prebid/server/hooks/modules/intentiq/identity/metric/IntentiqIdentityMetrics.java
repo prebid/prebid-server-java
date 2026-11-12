@@ -51,6 +51,11 @@ public class IntentiqIdentityMetrics {
         inc("cache." + layer + ".in_progress." + keyType, dpi);
     }
 
+    /** A request joined a resolution call already in flight on this instance for the same user. */
+    public void inFlightJoined(String dpi) {
+        inc("cache.in_flight.joined", dpi);
+    }
+
     public void apiSuccess(String dpi) {
         inc("api.success", dpi);
     }

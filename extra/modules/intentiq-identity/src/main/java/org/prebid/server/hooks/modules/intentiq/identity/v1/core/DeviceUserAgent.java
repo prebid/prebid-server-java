@@ -1,6 +1,8 @@
 package org.prebid.server.hooks.modules.intentiq.identity.v1.core;
 
 import org.apache.commons.lang3.StringUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import ua_parser.Client;
 import ua_parser.Parser;
 
@@ -22,6 +24,10 @@ import java.util.stream.Stream;
 public final class DeviceUserAgent {
 
     private static final Parser UA_PARSER = new Parser();
+    // Parsing runs hundreds of regexes; real traffic repeats a small set of UA strings.
+    private static final Cache<String, String> NORMALIZED_BY_UA = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .build();
     private static final String UNKNOWN = "Other";
 
     private DeviceUserAgent() {
@@ -36,6 +42,10 @@ public final class DeviceUserAgent {
             return StringUtils.EMPTY;
         }
 
+        return NORMALIZED_BY_UA.get(ua, DeviceUserAgent::parse);
+    }
+
+    private static String parse(String ua) {
         final Client client = UA_PARSER.parse(ua);
         final String os = client.os != null ? token(client.os.family, client.os.major) : null;
         final String browser = client.userAgent != null

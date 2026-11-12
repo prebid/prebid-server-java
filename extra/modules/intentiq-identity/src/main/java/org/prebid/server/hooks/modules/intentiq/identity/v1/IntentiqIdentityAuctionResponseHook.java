@@ -18,6 +18,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityM
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PrivacySignals;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -92,6 +93,12 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
         }
 
         final BidRequest bidRequest = bidRequest(invocationContext);
+        // Same gates as the resolution call: the report carries the user's IP and UA.
+        if (StringUtils.isBlank(properties.getPartnerId())
+                || (bidRequest != null && PrivacySignals.isGdprWithoutConsent(bidRequest))) {
+            return Future.succeededFuture(noAction());
+        }
+
         final String abTestUuid = context != null ? context.abTestUuid() : null;
         final Long terminationCause = context != null ? context.terminationCause() : null;
         final String currency = bidResponse.getCur() != null ? bidResponse.getCur() : DEFAULT_CURRENCY;

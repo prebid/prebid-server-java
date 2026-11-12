@@ -77,7 +77,9 @@ outlives the group timeout is dropped and the auction proceeds without enrichmen
 
 Host-level config (above) provides defaults. Account-specific values can be set under the account's
 `hooks.modules.intentiq-identity` config and are merged over the host defaults per request — so
-`partner-id`, `timeout`, and `cache.*` can be tuned per account.
+`partner-id`, `timeout`, `reports-timeout` and `cache.enabled` can be set per account. The cache itself
+(and every other `cache.*` setting) is built once from the host config: an account can switch caching off
+with `cache.enabled: false`, but caching on an account needs it enabled on the host.
 
 ## Module Configuration Parameters
 
@@ -88,14 +90,14 @@ Host-level config (above) provides defaults. Account-specific values can be set 
 | partner-id        | account | yes      | string  | none     | Partner token from IntentIQ, sent as the `dpi` query parameter       |
 | timeout           | account | no       | long    | 1000     | HTTP timeout (ms) for the identity-resolution call                   |
 | reports-timeout   | account | no       | long    | 1000     | HTTP timeout (ms) for the fire-and-forget impression report          |
-| cache.enabled     | account | no       | boolean | false    | Use the Caffeine + Redis cache (host must configure `redis.*`)       |
-| cache.ttlseconds  | account | no       | int     | 43200    | Fallback TTL (seconds) when the response omits `cttl` (12h)          |
-| cache.max-keys    | account | no       | int     | 10       | Max alias keys derived per request (caps eid-stuffed requests)       |
-| cache.ttl-ceiling-first-party-seconds | account | no | int | 86400 | Upper bound on TTL for first-party id keys (pubcid, MAID, other eids) |
-| cache.ttl-ceiling-third-party-seconds | account | no | int | 43200 | Upper bound on TTL for third-party id keys (`intentiq.com`)          |
-| cache.ttl-ceiling-device-seconds       | account | no | int | 3600  | Upper bound on TTL for the probabilistic device-composite key        |
-| cache.negative-ttl-seconds             | account | no | int | 120   | TTL for the negative (unresolvable id) sentinel                      |
-| cache.in-progress-ttl-seconds          | account | no | int | 30    | TTL for the IN_PROGRESS marker that dedups concurrent resolution calls; a failed call removes it at once |
+| cache.enabled     | both    | no       | boolean | false    | Use the Caffeine + Redis cache (must be on at host level, with `redis.*`); an account can turn it off |
+| cache.ttlseconds  | host    | no       | int     | 43200    | Fallback TTL (seconds) when the response omits `cttl` (12h)          |
+| cache.max-keys    | host    | no       | int     | 10       | Max alias keys derived per request (caps eid-stuffed requests)       |
+| cache.ttl-ceiling-first-party-seconds | host    | no | int | 86400 | Upper bound on TTL for first-party id keys (pubcid, MAID, other eids) |
+| cache.ttl-ceiling-third-party-seconds | host    | no | int | 43200 | Upper bound on TTL for third-party id keys (`intentiq.com`)          |
+| cache.ttl-ceiling-device-seconds       | host    | no | int | 3600  | Upper bound on TTL for the probabilistic device-composite key        |
+| cache.negative-ttl-seconds             | host    | no | int | 120   | TTL for the negative (unresolvable id) sentinel                      |
+| cache.in-progress-ttl-seconds          | host    | no | int | 30    | TTL for the IN_PROGRESS marker that dedups concurrent resolution calls; a failed call removes it at once |
 | cache.l2-timeout-ms                    | host    | no | long | 30   | Max wait (ms) for an L2 read; a slower or hung store counts as a miss |
 | cache-max-size    | host    | no       | long    | 100000   | Max entries in the local (Caffeine) layer                            |
 | metrics-enabled   | host    | no       | boolean | true     | Record the module's `custom.*` metrics; set `false` to opt out       |
@@ -129,8 +131,12 @@ through to a live API call. A partner can use a non-Redis backend by supplying t
 **Multi-key (alias) caching.** Every relevant first-party id on the request becomes a namespaced
 alias key, ordered by priority: `iiq:<id>` (`intentiq.com`), `pubcid:<id>` (`pubcid.org` /
 `sharedid.org`), `maid:<ifa>` (`device.ifa`; upper-cased for CTV, skipped when `device.lmt = 1`),
-`<source>:<id>` for any other eid (e.g. `uidapi.com`), and a probabilistic `dev:<ifa_ua_ip>` composite
-as last resort. Keys are de-duplicated and capped at `cache.max-keys`. On a lookup the
+`<source>:<id>` for any other eid (e.g. `uidapi.com`). Only when the request carries none of these is a
+probabilistic `dev:<ifa_ua_ip>` composite used (normalized UA; the ifa is left out under `lmt = 1`), so
+users who share an IP are never given each other's identity. Every key is scoped by the partner id and a
+digest of the request's privacy signals (`regs.gdpr`, consent, `us_privacy`, `gpp`): one partner's
+resolution is never served to another, and a user whose consent or opt-out changed is resolved again.
+Keys are de-duplicated and capped at `cache.max-keys`. On a lookup the
 highest-priority key with a live entry wins, and that entry is **back-filled** under every other key
 that missed — so the alias graph grows over time and a later request carrying any of those ids hits.
 Differing resolutions are never merged (only the single winning entry propagates).
@@ -147,7 +153,8 @@ first-party ceiling), falling back to `cache.negative-ttl-seconds` when `cttl` i
 
 **In-progress dedup.** On a full miss, before the live call an `IN_PROGRESS` marker
 (`cache.in-progress-ttl-seconds`) is written under all candidate keys. A concurrent request for the
-same id reads the marker and skips firing a duplicate call (it proceeds without enrichment); the
+same id on the same PBS instance waits for the in-flight call and uses its result (eids and A/B
+attribution); one on another instance reads the marker from Redis and proceeds without enrichment. The
 in-flight call populates the cache for subsequent requests. The marker is overwritten by the resolved
 (or negative) entry when the call completes, removed when the call fails (so the next request
 retries), or expires if the call never completes. A resolved entry is always
@@ -164,7 +171,8 @@ carries `bidderCode` (seat), `cpm`, `currency`, `placementId` (imp id), `bidding
 one returned by the resolution response — the resolution hook stashes it in the module context and
 this hook reads it. On a cache hit it is the `abTestUuid` (and `terminationCause`) of the response
 that filled the cache entry. With
-`reports-endpoint` blank the hook is a no-op. The bid response is never modified.
+`reports-endpoint` blank the hook is a no-op. Nothing is reported when the account has no `partner-id`,
+or when GDPR applies without a consent string (the report carries the user's IP and UA). The bid response is never modified.
 
 ### Metrics
 
@@ -191,6 +199,7 @@ modules.module.intentiq-identity.custom.cache.l1.negative.hit.<keytype>_<dpi> # 
 modules.module.intentiq-identity.custom.cache.l2.negative.hit.<keytype>_<dpi> # negative sentinel from L2; counted as miss, no API call
 modules.module.intentiq-identity.custom.cache.l1.in_progress.<keytype>_<dpi>  # in-flight marker from L1; duplicate API call skipped
 modules.module.intentiq-identity.custom.cache.l2.in_progress.<keytype>_<dpi>  # in-flight marker from L2; duplicate API call skipped
+modules.module.intentiq-identity.custom.cache.in_flight.joined_<dpi>          # request waited for the same user's call in flight on this instance
 modules.module.intentiq-identity.custom.cache.miss.<keytype>_<dpi>            # full miss (neither L1 nor L2) -> API called
 modules.module.intentiq-identity.custom.api.success_<dpi>                  # resolution API responded and parsed OK
 modules.module.intentiq-identity.custom.api.error_<dpi>                    # resolution API failed/timed out/non-2xx/unparseable
