@@ -5,7 +5,6 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -226,22 +225,6 @@ public class ResetDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidByMType() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
-                jacksonMapper.mapper().writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4))));
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").mtype(4)
-                        .price(BigDecimal.ONE).build(), BidType.xNative, "USD"));
-    }
-
-    @Test
     public void makeBidsShouldReturnAudioBidByMType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -306,22 +289,6 @@ public class ResetDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidFromImpWhenMTypeIsNull() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build())),
-                jacksonMapper.mapper().writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123")
-                        .price(BigDecimal.ONE).build(), BidType.xNative, "USD"));
-    }
-
-    @Test
     public void makeBidsShouldFilterOutZeroPriceBids() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -351,6 +318,22 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unsupported MType: 99");
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsNative() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                jacksonMapper.mapper().writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4))));
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Unsupported MType: 4");
     }
 
     @Test
