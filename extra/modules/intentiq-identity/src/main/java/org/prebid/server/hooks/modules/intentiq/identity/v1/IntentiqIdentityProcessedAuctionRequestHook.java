@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.intentiq.identity.v1;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -40,6 +41,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
@@ -49,11 +51,13 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -61,6 +65,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
 
     private static final Logger logger =
             LoggerFactory.getLogger(IntentiqIdentityProcessedAuctionRequestHook.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final double LOG_SAMPLING_RATE = 0.01;
 
     public static final String CODE = "intentiq-identity-processed-auction-request-hook";
 
@@ -106,8 +112,17 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
             metrics.skipNoEndpoint(dpi);
             return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
         }
+        if (StringUtils.isBlank(dpi)) {
+            metrics.skipNoPartner(dpi);
+            return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
+        }
+        final BidRequest bidRequest = auctionRequestPayload.bidRequest();
+        if (isGdprWithoutConsent(bidRequest)) {
+            metrics.skipNoConsent(dpi);
+            return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
+        }
 
-        return resolveEids(properties, auctionRequestPayload.bidRequest())
+        return resolveEids(properties, bidRequest)
                 .map(resolution -> {
                     final List<Eid> eids = resolution.eids();
                     final IntentiqIdentityModuleContext context = new IntentiqIdentityModuleContext(
@@ -120,7 +135,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                     return update(payload -> enrichUserEids(payload, eids), context);
                 })
                 .otherwise(throwable -> {
-                    logger.warn("IntentIQ identity resolution failed, proceeding without enrichment", throwable);
+                    conditionalLogger.warn("IntentIQ identity resolution failed, proceeding without enrichment: "
+                            + throwable.getMessage(), LOG_SAMPLING_RATE);
                     metrics.apiError(dpi);
                     return noAction(new IntentiqIdentityModuleContext(startNanos, null, null));
                 });
@@ -143,7 +159,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         return cache.get(keys).compose(result -> switch (result.state()) {
             case HIT -> {
                 metrics.cacheHit(layerToken(result.layer()), keyTypeToken(result.keyType()), dpi);
-                yield Future.succeededFuture(new Resolution(result.eids(), null, null));
+                yield Future.succeededFuture(
+                        new Resolution(result.eids(), result.abTestUuid(), result.terminationCause()));
             }
             case NEGATIVE -> {
                 // A negative sentinel is a cached miss (id is known-unresolvable): no identity to
@@ -152,7 +169,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                 final String type = keyTypeToken(result.keyType());
                 metrics.cacheMiss(type, dpi);
                 metrics.cacheNegativeHit(layerToken(result.layer()), type, dpi);
-                yield Future.succeededFuture(new Resolution(null, null, null));
+                yield Future.succeededFuture(
+                        new Resolution(null, result.abTestUuid(), result.terminationCause()));
             }
             case IN_PROGRESS -> {
                 // A resolution call for this id is already in flight; skip firing a duplicate and
@@ -181,15 +199,19 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
     private Future<Resolution> fetchAndCache(IntentiqIdentityProperties properties,
                                              BidRequest bidRequest,
                                              List<CacheKey> keys) {
-        return fetch(properties, bidRequest).map(response -> {
-            final List<Eid> eids = extractEids(response);
-            if (eids != null && !eids.isEmpty()) {
-                cache.put(keys, eids, response.getCttl() != null ? response.getCttl() : 0L);
-            } else {
-                cache.putNegative(keys, response.getCttl() != null ? response.getCttl() : 0L);
-            }
-            return new Resolution(eids, response.getAbTestUuid(), response.getTc());
-        });
+        return fetch(properties, bidRequest)
+                .map(response -> {
+                    final List<Eid> eids = extractEids(response);
+                    final long cttl = response.getCttl() != null ? response.getCttl() : 0L;
+                    if (eids != null && !eids.isEmpty()) {
+                        cache.put(keys, eids, response.getAbTestUuid(), response.getTc(), cttl);
+                    } else {
+                        cache.putNegative(keys, response.getAbTestUuid(), response.getTc(), cttl);
+                    }
+                    return new Resolution(eids, response.getAbTestUuid(), response.getTc());
+                })
+                // A failed call caches nothing: drop its in-progress marker so the next request retries.
+                .onFailure(ignored -> cache.clearInProgress(keys));
     }
 
     private Future<IiqResponse> fetch(IntentiqIdentityProperties properties, BidRequest bidRequest) {
@@ -197,9 +219,16 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         final long startNanos = System.nanoTime();
         return httpClient.get(resolveUrl(properties, bidRequest), resolveHeaders(bidRequest), timeout)
                 .map(response -> {
+                    final int status = response.getStatusCode();
+                    if (status < 200 || status >= 300) {
+                        throw new IllegalStateException("IntentIQ API answered HTTP " + status);
+                    }
                     final IiqResponse parsed = mapper.decodeValue(response.getBody(), IiqResponse.class);
+                    if (parsed == null) {
+                        throw new IllegalStateException("IntentIQ API answered an empty body");
+                    }
                     metrics.apiSuccess(properties.getPartnerId());
-                    if (parsed != null && parsed.getTc() != null) {
+                    if (parsed.getTc() != null) {
                         metrics.terminationCause(parsed.getTc(), properties.getPartnerId());
                     }
                     return parsed;
@@ -235,6 +264,14 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         appendConsent(url, bidRequest);
 
         return url.toString();
+    }
+
+    // Under GDPR the IntentIQ API rejects a request without a TCF consent string, so do not send one.
+    private static boolean isGdprWithoutConsent(BidRequest bidRequest) {
+        final Regs regs = bidRequest.getRegs();
+        return regs != null
+                && "1".equals(resolveGdpr(regs))
+                && StringUtils.isBlank(resolveConsent(bidRequest.getUser()));
     }
 
     private static void appendConsent(StringBuilder url, BidRequest bidRequest) {
@@ -354,7 +391,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
 
     private static void appendDeviceId(StringBuilder url, Device device) {
         final String ifa = device.getIfa();
-        if (StringUtils.isBlank(ifa) || Integer.valueOf(1).equals(device.getLmt())) {
+        if (StringUtils.isBlank(ifa) || Integer.valueOf(1).equals(device.getLmt())
+                || FirstPartyKeyExtractor.isZeroIfa(ifa)) {
             return;
         }
 
@@ -402,11 +440,23 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         final BidRequest bidRequest = payload.bidRequest();
         final User existingUser = bidRequest.getUser() != null ? bidRequest.getUser() : User.builder().build();
 
+        // An eid source the request already carries is kept as sent: OpenRTB allows one eid per source,
+        // so a resolved eid of the same source (e.g. the page's own intentiq.com id) is not added again.
         final List<Eid> mergedEids = new ArrayList<>();
+        final Set<String> sources = new HashSet<>();
         if (existingUser.getEids() != null) {
-            mergedEids.addAll(existingUser.getEids());
+            for (Eid eid : existingUser.getEids()) {
+                mergedEids.add(eid);
+                if (eid != null && eid.getSource() != null) {
+                    sources.add(eid.getSource());
+                }
+            }
         }
-        mergedEids.addAll(resolvedEids);
+        for (Eid eid : resolvedEids) {
+            if (eid != null && (eid.getSource() == null || sources.add(eid.getSource()))) {
+                mergedEids.add(eid);
+            }
+        }
 
         final User enrichedUser = existingUser.toBuilder().eids(mergedEids).build();
         return AuctionRequestPayloadImpl.of(bidRequest.toBuilder().user(enrichedUser).build());
@@ -447,6 +497,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
 
         Long cttl;
 
+        // The PBS mapper is snake_case; IntentIQ sends this field camelCase.
+        @JsonProperty("abTestUuid")
         String abTestUuid;
 
         Long tc;

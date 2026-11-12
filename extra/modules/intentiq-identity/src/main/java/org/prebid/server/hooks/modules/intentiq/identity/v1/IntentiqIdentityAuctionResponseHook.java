@@ -25,6 +25,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
@@ -38,13 +39,16 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Runs at the {@code auction-response} stage and reports each winning bid to the IntentIQ S2S
- * impression-reporting API (fire-and-forget GET to {@code reports-endpoint}). The {@code abTestUuid}
+ * Runs at the {@code auction-response} stage and reports the winning bid of each impression (the
+ * highest price across all seats) to the IntentIQ S2S impression-reporting API (fire-and-forget GET
+ * to {@code reports-endpoint}). The {@code abTestUuid}
  * produced by the resolution hook is read from the module context. The bid response is never modified.
  */
 public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook {
 
     private static final Logger logger = LoggerFactory.getLogger(IntentiqIdentityAuctionResponseHook.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final double LOG_SAMPLING_RATE = 0.01;
 
     public static final String CODE = "intentiq-identity-auction-response-hook";
 
@@ -92,13 +96,34 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
         final Long terminationCause = context != null ? context.terminationCause() : null;
         final String currency = bidResponse.getCur() != null ? bidResponse.getCur() : DEFAULT_CURRENCY;
 
-        for (final SeatBid seatBid : nullSafe(bidResponse.getSeatbid())) {
-            for (final Bid bid : nullSafe(seatBid.getBid())) {
-                report(properties, bidRequest, seatBid.getSeat(), bid, currency, abTestUuid, terminationCause);
-            }
+        for (final SeatBidRef winner : winningBids(bidResponse)) {
+            report(properties, bidRequest, winner.seat(), winner.bid(), currency, abTestUuid, terminationCause);
         }
 
         return Future.succeededFuture(noAction());
+    }
+
+    // The response holds every seat's bid for an impression, but only one of them can render: report the
+    // highest-priced bid per impid (first seen wins a tie), so impressions and revenue are not overcounted.
+    private static List<SeatBidRef> winningBids(BidResponse bidResponse) {
+        final Map<String, SeatBidRef> winnerByImp = new LinkedHashMap<>();
+        for (final SeatBid seatBid : nullSafe(bidResponse.getSeatbid())) {
+            for (final Bid bid : nullSafe(seatBid.getBid())) {
+                if (bid == null || bid.getPrice() == null) {
+                    continue;
+                }
+                winnerByImp.merge(StringUtils.defaultString(bid.getImpid()), new SeatBidRef(seatBid.getSeat(), bid),
+                        IntentiqIdentityAuctionResponseHook::higherPrice);
+            }
+        }
+        return List.copyOf(winnerByImp.values());
+    }
+
+    private static SeatBidRef higherPrice(SeatBidRef current, SeatBidRef candidate) {
+        return candidate.bid().getPrice().compareTo(current.bid().getPrice()) > 0 ? candidate : current;
+    }
+
+    private record SeatBidRef(String seat, Bid bid) {
     }
 
     private void report(IntentiqIdentityProperties properties,
@@ -133,12 +158,23 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
 
         final String dpi = properties.getPartnerId();
 
-        final long timeout = properties.getTimeout() != null ? properties.getTimeout() : DEFAULT_TIMEOUT_MS;
+        final long timeout = properties.getReportsTimeout() != null
+                ? properties.getReportsTimeout()
+                : DEFAULT_TIMEOUT_MS;
         httpClient.get(reportUrl(properties, rdata), HttpUtil.headers(), timeout)
-                .onSuccess(response -> metrics.impressionReported(dpi))
+                .onSuccess(response -> {
+                    if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                        metrics.impressionReported(dpi);
+                    } else {
+                        metrics.impressionError(dpi);
+                        conditionalLogger.warn("IntentIQ impression report answered HTTP "
+                                + response.getStatusCode(), LOG_SAMPLING_RATE);
+                    }
+                })
                 .onFailure(throwable -> {
                     metrics.impressionError(dpi);
-                    logger.warn("IntentIQ impression report failed", throwable);
+                    conditionalLogger.warn("IntentIQ impression report failed: " + throwable.getMessage(),
+                            LOG_SAMPLING_RATE);
                 });
     }
 

@@ -34,10 +34,17 @@ public class CacheProperties {
     private int negativeTtlSeconds = 120;
 
     /**
-     * TTL for the IN_PROGRESS marker written while a resolution call is in flight, after which the
-     * marker expires even if the call never completed. Defaults to 30 minutes to match the IntentIQ
-     * backend's in-progress window; lower it if you want a failed resolution to be retried sooner.
+     * TTL for the IN_PROGRESS marker written while a resolution call is in flight. A failed call
+     * removes its marker at once; this TTL only bounds a marker whose call never completed (e.g. the
+     * server stopped mid-call), so it needs to outlive the API timeout and little more.
      */
     @JsonProperty("in-progress-ttl-seconds")
-    private int inProgressTtlSeconds = 1800;
+    private int inProgressTtlSeconds = 30;
+
+    /**
+     * Upper bound on an L2 (shared store) read. A slower or hung store is treated as a miss and the
+     * request falls through to a live API call instead of waiting for the hook timeout.
+     */
+    @JsonProperty("l2-timeout-ms")
+    private long l2TimeoutMs = 30;
 }

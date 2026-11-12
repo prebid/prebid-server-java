@@ -74,8 +74,17 @@ public class FirstPartyKeyExtractor {
                 .forEach(id -> keys.add(new CacheKey(namespace + ":" + id, type)));
     }
 
+    /**
+     * An all-zero ifa (iOS without ATT consent, Android with the ad id deleted) is a placeholder, not a
+     * device id: every such device sends the same value, so it must never be sent or used as a key.
+     */
+    public static boolean isZeroIfa(String ifa) {
+        return ifa != null && !ifa.isEmpty() && ifa.chars().allMatch(c -> c == '0' || c == '-');
+    }
+
     private static void addMaidKey(List<CacheKey> keys, Device device) {
-        if (device == null || StringUtils.isBlank(device.getIfa()) || Integer.valueOf(1).equals(device.getLmt())) {
+        if (device == null || StringUtils.isBlank(device.getIfa()) || Integer.valueOf(1).equals(device.getLmt())
+                || isZeroIfa(device.getIfa())) {
             return;
         }
         final Integer deviceType = device.getDevicetype();
@@ -112,7 +121,8 @@ public class FirstPartyKeyExtractor {
         final String ip = StringUtils.isNotBlank(device.getIp()) ? device.getIp() : device.getIpv6();
         // Normalized UA fields (not the raw UA string) to avoid fragmenting the cache per request.
         final String ua = DeviceUserAgent.normalize(device.getUa());
-        final String composite = Stream.of(device.getIfa(), StringUtils.trimToNull(ua), ip)
+        final String ifa = isZeroIfa(device.getIfa()) ? null : device.getIfa();
+        final String composite = Stream.of(ifa, StringUtils.trimToNull(ua), ip)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.joining("_"));
         if (!composite.isEmpty()) {

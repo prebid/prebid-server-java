@@ -79,7 +79,8 @@ public class IntentiqIdentityConfig {
                 cache.getNegativeTtlSeconds() * 1000L,
                 cache.getInProgressTtlSeconds() * 1000L);
 
-        return new IdentityCache(properties.getCacheMaxSize(), ttlPolicy, identityStore, mapper, metrics);
+        return new IdentityCache(
+                properties.getCacheMaxSize(), ttlPolicy, identityStore, mapper, metrics, cache.getL2TimeoutMs());
     }
 
     /**
@@ -137,9 +138,18 @@ public class IntentiqIdentityConfig {
                     + ".redis.port is required when cache is enabled");
         }
 
-        final String credentials = StringUtils.isNotBlank(redis.getPassword()) ? ":" + redis.getPassword() + "@" : "";
+        // Credentials are set as options, not in the connection string, so a password with URL-reserved
+        // characters (@, :, /, %) is not mangled.
         final RedisOptions options = new RedisOptions()
-                .setConnectionString("redis://" + credentials + redis.getHost() + ":" + redis.getPort());
+                .setConnectionString((redis.isSsl() ? "rediss://" : "redis://") + redis.getHost() + ":" + redis.getPort())
+                .setMaxPoolSize(redis.getMaxPoolSize())
+                .setMaxPoolWaiting(redis.getMaxPoolWaiting());
+        if (StringUtils.isNotBlank(redis.getUsername())) {
+            options.setUser(redis.getUsername());
+        }
+        if (StringUtils.isNotBlank(redis.getPassword())) {
+            options.setPassword(redis.getPassword());
+        }
 
         return RedisAPI.api(Redis.createClient(vertx, options));
     }

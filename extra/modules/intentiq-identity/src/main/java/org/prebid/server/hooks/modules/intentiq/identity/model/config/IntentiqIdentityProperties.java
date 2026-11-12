@@ -19,6 +19,10 @@ public final class IntentiqIdentityProperties {
 
     Long timeout;
 
+    /** Timeout of the fire-and-forget impression report; it does not hold the auction. */
+    @JsonProperty("reports-timeout")
+    Long reportsTimeout;
+
     CacheProperties cache = new CacheProperties();
 
     RedisProperties redis;

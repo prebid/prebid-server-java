@@ -143,4 +143,21 @@ public class FirstPartyKeyExtractorTest {
     private static Eid eid(String source, String id) {
         return Eid.builder().source(source).uids(singletonList(Uid.builder().id(id).build())).build();
     }
+
+    @Test
+    public void candidateKeysShouldNotKeyOnAllZeroIfa() {
+        // given — every ATT-denied iOS device sends this value, often with lmt=0
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ifa("00000000-0000-0000-0000-000000000000").lmt(0)
+                        .ua("UA").ip("1.2.3.4").build())
+                .build();
+
+        // when
+        final List<CacheKey> keys = new FirstPartyKeyExtractor(10).candidateKeys(bidRequest);
+
+        // then
+        assertThat(keys).extracting(CacheKey::key)
+                .noneMatch(key -> key.startsWith("maid:"))
+                .noneMatch(key -> key.contains("00000000"));
+    }
 }

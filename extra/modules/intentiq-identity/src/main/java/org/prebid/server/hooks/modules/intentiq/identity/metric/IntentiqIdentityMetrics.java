@@ -73,6 +73,16 @@ public class IntentiqIdentityMetrics {
         inc("skip.no_endpoint", dpi);
     }
 
+    /** Resolution skipped because the account has no partner-id (dpi) configured. */
+    public void skipNoPartner(String dpi) {
+        inc("skip.no_partner", dpi);
+    }
+
+    /** Resolution skipped because GDPR applies (regs.gdpr=1) and the request carries no consent string. */
+    public void skipNoConsent(String dpi) {
+        inc("skip.no_consent", dpi);
+    }
+
     public void terminationCause(long tc, String dpi) {
         if (tc >= 0 && tc < 200) {
             inc("tc." + tc, dpi);

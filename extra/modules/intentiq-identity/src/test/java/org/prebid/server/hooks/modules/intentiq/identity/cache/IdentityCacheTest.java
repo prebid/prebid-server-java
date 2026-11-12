@@ -4,6 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Uid;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,14 +55,14 @@ public class IdentityCacheTest {
     @BeforeEach
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        target = new IdentityCache(100L, POLICY, store, MAPPER, new IntentiqIdentityMetrics(metricRegistry));
+        target = new IdentityCache(100L, POLICY, store, MAPPER, new IntentiqIdentityMetrics(metricRegistry), 30L);
     }
 
     @Test
     public void getShouldReturnFromLocalCacheWithoutQueryingStoreAfterPut() {
         // given
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
-        target.put(List.of(IIQ), eids, 1000L);
+        target.put(List.of(IIQ), eids, null, null, 1000L);
 
         // when
         final CacheResult result = target.get(List.of(IIQ)).result();
@@ -75,10 +77,10 @@ public class IdentityCacheTest {
     public void putShouldRefreshExpiryWhenSameKeyWrittenAgain() {
         // given
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
-        target.put(List.of(IIQ), eids, 1000L);
+        target.put(List.of(IIQ), eids, null, null, 1000L);
 
         // when — a second write to the same key updates the existing L1 entry (exercises expireAfterUpdate)
-        target.put(List.of(IIQ), eids, 5000L);
+        target.put(List.of(IIQ), eids, null, null, 5000L);
 
         // then
         final CacheResult result = target.get(List.of(IIQ)).result();
@@ -92,7 +94,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when — cttl below every ceiling is used verbatim
-        target.put(List.of(IIQ), eids, 1000L);
+        target.put(List.of(IIQ), eids, null, null, 1000L);
 
         // then
         verify(store).put(eq("iiq:uid-1"), any(), eq(1000L));
@@ -104,7 +106,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when — third-party ceiling (12h) equals default, so default applies
-        target.put(List.of(IIQ), eids, 0L);
+        target.put(List.of(IIQ), eids, null, null, 0L);
 
         // then
         verify(store).put(eq("iiq:uid-1"), any(), eq(43_200_000L));
@@ -116,7 +118,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when — huge cttl on a device key is capped at the 1h device ceiling
-        target.put(List.of(DEV), eids, 999_999_999L);
+        target.put(List.of(DEV), eids, null, null, 999_999_999L);
 
         // then
         verify(store).put(eq("dev:ifa_ua_ip"), any(), eq(3_600_000L));
@@ -128,7 +130,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when
-        target.put(List.of(IIQ, PUBCID), eids, 1000L);
+        target.put(List.of(IIQ, PUBCID), eids, null, null, 1000L);
 
         // then
         verify(store).put(eq("iiq:uid-1"), any(), eq(1000L));
@@ -233,7 +235,7 @@ public class IdentityCacheTest {
     public void getShouldBackfillFromLocalHitUnderOtherKeys() {
         // given — IIQ already in local cache, PUBCID not present anywhere
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
-        target.put(List.of(IIQ), eids, 60_000L);
+        target.put(List.of(IIQ), eids, null, null, 60_000L);
 
         // when — lookup with both keys hits IIQ in L1 and back-fills PUBCID
         final CacheResult result = target.get(List.of(IIQ, PUBCID)).result();
@@ -247,7 +249,7 @@ public class IdentityCacheTest {
     public void putNegativeShouldYieldNegativeResultWithoutQueryingStore() {
         // given
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
-        target.putNegative(List.of(IIQ), 0L);
+        target.putNegative(List.of(IIQ), null, null, 0L);
 
         // when
         final CacheResult result = target.get(List.of(IIQ)).result();
@@ -263,7 +265,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when
-        target.putNegative(List.of(IIQ, PUBCID), 0L);
+        target.putNegative(List.of(IIQ, PUBCID), null, null, 0L);
 
         // then
         verify(store).put(eq("iiq:uid-1"), any(), eq(120_000L));
@@ -276,7 +278,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when
-        target.putNegative(List.of(IIQ), 600_000L);
+        target.putNegative(List.of(IIQ), null, null, 600_000L);
 
         // then
         verify(store).put(eq("iiq:uid-1"), any(), eq(600_000L));
@@ -288,7 +290,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when — an absurd cttl is bounded by the first-party ceiling (24h)
-        target.putNegative(List.of(IIQ), 999_999_999_999L);
+        target.putNegative(List.of(IIQ), null, null, 999_999_999_999L);
 
         // then
         verify(store).put(eq("iiq:uid-1"), any(), eq(86_400_000L));
@@ -313,7 +315,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.failedFuture(new RuntimeException("down")));
 
         // when
-        target.put(List.of(IIQ), eids, 1000L);
+        target.put(List.of(IIQ), eids, null, null, 1000L);
 
         // then — local layer still serves the value without touching the store
         assertThat(target.get(List.of(IIQ)).result().eids()).isEqualTo(eids);
@@ -397,7 +399,7 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.failedFuture(new RuntimeException("down")));
 
         // when
-        target.put(List.of(IIQ), eids, 1000L);
+        target.put(List.of(IIQ), eids, null, null, 1000L);
 
         // then
         assertThat(counter("l2.put.error")).isEqualTo(1);
@@ -410,11 +412,88 @@ public class IdentityCacheTest {
         when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
 
         // when
-        target.put(List.of(IIQ), eids, 60_000L);
+        target.put(List.of(IIQ), eids, null, null, 60_000L);
 
         // then — the L1 size gauge is registered and reflects the written entry
         assertThat(gauge("l1.size")).isEqualTo(1L);
         assertThat(metricRegistry.getGauges()).containsKey(metricName("l1.eviction"));
+    }
+
+    @Test
+    public void hitShouldCarryAbTestUuidAndTerminationCauseOfTheCachedResponse() {
+        // given
+        when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
+        target.put(List.of(IIQ), eids, "S2S_ab", 0L, 60_000L);
+
+        // when
+        final CacheResult result = target.get(List.of(IIQ)).result();
+
+        // then
+        assertThat(result.state()).isEqualTo(CacheResult.State.HIT);
+        assertThat(result.abTestUuid()).isEqualTo("S2S_ab");
+        assertThat(result.terminationCause()).isEqualTo(0L);
+    }
+
+    @Test
+    public void storeHitShouldCarryAbTestUuidAndTerminationCause() {
+        // given
+        lenient().when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
+        when(store.get("iiq:uid-1")).thenReturn(Future.succeededFuture(MAPPER.encodeToString(
+                IdentityCache.CacheEntry.of(List.of(), true, false, System.currentTimeMillis() + 60_000L,
+                        "S2S_neg", 41L))));
+
+        // when
+        final CacheResult result = target.get(List.of(IIQ)).result();
+
+        // then
+        assertThat(result.state()).isEqualTo(CacheResult.State.NEGATIVE);
+        assertThat(result.abTestUuid()).isEqualTo("S2S_neg");
+        assertThat(result.terminationCause()).isEqualTo(41L);
+    }
+
+    @Test
+    public void clearInProgressShouldDropMarkerFromBothLayers() {
+        // given
+        when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
+        when(store.delete(any())).thenReturn(Future.succeededFuture());
+        when(store.get(any())).thenReturn(Future.succeededFuture(null));
+        target.putInProgress(List.of(IIQ, PUBCID));
+
+        // when
+        target.clearInProgress(List.of(IIQ, PUBCID));
+
+        // then — the next lookup is a miss, so the request retries the API
+        assertThat(target.get(List.of(IIQ, PUBCID)).result().state()).isEqualTo(CacheResult.State.MISS);
+        verify(store).delete("iiq:uid-1");
+        verify(store).delete("pubcid:p1");
+    }
+
+    @Test
+    public void clearInProgressShouldKeepResolvedLocalEntry() {
+        // given — another request resolved the id meanwhile
+        when(store.put(any(), any(), anyLong())).thenReturn(Future.succeededFuture());
+        when(store.delete(any())).thenReturn(Future.succeededFuture());
+        target.put(List.of(IIQ), eids, null, null, 60_000L);
+
+        // when
+        target.clearInProgress(List.of(IIQ));
+
+        // then
+        assertThat(target.get(List.of(IIQ)).result().state()).isEqualTo(CacheResult.State.HIT);
+    }
+
+    @Test
+    public void getShouldTreatHungStoreAsMissAfterL2Timeout() throws Exception {
+        // given — the store never answers
+        when(store.get(any())).thenReturn(Promise.<String>promise().future());
+
+        // when
+        final CacheResult result = target.get(List.of(IIQ)).toCompletionStage().toCompletableFuture()
+                .get(2, TimeUnit.SECONDS);
+
+        // then
+        assertThat(result.state()).isEqualTo(CacheResult.State.MISS);
+        assertThat(counter("l2.get.error")).isEqualTo(1);
     }
 
     private long counter(String name) {
@@ -434,14 +513,14 @@ public class IdentityCacheTest {
     }
 
     private String positiveEntry(long exp) {
-        return MAPPER.encodeToString(IdentityCache.CacheEntry.of(eids, false, false, exp));
+        return MAPPER.encodeToString(IdentityCache.CacheEntry.of(eids, false, false, exp, null, null));
     }
 
     private String negativeEntry(long exp) {
-        return MAPPER.encodeToString(IdentityCache.CacheEntry.of(List.of(), true, false, exp));
+        return MAPPER.encodeToString(IdentityCache.CacheEntry.of(List.of(), true, false, exp, null, null));
     }
 
     private String inProgressEntry(long exp) {
-        return MAPPER.encodeToString(IdentityCache.CacheEntry.of(List.of(), false, true, exp));
+        return MAPPER.encodeToString(IdentityCache.CacheEntry.of(List.of(), false, true, exp, null, null));
     }
 }

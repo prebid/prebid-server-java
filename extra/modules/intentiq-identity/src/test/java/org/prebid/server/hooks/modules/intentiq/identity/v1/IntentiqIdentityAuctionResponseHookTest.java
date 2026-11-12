@@ -41,6 +41,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -216,6 +217,72 @@ public class IntentiqIdentityAuctionResponseHookTest {
 
         // then
         assertThat(rdataJson(urlCaptor.getValue())).doesNotContain("terminationCause");
+    }
+
+    @Test
+    public void callShouldReportOnlyHighestBidPerImpressionAcrossSeats() {
+        // given — two bidders bid on imp "a", one on imp "b"
+        givenRequest(BidRequest.builder().build());
+        final BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(List.of(
+                        SeatBid.builder().seat("low").bid(List.of(
+                                Bid.builder().impid("a").price(BigDecimal.ONE).build(),
+                                Bid.builder().impid("b").price(BigDecimal.valueOf(3)).build())).build(),
+                        SeatBid.builder().seat("high").bid(List.of(
+                                Bid.builder().impid("a").price(BigDecimal.TEN).build())).build()))
+                .build();
+
+        // when
+        target(REPORTS, "999").call(payload(bidResponse), invocationContext);
+
+        // then — one report per impression: imp a by the higher bidder, imp b by its only bidder
+        verify(httpClient, times(2)).get(any(), any(), anyLong());
+        assertThat(urlCaptor.getAllValues()).extracting(IntentiqIdentityAuctionResponseHookTest::rdataJson)
+                .anySatisfy(rdata -> assertThat(rdata).contains("\"bidderCode\":\"high\"")
+                        .contains("\"placementId\":\"a\""))
+                .anySatisfy(rdata -> assertThat(rdata).contains("\"bidderCode\":\"low\"")
+                        .contains("\"placementId\":\"b\""))
+                .noneSatisfy(rdata -> assertThat(rdata).contains("\"bidderCode\":\"low\"")
+                        .contains("\"placementId\":\"a\""));
+    }
+
+    @Test
+    public void callShouldUseReportsTimeoutRatherThanEnrichmentTimeout() {
+        // given
+        givenRequest(BidRequest.builder().build());
+        final IntentiqIdentityProperties properties = new IntentiqIdentityProperties();
+        properties.setReportsEndpoint(REPORTS);
+        properties.setPartnerId("999");
+        properties.setTimeout(80L);
+        properties.setReportsTimeout(1500L);
+        final IntentiqIdentityAuctionResponseHook hook = new IntentiqIdentityAuctionResponseHook(
+                new ConfigResolver(MAPPER.mapper(), MERGER, properties), httpClient, MAPPER, metrics);
+
+        // when
+        hook.call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE).build())),
+                invocationContext);
+
+        // then
+        verify(httpClient).get(any(), any(), eq(1500L));
+    }
+
+    @Test
+    public void callShouldCountNon2xxReportAsError() {
+        // given
+        givenRequest(BidRequest.builder().build());
+        when(httpClient.get(any(), any(), anyLong()))
+                .thenReturn(Future.succeededFuture(HttpClientResponse.of(500, null, "")));
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        assertThat(metricRegistry.counter("modules.module.intentiq-identity.custom.impression.error_999")
+                .getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.intentiq-identity.custom.impression.reported_999")
+                .getCount()).isZero();
     }
 
     @Test

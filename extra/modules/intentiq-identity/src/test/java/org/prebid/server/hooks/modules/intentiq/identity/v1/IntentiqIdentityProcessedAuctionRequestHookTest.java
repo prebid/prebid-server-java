@@ -459,7 +459,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         target(API_ENDPOINT, "123", cache).call(payload, invocationContext).result();
 
         // then
-        verify(cache).putNegative(any(), eq(600_000L));
+        verify(cache).putNegative(any(), any(), any(), eq(600_000L));
     }
 
     @Test
@@ -512,7 +512,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
                 .build();
         when(cache.get(any()))
                 .thenReturn(Future.succeededFuture(
-                        CacheResult.hit(singletonList(cached), KeyType.FIRST_PARTY, CacheResult.Layer.L1)));
+                        CacheResult.hit(singletonList(cached), null, null, KeyType.FIRST_PARTY, CacheResult.Layer.L1)));
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
                 BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
 
@@ -541,7 +541,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
 
         // then
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        verify(cache).put(any(), any(), anyLong());
+        verify(cache).put(any(), any(), any(), any(), anyLong());
     }
 
     @Test
@@ -559,7 +559,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
 
         // then — EMPTY_BODY carries no cttl, so the negative entry uses the default suppression TTL
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-        verify(cache).putNegative(any(), eq(0L));
+        verify(cache).putNegative(any(), any(), any(), eq(0L));
     }
 
     @Test
@@ -567,7 +567,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         // given
         final IdentityCache cache = mock(IdentityCache.class);
         when(cache.get(any())).thenReturn(Future.succeededFuture(
-                CacheResult.negative(KeyType.FIRST_PARTY, CacheResult.Layer.L2)));
+                CacheResult.negative(null, null, KeyType.FIRST_PARTY, CacheResult.Layer.L2)));
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
                 BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
 
@@ -644,7 +644,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.hit(singletonList(Eid.builder()
                 .source("intentiq.com")
                 .uids(singletonList(Uid.builder().id("u").build()))
-                .build()), KeyType.FIRST_PARTY, CacheResult.Layer.L1)));
+                .build()), null, null, KeyType.FIRST_PARTY, CacheResult.Layer.L1)));
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
                 BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
 
@@ -723,6 +723,184 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
 
         // then
         assertThat(counter("cache.l1.in_progress.first_party")).isEqualTo(1);
+    }
+
+    @Test
+    public void callShouldNotSendAllZeroIfaAsPcid() {
+        // given
+        givenCapturedResponse();
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ifa("00000000-0000-0000-0000-000000000000").lmt(0).build())
+                .build();
+
+        // when
+        target(API_ENDPOINT, "123").call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue()).doesNotContain("pcid").doesNotContain("idtype");
+    }
+
+    @Test
+    public void callShouldCarryCachedAbTestUuidAndTerminationCauseOnCacheHit() {
+        // given
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.hit(singletonList(Eid.builder()
+                .source("intentiq.com")
+                .uids(singletonList(Uid.builder().id("u").build()))
+                .build()), "S2S_cached", 0L, KeyType.FIRST_PARTY, CacheResult.Layer.L2)));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target(API_ENDPOINT, "123", cache).call(payload, invocationContext).result();
+
+        // then — the impression report of a cache-served auction keeps the A/B group and tc
+        final IntentiqIdentityModuleContext context = (IntentiqIdentityModuleContext) result.moduleContext();
+        assertThat(context.abTestUuid()).isEqualTo("S2S_cached");
+        assertThat(context.terminationCause()).isEqualTo(0L);
+    }
+
+    @Test
+    public void callShouldCarryCachedAbTestUuidAndTerminationCauseOnNegativeHit() {
+        // given
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(
+                CacheResult.negative("S2S_neg", 41L, KeyType.FIRST_PARTY, CacheResult.Layer.L1)));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target(API_ENDPOINT, "123", cache).call(payload, invocationContext).result();
+
+        // then
+        final IntentiqIdentityModuleContext context = (IntentiqIdentityModuleContext) result.moduleContext();
+        assertThat(context.abTestUuid()).isEqualTo("S2S_neg");
+        assertThat(context.terminationCause()).isEqualTo(41L);
+    }
+
+    @Test
+    public void callShouldCacheAbTestUuidAndTerminationCauseOnMiss() {
+        // given
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.miss()));
+        givenResponse("{\"data\":{\"eids\":[{\"source\":\"intentiq.com\",\"uids\":[{\"id\":\"abc\"}]}]},"
+                + "\"abTestUuid\":\"S2S_fresh\",\"tc\":0,\"cttl\":5000}");
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        target(API_ENDPOINT, "123", cache).call(payload, invocationContext).result();
+
+        // then
+        verify(cache).put(any(), any(), eq("S2S_fresh"), eq(0L), eq(5000L));
+    }
+
+    @Test
+    public void callShouldTreatNon2xxAsApiErrorAndCacheNothing() {
+        // given — an overloaded API answering 503 with a JSON body
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.miss()));
+        when(httpClient.get(any(), any(), anyLong()))
+                .thenReturn(Future.succeededFuture(HttpClientResponse.of(503, null, EMPTY_BODY)));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target(API_ENDPOINT, "123", cache).call(payload, invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(counter("api.error")).isEqualTo(1);
+        assertThat(counter("api.success")).isZero();
+        verify(cache, never()).putNegative(any(), any(), any(), anyLong());
+        verify(cache, never()).put(any(), any(), any(), any(), anyLong());
+        verify(cache).clearInProgress(any());
+    }
+
+    @Test
+    public void callShouldClearInProgressMarkerWhenHttpCallFailsOnMiss() {
+        // given
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.miss()));
+        when(httpClient.get(any(), any(), anyLong()))
+                .thenReturn(Future.failedFuture(new RuntimeException("timeout")));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(
+                BidRequest.builder().device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        target(API_ENDPOINT, "123", cache).call(payload, invocationContext).result();
+
+        // then — the next request for this user retries instead of waiting out the marker
+        verify(cache).putInProgress(any());
+        verify(cache).clearInProgress(any());
+    }
+
+    @Test
+    public void callShouldSkipHttpWhenPartnerIdBlank() {
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, " ")
+                .call(AuctionRequestPayloadImpl.of(BidRequest.builder().build()), invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldSkipHttpWhenGdprAppliesWithoutConsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .regs(Regs.builder().gdpr(1).build())
+                .user(User.builder().build())
+                .build();
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(counter("skip.no_consent")).isEqualTo(1);
+        verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldCallApiWhenGdprDoesNotApplyWithoutConsent() {
+        // given
+        givenCapturedResponse();
+        final BidRequest bidRequest = BidRequest.builder().regs(Regs.builder().gdpr(0).build()).build();
+
+        // when
+        target(API_ENDPOINT, "123").call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue()).contains("&gdpr=0");
+    }
+
+    @Test
+    public void callShouldNotDuplicateEidSourceTheRequestAlreadyCarries() {
+        // given — the page already sends its own intentiq.com id
+        givenResponse("{\"data\":{\"eids\":[{\"source\":\"intentiq.com\",\"uids\":[{\"id\":\"resolved\"}]},"
+                + "{\"source\":\"liveramp.com\",\"uids\":[{\"id\":\"lr\"}]}]}}");
+        final Eid pageEid = Eid.builder()
+                .source("intentiq.com")
+                .uids(singletonList(Uid.builder().id("page-iiq").build()))
+                .build();
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder()
+                .user(User.builder().eids(singletonList(pageEid)).build())
+                .build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(payload, invocationContext).result();
+
+        // then — one eid per source: the page's intentiq.com id is kept, liveramp.com is added
+        final List<Eid> eids = applyUpdate(result, payload).getUser().getEids();
+        assertThat(eids).extracting(Eid::getSource).containsExactly("intentiq.com", "liveramp.com");
+        assertThat(eids.getFirst().getUids().getFirst().getId()).isEqualTo("page-iiq");
     }
 
     private void givenResponse(String body) {

@@ -12,7 +12,7 @@ See the [S2S integration docs](https://s2s.documents.intentiq.com/) for the full
 ### Execution Plan
 
 This module runs at two stages: `processed-auction-request` (enrich `user.eids`) and, optionally,
-`auction-response` (report winning bids as impressions to `reports-endpoint`). Enable the module and
+`auction-response` (report the winning bid of each impression to `reports-endpoint`). Enable the module and
 add the hook(s) to the execution plan:
 
 ```yaml
@@ -46,6 +46,7 @@ hooks:
       reports-endpoint: https://reports-s2s.intentiq.com/profiles_engine/ProfilesEngineServlet
       partner-id: "1234567890"
       timeout: 1000
+      reports-timeout: 1000
       cache-max-size: 100000
       cache:
         enabled: true
@@ -55,14 +56,22 @@ hooks:
         ttl-ceiling-third-party-seconds: 43200
         ttl-ceiling-device-seconds: 3600
         negative-ttl-seconds: 120
-        in-progress-ttl-seconds: 1800
+        in-progress-ttl-seconds: 30
+        l2-timeout-ms: 30
       redis:
         host: localhost
         port: 6379
+        max-pool-size: 32
+        max-pool-waiting: 1024
 ```
 
 Use the region-specific `api-endpoint`: US `be-api-s2s.intentiq.com`, EU `be-api-s2s-gdpr.intentiq.com`,
-APAC `be-api-s2s-apac.intentiq.com`. When `api-endpoint` is empty the hook is a no-op.
+APAC `be-api-s2s-apac.intentiq.com`, and the matching `reports-endpoint`: US `reports-s2s.intentiq.com`,
+EU `reports-s2s-gdpr.intentiq.com`. When `api-endpoint` is empty the hook is a no-op.
+
+The `processed-auction-request` group timeout bounds how long the auction waits for IntentIQ. Set it
+above the real round trip from the PBS host to the API (and `timeout` at or below it); a call that
+outlives the group timeout is dropped and the auction proceeds without enrichment.
 
 ### Account-level config
 
@@ -78,6 +87,7 @@ Host-level config (above) provides defaults. Account-specific values can be set 
 | reports-endpoint  | host    | no       | string  | none     | Impression-reporting `ProfilesEngineServlet` URL; blank disables it  |
 | partner-id        | account | yes      | string  | none     | Partner token from IntentIQ, sent as the `dpi` query parameter       |
 | timeout           | account | no       | long    | 1000     | HTTP timeout (ms) for the identity-resolution call                   |
+| reports-timeout   | account | no       | long    | 1000     | HTTP timeout (ms) for the fire-and-forget impression report          |
 | cache.enabled     | account | no       | boolean | false    | Use the Caffeine + Redis cache (host must configure `redis.*`)       |
 | cache.ttlseconds  | account | no       | int     | 43200    | Fallback TTL (seconds) when the response omits `cttl` (12h)          |
 | cache.max-keys    | account | no       | int     | 10       | Max alias keys derived per request (caps eid-stuffed requests)       |
@@ -85,18 +95,29 @@ Host-level config (above) provides defaults. Account-specific values can be set 
 | cache.ttl-ceiling-third-party-seconds | account | no | int | 43200 | Upper bound on TTL for third-party id keys (`intentiq.com`)          |
 | cache.ttl-ceiling-device-seconds       | account | no | int | 3600  | Upper bound on TTL for the probabilistic device-composite key        |
 | cache.negative-ttl-seconds             | account | no | int | 120   | TTL for the negative (unresolvable id) sentinel                      |
-| cache.in-progress-ttl-seconds          | account | no | int | 1800  | TTL for the IN_PROGRESS marker that dedups concurrent resolution calls (matches the backend's 30m window) |
+| cache.in-progress-ttl-seconds          | account | no | int | 30    | TTL for the IN_PROGRESS marker that dedups concurrent resolution calls; a failed call removes it at once |
+| cache.l2-timeout-ms                    | host    | no | long | 30   | Max wait (ms) for an L2 read; a slower or hung store counts as a miss |
 | cache-max-size    | host    | no       | long    | 100000   | Max entries in the local (Caffeine) layer                            |
 | metrics-enabled   | host    | no       | boolean | true     | Record the module's `custom.*` metrics; set `false` to opt out       |
 | redis.host        | host    | cond.    | string  | none     | Redis host (required when caching)                                   |
 | redis.port        | host    | cond.    | int     | none     | Redis port (required when caching)                                   |
-| redis.password    | host    | no       | string  | none     | Redis password                                                       |
+| redis.username    | host    | no       | string  | none     | Redis ACL user                                                       |
+| redis.password    | host    | no       | string  | none     | Redis password (any characters; not part of a URL)                   |
+| redis.ssl         | host    | no       | boolean | false    | Connect over TLS                                                     |
+| redis.max-pool-size    | host | no | int | 32   | Max pooled Redis connections                                         |
+| redis.max-pool-waiting | host | no | int | 1024 | Max commands queued for a free connection before failing fast        |
 
 The hook sends `at/mi/pt/dpn/srvrReq` constants plus `dpi` (= `partner-id`), and — when present on
 the request — `ip`, `ipv6`, `uas`, `ref` (site domain / app name), `iiquid` (an existing
 `intentiq.com` eid), and `pcid`+`idtype` from `device.ifa` (`idtype 4` for MAID/AAID, `idtype 8` for
 CTV with the id upper-cased; skipped when `device.lmt = 1`). The response `data.eids` are merged into
-`user.eids`; on any failure the hook takes no action and the auction proceeds unchanged.
+`user.eids`, except a source the request already carries (OpenRTB allows one eid per source, so the
+publisher's own eid is kept). On any failure, including a non-2xx answer, the hook takes no action and
+the auction proceeds unchanged.
+
+The call is skipped (no action) when the account has no `partner-id`, or when GDPR applies
+(`regs.gdpr = 1`) and the request carries no consent string (`user.consent`): IntentIQ rejects such a
+request. The consent string is sent in the `gdpr-consent` header.
 
 ### Caching
 
@@ -128,18 +149,21 @@ first-party ceiling), falling back to `cache.negative-ttl-seconds` when `cttl` i
 (`cache.in-progress-ttl-seconds`) is written under all candidate keys. A concurrent request for the
 same id reads the marker and skips firing a duplicate call (it proceeds without enrichment); the
 in-flight call populates the cache for subsequent requests. The marker is overwritten by the resolved
-(or negative) entry when the call completes, or expires if it never does. A resolved entry is always
+(or negative) entry when the call completes, removed when the call fails (so the next request
+retries), or expires if the call never completes. A resolved entry is always
 preferred over the marker on read.
 
 ### Impression reporting
 
 When `reports-endpoint` is set and the `auction-response` hook is in the execution plan, the module
-reports each winning `seatbid[].bid[]` to the IntentIQ impression API — a fire-and-forget GET to
+reports the winning bid of each impression (the highest-priced bid per `impid` across all seats) to
+the IntentIQ impression API — a fire-and-forget GET to
 `<reports-endpoint>?at=45&rtype=1&dpi=<partner-id>&rdata=<UTF-8 URL-encoded JSON>`. The `rdata`
 carries `bidderCode` (seat), `cpm`, `currency`, `placementId` (imp id), `biddingPlatformId=4`,
 `vrref` (site domain / app), `ip`, `ua`, `prebidAuctionId`, and `abTestUuid`. The `abTestUuid` is the
 one returned by the resolution response — the resolution hook stashes it in the module context and
-this hook reads it (omitted on a cache hit, since no fresh IIQ response was produced). With
+this hook reads it. On a cache hit it is the `abTestUuid` (and `terminationCause`) of the response
+that filled the cache entry. With
 `reports-endpoint` blank the hook is a no-op. The bid response is never modified.
 
 ### Metrics
@@ -169,15 +193,17 @@ modules.module.intentiq-identity.custom.cache.l1.in_progress.<keytype>_<dpi>  # 
 modules.module.intentiq-identity.custom.cache.l2.in_progress.<keytype>_<dpi>  # in-flight marker from L2; duplicate API call skipped
 modules.module.intentiq-identity.custom.cache.miss.<keytype>_<dpi>            # full miss (neither L1 nor L2) -> API called
 modules.module.intentiq-identity.custom.api.success_<dpi>                  # resolution API responded and parsed OK
-modules.module.intentiq-identity.custom.api.error_<dpi>                    # resolution API failed/timed out/unparseable
+modules.module.intentiq-identity.custom.api.error_<dpi>                    # resolution API failed/timed out/non-2xx/unparseable
 modules.module.intentiq-identity.custom.api.latency_<dpi>                  # resolution API call duration (timer; every call)
 modules.module.intentiq-identity.custom.flow.latency_<dpi>                 # whole-flow latency: enrich hook -> bid release (timer; per auction)
 modules.module.intentiq-identity.custom.enriched_<dpi>                     # eids added to user.eids (a match)
 modules.module.intentiq-identity.custom.eids.none_<dpi>                    # resolution produced no eids (pairs with enriched for match rate)
 modules.module.intentiq-identity.custom.skip.no_endpoint_<dpi>             # no api-endpoint configured; resolution skipped before any API call
+modules.module.intentiq-identity.custom.skip.no_partner                    # no partner-id configured; resolution skipped
+modules.module.intentiq-identity.custom.skip.no_consent_<dpi>              # regs.gdpr=1 without a consent string; resolution skipped
 modules.module.intentiq-identity.custom.tc.<id>_<dpi>                      # one counter per enumerated termination-cause id
 modules.module.intentiq-identity.custom.impression.reported_<dpi>          # winning bid reported to reports-endpoint (overall)
-modules.module.intentiq-identity.custom.impression.error_<dpi>             # impression report call failed
+modules.module.intentiq-identity.custom.impression.error_<dpi>             # impression report call failed or answered non-2xx
 ```
 
 Shared L1 (Caffeine) / L2 (Redis) health is process-wide, so these are emitted **globally — without

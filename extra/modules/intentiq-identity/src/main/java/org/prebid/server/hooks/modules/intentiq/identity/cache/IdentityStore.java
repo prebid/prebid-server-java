@@ -13,4 +13,6 @@ public interface IdentityStore {
     Future<String> get(String key);
 
     Future<Void> put(String key, String value, long ttlMs);
+
+    Future<Void> delete(String key);
 }

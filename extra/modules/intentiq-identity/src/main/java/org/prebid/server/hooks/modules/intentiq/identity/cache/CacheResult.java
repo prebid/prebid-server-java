@@ -15,7 +15,8 @@ import java.util.List;
  *   <li>{@link State#MISS} — nothing cached; fetch from the API.</li>
  * </ul>
  */
-public record CacheResult(State state, List<Eid> eids, KeyType keyType, Layer layer) {
+public record CacheResult(State state, List<Eid> eids, String abTestUuid, Long terminationCause,
+                          KeyType keyType, Layer layer) {
     public enum State {
         HIT,
         NEGATIVE,
@@ -31,18 +32,21 @@ public record CacheResult(State state, List<Eid> eids, KeyType keyType, Layer la
 
     // keyType is the type of the candidate key that produced the outcome (HIT/NEGATIVE/IN_PROGRESS);
     // both keyType and layer are null for MISS, where no key/layer matched.
-    private static final CacheResult MISS = new CacheResult(State.MISS, List.of(), null, null);
+    // abTestUuid / terminationCause are the values of the IntentIQ response that produced the cached
+    // entry, so the impression report of a cache-served auction still carries the A/B group and tc.
+    private static final CacheResult MISS = new CacheResult(State.MISS, List.of(), null, null, null, null);
 
-    public static CacheResult hit(List<Eid> eids, KeyType keyType, Layer layer) {
-        return new CacheResult(State.HIT, eids, keyType, layer);
+    public static CacheResult hit(List<Eid> eids, String abTestUuid, Long terminationCause,
+                                  KeyType keyType, Layer layer) {
+        return new CacheResult(State.HIT, eids, abTestUuid, terminationCause, keyType, layer);
     }
 
-    public static CacheResult negative(KeyType keyType, Layer layer) {
-        return new CacheResult(State.NEGATIVE, List.of(), keyType, layer);
+    public static CacheResult negative(String abTestUuid, Long terminationCause, KeyType keyType, Layer layer) {
+        return new CacheResult(State.NEGATIVE, List.of(), abTestUuid, terminationCause, keyType, layer);
     }
 
     public static CacheResult inProgress(KeyType keyType, Layer layer) {
-        return new CacheResult(State.IN_PROGRESS, List.of(), keyType, layer);
+        return new CacheResult(State.IN_PROGRESS, List.of(), null, null, keyType, layer);
     }
 
     public static CacheResult miss() {

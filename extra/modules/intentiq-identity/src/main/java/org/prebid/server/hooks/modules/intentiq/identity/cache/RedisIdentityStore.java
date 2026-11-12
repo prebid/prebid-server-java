@@ -27,6 +27,11 @@ public class RedisIdentityStore implements IdentityStore {
         return redis.set(List.of(key, value, "PX", Long.toString(ttlMs))).mapEmpty();
     }
 
+    @Override
+    public Future<Void> delete(String key) {
+        return redis.del(List.of(key)).mapEmpty();
+    }
+
     /** Current key count of the selected DB ({@code DBSIZE}). Instance-wide, not module-scoped. */
     public Future<Long> dbSize() {
         return redis.dbsize().map(response -> response != null ? response.toLong() : 0L);

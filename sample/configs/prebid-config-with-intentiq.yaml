@@ -43,6 +43,8 @@ gdpr:
       cache-dir: /var/tmp/vendor2
     v3:
       cache-dir: /var/tmp/vendor3
+    live:
+      startup-cache-dir: /var/tmp/vendor3
 admin-endpoints:
   logging-changelevel:
     enabled: true
@@ -97,9 +99,6 @@ hooks:
       cache:
         enabled: true
         ttlseconds: 43200
-        # dev: keep the in-progress marker short so a timed-out VR retries soon instead of
-        # poisoning the device key for 30 min (default 1800s) when the VPN is slow/flapping.
-        in-progress-ttl-seconds: 30
       redis:
         host: 127.0.0.1
         port: 6379

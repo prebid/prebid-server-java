@@ -12,12 +12,14 @@ import lombok.NoArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Dual-layer, multi-key (alias) cache for resolved eids: Caffeine (L1, in-process) backed by a
@@ -31,20 +33,24 @@ import java.util.Objects;
  * <p>Entries carry the IntentIQ {@code cttl} capped by a per-{@link KeyType} ceiling (see
  * {@link CacheTtlPolicy}). Unresolvable ids are cached as a short-lived negative sentinel so they do
  * not re-hit the upstream API. L2 failures are swallowed (fail-open) so the auction can fall through
- * to a live call. Differing resolutions are never merged — only the single winning entry propagates.
+ * to a live call, and every L2 read is bounded by {@code l2TimeoutMs} so a hung store cannot hold the
+ * auction. Differing resolutions are never merged — only the single winning entry propagates.
  */
 public class IdentityCache {
 
     private static final Logger logger = LoggerFactory.getLogger(IdentityCache.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final double LOG_SAMPLING_RATE = 0.01;
 
     private final Cache<String, CacheEntry> local;
     private final IdentityStore store;
     private final JacksonMapper mapper;
     private final CacheTtlPolicy ttlPolicy;
     private final IntentiqIdentityMetrics metrics;
+    private final long l2TimeoutMs;
 
     public IdentityCache(long maxSize, CacheTtlPolicy ttlPolicy, IdentityStore store, JacksonMapper mapper,
-                         IntentiqIdentityMetrics metrics) {
+                         IntentiqIdentityMetrics metrics, long l2TimeoutMs) {
         this.local = Caffeine.newBuilder()
                 .maximumSize(maxSize)
                 .expireAfter(new CacheEntryExpiry())
@@ -54,6 +60,7 @@ public class IdentityCache {
         this.store = Objects.requireNonNull(store);
         this.mapper = Objects.requireNonNull(mapper);
         this.metrics = Objects.requireNonNull(metrics);
+        this.l2TimeoutMs = l2TimeoutMs;
         // L1 capacity gauges: current size (vs cache-max-size) and cumulative evictions.
         metrics.registerL1Gauges(local::estimatedSize, () -> local.stats().evictionCount());
     }
@@ -111,17 +118,19 @@ public class IdentityCache {
         });
     }
 
-    public void put(List<CacheKey> keys, List<Eid> eids, long cttlMs) {
+    public void put(List<CacheKey> keys, List<Eid> eids, String abTestUuid, Long terminationCause, long cttlMs) {
         for (CacheKey key : keys) {
             final long ttl = ttlPolicy.effectiveTtlMs(key.type(), cttlMs);
-            writeBoth(key.key(), CacheEntry.of(eids, false, false, System.currentTimeMillis() + ttl), ttl);
+            writeBoth(key.key(), CacheEntry.of(eids, false, false, System.currentTimeMillis() + ttl,
+                    abTestUuid, terminationCause), ttl);
         }
     }
 
-    public void putNegative(List<CacheKey> keys, long cttlMs) {
+    public void putNegative(List<CacheKey> keys, String abTestUuid, Long terminationCause, long cttlMs) {
         final long ttl = ttlPolicy.negativeTtlMs(cttlMs);
         for (CacheKey key : keys) {
-            writeBoth(key.key(), CacheEntry.of(List.of(), true, false, System.currentTimeMillis() + ttl), ttl);
+            writeBoth(key.key(), CacheEntry.of(List.of(), true, false, System.currentTimeMillis() + ttl,
+                    abTestUuid, terminationCause), ttl);
         }
     }
 
@@ -134,7 +143,27 @@ public class IdentityCache {
     public void putInProgress(List<CacheKey> keys) {
         final long ttl = ttlPolicy.inProgressTtlMs();
         for (CacheKey key : keys) {
-            writeBoth(key.key(), CacheEntry.of(List.of(), false, true, System.currentTimeMillis() + ttl), ttl);
+            writeBoth(key.key(), CacheEntry.of(List.of(), false, true, System.currentTimeMillis() + ttl,
+                    null, null), ttl);
+        }
+    }
+
+    /**
+     * Remove the IN_PROGRESS markers of a resolution call that failed (timeout, transport error,
+     * non-2xx, unparsable body), so the next request for the same user retries instead of being
+     * skipped until the marker expires.
+     */
+    public void clearInProgress(List<CacheKey> keys) {
+        for (CacheKey key : keys) {
+            final CacheEntry entry = l1Get(key.key());
+            if (entry != null && entry.isInProgress()) {
+                local.invalidate(key.key());
+            }
+            store.delete(key.key()).onFailure(throwable -> {
+                metrics.l2PutError();
+                conditionalLogger.warn("IntentIQ identity cache L2 DELETE failed: " + throwable.getMessage(),
+                        LOG_SAMPLING_RATE);
+            });
         }
     }
 
@@ -155,7 +184,7 @@ public class IdentityCache {
             }
             final long ttl = Math.min(remaining, ttlPolicy.ceilingFor(key.type()));
             writeBoth(key.key(), CacheEntry.of(hit.getEids(), hit.isNegative(), hit.isInProgress(),
-                    System.currentTimeMillis() + ttl), ttl);
+                    System.currentTimeMillis() + ttl, hit.getAbTestUuid(), hit.getTc()), ttl);
         }
     }
 
@@ -166,7 +195,8 @@ public class IdentityCache {
                 .onComplete(ignored -> metrics.l2PutLatency(System.nanoTime() - startNanos))
                 .onFailure(throwable -> {
                     metrics.l2PutError();
-                    logger.warn("IntentIQ identity cache L2 PUT failed", throwable);
+                    conditionalLogger.warn("IntentIQ identity cache L2 PUT failed: " + throwable.getMessage(),
+                            LOG_SAMPLING_RATE);
                 });
     }
 
@@ -196,13 +226,15 @@ public class IdentityCache {
         for (CacheKey key : keys) {
             final long startNanos = System.nanoTime();
             futures.add(store.get(key.key())
+                    .timeout(l2TimeoutMs, TimeUnit.MILLISECONDS)
                     .onComplete(ignored -> metrics.l2GetLatency(System.nanoTime() - startNanos))
                     .map(this::decodeValid)
                     .otherwise(throwable -> {
                         // L2 read failed: we fall through to a live API call (fail open). Count it so the
                         // otherwise-swallowed failure is visible for alerting.
                         metrics.l2GetError();
-                        logger.warn("IntentIQ identity cache L2 GET failed", throwable);
+                        conditionalLogger.warn("IntentIQ identity cache L2 GET failed: " + throwable.getMessage(),
+                                LOG_SAMPLING_RATE);
                         return null;
                     }));
         }
@@ -225,8 +257,8 @@ public class IdentityCache {
             return CacheResult.inProgress(keyType, layer);
         }
         return entry.isNegative()
-                ? CacheResult.negative(keyType, layer)
-                : CacheResult.hit(entry.getEids(), keyType, layer);
+                ? CacheResult.negative(entry.getAbTestUuid(), entry.getTc(), keyType, layer)
+                : CacheResult.hit(entry.getEids(), entry.getAbTestUuid(), entry.getTc(), keyType, layer);
     }
 
     @Data
@@ -241,6 +273,10 @@ public class IdentityCache {
         boolean inProgress;
 
         long exp;
+
+        String abTestUuid;
+
+        Long tc;
     }
 
     private static class CacheEntryExpiry implements Expiry<String, CacheEntry> {
