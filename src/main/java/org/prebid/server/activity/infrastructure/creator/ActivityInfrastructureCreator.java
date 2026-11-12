@@ -83,8 +83,8 @@ public class ActivityInfrastructureCreator {
     }
 
     Map<Activity, ActivityController> parse(Account account, GppContext gppContext, ActivityInfrastructureDebug debug) {
-        final Optional<AccountPrivacyConfig> accountPrivacyConfig = Optional.ofNullable(account.getPrivacy())
-                .map(this::mergeWithHost);
+        final Optional<AccountPrivacyConfig> accountPrivacyConfig =
+                Optional.ofNullable(mergeWithHost(account.getPrivacy()));
 
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration = accountPrivacyConfig
                 .map(AccountPrivacyConfig::getActivities)
@@ -124,6 +124,9 @@ public class ActivityInfrastructureCreator {
     private AccountPrivacyConfig mergeWithHost(AccountPrivacyConfig accountPrivacyConfig) {
         if (hostConfig == null) {
             return accountPrivacyConfig;
+        }
+        if (accountPrivacyConfig == null) {
+            return AccountPrivacyConfig.builder().activities(hostConfig.getActivities()).build();
         }
 
         final Map<Activity, AccountActivityConfiguration> activities = new EnumMap<>(Activity.class);
