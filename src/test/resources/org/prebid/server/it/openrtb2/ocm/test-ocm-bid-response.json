@@ -1,0 +1,21 @@
+{
+  "id": "request_id",
+  "cur": "USD",
+  "seatbid": [
+    {
+      "seat": "ocm",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 1.85,
+          "adm": "<div id=\"ocm-creative\">banner</div>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "mtype": 1
+        }
+      ]
+    }
+  ]
+}
