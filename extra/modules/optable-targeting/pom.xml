@@ -12,4 +12,12 @@
 
     <name>optable-targeting</name>
     <description>Optable targeting module</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
