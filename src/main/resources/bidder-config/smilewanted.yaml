@@ -6,9 +6,13 @@ adapters:
       app-media-types:
         - banner
         - video
+        - audio
+        - native
       site-media-types:
         - banner
         - video
+        - audio
+        - native
       supported-vendors:
       vendor-id: 639
     usersync:
