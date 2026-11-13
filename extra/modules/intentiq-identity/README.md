@@ -101,11 +101,14 @@ with `cache.enabled: false`, but caching on an account needs it enabled on the h
 | cache.l2-timeout-ms                    | host    | no | long | 30   | Max wait (ms) for an L2 read; a slower or hung store counts as a miss |
 | cache-max-size    | host    | no       | long    | 100000   | Max entries in the local (Caffeine) layer                            |
 | metrics-enabled   | host    | no       | boolean | true     | Record the module's `custom.*` metrics; set `false` to opt out       |
-| redis.host        | host    | cond.    | string  | none     | Redis host (required when caching)                                   |
+| redis.host        | host    | cond.    | string  | none     | Redis or Valkey host (required when caching)                         |
 | redis.port        | host    | cond.    | int     | none     | Redis port (required when caching)                                   |
 | redis.username    | host    | no       | string  | none     | Redis ACL user                                                       |
 | redis.password    | host    | no       | string  | none     | Redis password (any characters; not part of a URL)                   |
 | redis.ssl         | host    | no       | boolean | false    | Connect over TLS                                                     |
+| redis.verify-hostname | host | no      | boolean | true     | With `ssl`: check that the server certificate matches `redis.host`   |
+| redis.ca-cert-path | host   | no       | string  | none     | With `ssl`: PEM file of a private CA that signed the server certificate (applies to Redis only) |
+| redis.cluster     | host    | no       | boolean | false    | Redis / Valkey cluster mode (e.g. ElastiCache Serverless or cluster mode enabled) |
 | redis.max-pool-size    | host | no | int | 32   | Max pooled Redis connections                                         |
 | redis.max-pool-waiting | host | no | int | 1024 | Max commands queued for a free connection before failing fast        |
 

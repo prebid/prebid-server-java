@@ -2,8 +2,11 @@ package org.prebid.server.hooks.modules.intentiq.identity.config;
 
 import com.codahale.metrics.MetricRegistry;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.NetClientOptions;
+import io.vertx.core.net.PemTrustOptions;
 import io.vertx.redis.client.Redis;
 import io.vertx.redis.client.RedisAPI;
+import io.vertx.redis.client.RedisClientType;
 import io.vertx.redis.client.RedisOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheTtlPolicy;
@@ -40,6 +43,8 @@ public class IntentiqIdentityConfig {
 
     // How often the L2 (Redis) size/eviction gauges are refreshed from DBSIZE / INFO.
     private static final long REDIS_STATS_POLL_MS = 30_000L;
+
+    private static final String HOSTNAME_VERIFICATION_HTTPS = "HTTPS";
 
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + IntentiqIdentityModule.CODE)
@@ -141,9 +146,19 @@ public class IntentiqIdentityConfig {
         // Credentials are set as options, not in the connection string, so a password with URL-reserved
         // characters (@, :, /, %) is not mangled.
         final RedisOptions options = new RedisOptions()
+                .setType(redis.isCluster() ? RedisClientType.CLUSTER : RedisClientType.STANDALONE)
                 .setConnectionString((redis.isSsl() ? "rediss://" : "redis://") + redis.getHost() + ":" + redis.getPort())
                 .setMaxPoolSize(redis.getMaxPoolSize())
                 .setMaxPoolWaiting(redis.getMaxPoolWaiting());
+        if (redis.isSsl()) {
+            // Vert.x refuses a TLS connection unless a hostname verification algorithm is set; an empty one
+            // turns the check off.
+            final NetClientOptions netClientOptions = options.getNetClientOptions()
+                    .setHostnameVerificationAlgorithm(redis.isVerifyHostname() ? HOSTNAME_VERIFICATION_HTTPS : "");
+            if (StringUtils.isNotBlank(redis.getCaCertPath())) {
+                netClientOptions.setTrustOptions(new PemTrustOptions().addCertPath(redis.getCaCertPath()));
+            }
+        }
         if (StringUtils.isNotBlank(redis.getUsername())) {
             options.setUser(redis.getUsername());
         }

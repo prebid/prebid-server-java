@@ -150,6 +150,28 @@ public class IntentiqIdentityConfigTest {
     }
 
     @Test
+    public void identityStoreBeanShouldBeBuiltWhenRedisTlsClusterConfigured() {
+        // given — a real Vertx is required because the Redis client casts it to VertxInternal
+        final Vertx realVertx = Vertx.vertx();
+        final RedisProperties redis = new RedisProperties();
+        redis.setHost("clustercfg.redis.internal");
+        redis.setPort(6379);
+        redis.setSsl(true);
+        redis.setVerifyHostname(false);
+        redis.setCaCertPath("/etc/ssl/redis-ca.pem");
+        redis.setCluster(true);
+        final IntentiqIdentityProperties properties = new IntentiqIdentityProperties();
+        properties.setRedis(redis);
+
+        try {
+            // when and then
+            assertThat(target.intentiqIdentityStore(properties, realVertx)).isNotNull();
+        } finally {
+            realVertx.close();
+        }
+    }
+
+    @Test
     public void identityStoreAndCacheBeansShouldBeBuiltWhenRedisConfigured() {
         // given — a real Vertx is required because the Redis client casts it to VertxInternal
         final Vertx realVertx = Vertx.vertx();
