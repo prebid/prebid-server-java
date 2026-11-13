@@ -15,9 +15,11 @@ public class ExtDevice extends FlexibleExtension {
 
     Integer atts;
 
+    String ifaType;
+
     ExtDevicePrebid prebid;
 
     public static ExtDevice empty() {
-        return of(null, null);
+        return of(null, null, null);
     }
 }
