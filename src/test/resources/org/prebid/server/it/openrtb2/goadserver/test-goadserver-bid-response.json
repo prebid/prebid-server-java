@@ -1,0 +1,31 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "seat": "goadserver",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adid": "adid",
+          "crid": "crid",
+          "cid": "cid",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "3.33",
+                "hb_bidder": "goadserver"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}
