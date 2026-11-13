@@ -1,6 +1,8 @@
 package org.prebid.server.activity.infrastructure.creator;
 
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityController;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -18,12 +20,14 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.GdprConfig;
+import org.prebid.server.settings.model.HostActivityInfrastructureConfiguration;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeEid;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
+import org.prebid.server.util.ListUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,16 +52,19 @@ public class ActivityInfrastructureCreator {
     private static final int MODULE_MAX_SKIP_RATE = 100;
 
     private final ActivityRuleFactory activityRuleFactory;
+    private final HostActivityInfrastructureConfiguration hostConfig;
     private final Purpose defaultPurpose4;
     private final Metrics metrics;
     private final JacksonMapper jacksonMapper;
 
     public ActivityInfrastructureCreator(ActivityRuleFactory activityRuleFactory,
+                                         HostActivityInfrastructureConfiguration hostConfig,
                                          GdprConfig gdprConfig,
                                          Metrics metrics,
                                          JacksonMapper jacksonMapper) {
 
         this.activityRuleFactory = Objects.requireNonNull(activityRuleFactory);
+        this.hostConfig = hostConfig;
         this.defaultPurpose4 = Optional.ofNullable(gdprConfig)
                 .map(GdprConfig::getPurposes)
                 .map(Purposes::getP4)
@@ -76,7 +83,8 @@ public class ActivityInfrastructureCreator {
     }
 
     Map<Activity, ActivityController> parse(Account account, GppContext gppContext, ActivityInfrastructureDebug debug) {
-        final Optional<AccountPrivacyConfig> accountPrivacyConfig = Optional.ofNullable(account.getPrivacy());
+        final Optional<AccountPrivacyConfig> accountPrivacyConfig =
+                Optional.ofNullable(mergeWithHost(account.getPrivacy()));
 
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration = accountPrivacyConfig
                 .map(AccountPrivacyConfig::getActivities)
@@ -109,8 +117,42 @@ public class ActivityInfrastructureCreator {
                                 skipPrivacyModules,
                                 gppContext,
                                 debug)),
-                (oldValue, newValue) -> oldValue,
+                (oldValue, _) -> oldValue,
                 enumMapFactory()));
+    }
+
+    private AccountPrivacyConfig mergeWithHost(AccountPrivacyConfig accountPrivacyConfig) {
+        if (hostConfig == null) {
+            return accountPrivacyConfig;
+        }
+        if (accountPrivacyConfig == null) {
+            return AccountPrivacyConfig.builder().activities(hostConfig.getActivities()).build();
+        }
+
+        final Map<Activity, AccountActivityConfiguration> activities = new EnumMap<>(Activity.class);
+        for (Activity activity : Activity.values()) {
+            final AccountActivityConfiguration merged = mergeWithHost(
+                    MapUtils.emptyIfNull(accountPrivacyConfig.getActivities()).get(activity),
+                    MapUtils.emptyIfNull(hostConfig.getActivities()).get(activity));
+
+            if (merged != null) {
+                activities.put(activity, merged);
+            }
+        }
+
+        return accountPrivacyConfig.toBuilder().activities(activities).build();
+    }
+
+    private static AccountActivityConfiguration mergeWithHost(AccountActivityConfiguration account,
+                                                              AccountActivityConfiguration host) {
+
+        return account == null || host == null
+                ? ObjectUtils.getIfNull(account, host)
+                : AccountActivityConfiguration.of(
+                ObjectUtils.getIfNull(account.getAllow(), host.getAllow()),
+                ListUtil.union(
+                        ListUtils.emptyIfNull(account.getRules()),
+                        ListUtils.emptyIfNull(host.getRules())));
     }
 
     private BinaryOperator<AccountPrivacyModuleConfig> takeFirstAndLogDuplicates(String accountId) {
