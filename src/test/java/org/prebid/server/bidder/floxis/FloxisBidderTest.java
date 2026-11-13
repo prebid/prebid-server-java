@@ -12,7 +12,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -20,10 +24,14 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.floxis.ExtImpFloxis;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -33,17 +41,29 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class FloxisBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{Host}.floxis.tech/pbs?seat={SeatId}";
 
-    private final FloxisBidder target = new FloxisBidder(ENDPOINT_URL, jacksonMapper);
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private FloxisBidder target;
+
+    @BeforeEach
+    public void setUp() {
+        target = new FloxisBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FloxisBidder("invalid_url", jacksonMapper));
+                .isThrownBy(() -> new FloxisBidder("invalid_url", currencyConversionService, jacksonMapper));
     }
 
     @Test
@@ -158,7 +178,7 @@ public class FloxisBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldLeaveEndpointUnchangedWhenItDeclaresNoMacros() {
         // given
-        final FloxisBidder bidder = new FloxisBidder("http://localhost:8090/floxis-exchange", jacksonMapper);
+        final FloxisBidder bidder = new FloxisBidder("http://localhost:8090/floxis-exchange", currencyConversionService, jacksonMapper);
         final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "eu")));
 
         // when
@@ -174,7 +194,7 @@ public class FloxisBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldIgnoreRegionAndPartnerWhenAliasEndpointDeclaresNoHostMacro() {
         // given
-        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", jacksonMapper);
+        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", currencyConversionService, jacksonMapper);
         final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "eu", "acme")));
 
         // when
@@ -190,7 +210,7 @@ public class FloxisBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldRouteOnceWhenImpsDifferOnlyInRegionAndPartnerOnAliasEndpoint() {
         // given
-        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", jacksonMapper);
+        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", currencyConversionService, jacksonMapper);
         final BidRequest bidRequest = BidRequest.builder()
                 .id("req-1")
                 .imp(asList(
@@ -406,6 +426,50 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldConvertBidFloorAndRequestCurrencyToUsd() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.cur(singletonList("EUR")),
+                givenImp(imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("EUR")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getCur)
+                .containsExactly(singletonList("USD"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(tuple(BigDecimal.TEN, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotChangeRequestCurrencyWhenItContainsUsd() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.cur(asList("EUR", "USD")),
+                givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getCur)
+                .containsExactly(asList("EUR", "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), "invalid");
@@ -580,6 +644,33 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldAddAdvertiserDomainsToBidMetaAndKeepBidExt() throws Exception {
+        // given
+        final BidResponse bidResponse = givenBidResponse(Bid.builder()
+                .impid("imp-1")
+                .mtype(1)
+                .adomain(singletonList("advertiser.com"))
+                .ext(mapper.createObjectNode().put("dsa", "value"))
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        final ObjectNode expectedExt = mapper.createObjectNode().put("dsa", "value");
+        expectedExt.set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().advertiserDomains(singletonList("advertiser.com")).build())
+                .build()));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExt);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorWhenBidImpIdIsNotInOutgoingRequest() throws Exception {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -611,10 +702,16 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return BidRequest.builder()
-                .id("req-1")
-                .imp(singletonList(givenImp(impCustomizer)))
-                .site(Site.builder().id("271").build())
+        return givenBidRequest(identity(), givenImp(impCustomizer));
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .id("req-1")
+                        .imp(asList(imps))
+                        .site(Site.builder().id("271").build()))
                 .build();
     }
 
