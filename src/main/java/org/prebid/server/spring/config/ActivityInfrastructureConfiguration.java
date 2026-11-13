@@ -93,7 +93,7 @@ public class ActivityInfrastructureConfiguration {
     @Bean
     @ConditionalOnProperty("activity-infrastructure")
     HostActivityInfrastructureConfiguration hostActivityInfrastructureConfiguration(
-            @Value("activity-infrastructure") String configAsString,
+            @Value("${activity-infrastructure}") String configAsString,
             JacksonMapper mapper) {
 
         return mapper.decodeValue(configAsString, HostActivityInfrastructureConfiguration.class);
