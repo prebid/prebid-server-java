@@ -16,6 +16,7 @@
 
     <properties>
         <uap-java.version>1.6.1</uap-java.version>
+        <aerospike-client.version>10.5.0</aerospike-client.version>
     </properties>
 
     <dependencies>
@@ -27,6 +28,11 @@
             <groupId>com.github.ua-parser</groupId>
             <artifactId>uap-java</artifactId>
             <version>${uap-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aerospike</groupId>
+            <artifactId>aerospike-client-jdk21</artifactId>
+            <version>${aerospike-client.version}</version>
         </dependency>
     </dependencies>
 </project>

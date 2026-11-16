@@ -1,5 +1,11 @@
 package org.prebid.server.hooks.modules.intentiq.identity.config;
 
+import com.aerospike.client.AerospikeClient;
+import com.aerospike.client.Host;
+import com.aerospike.client.async.EventLoops;
+import com.aerospike.client.async.EventPolicy;
+import com.aerospike.client.async.NioEventLoops;
+import com.aerospike.client.policy.ClientPolicy;
 import com.codahale.metrics.MetricRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetClientOptions;
@@ -9,6 +15,7 @@ import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.RedisClientType;
 import io.vertx.redis.client.RedisOptions;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.hooks.modules.intentiq.identity.cache.AerospikeIdentityStore;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheTtlPolicy;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityStore;
@@ -16,6 +23,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisIdentityStor
 import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisStatsReporter;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.NoopIntentiqIdentityMetrics;
+import org.prebid.server.hooks.modules.intentiq.identity.model.config.AerospikeProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.CacheProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.RedisProperties;
@@ -46,6 +54,9 @@ public class IntentiqIdentityConfig {
 
     private static final String HOSTNAME_VERIFICATION_HTTPS = "HTTPS";
 
+    private static final String PROVIDER_REDIS = "redis";
+    private static final String PROVIDER_AEROSPIKE = "aerospike";
+
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + IntentiqIdentityModule.CODE)
     IntentiqIdentityProperties intentiqIdentityProperties() {
@@ -65,7 +76,15 @@ public class IntentiqIdentityConfig {
     @ConditionalOnProperty(prefix = "hooks.modules." + IntentiqIdentityModule.CODE + ".cache",
             name = "enabled", havingValue = "true")
     IdentityStore intentiqIdentityStore(IntentiqIdentityProperties properties, Vertx vertx) {
-        return new RedisIdentityStore(createRedisApi(properties.getRedis(), vertx));
+        final String provider = properties.getCache().getProvider();
+        if (StringUtils.isBlank(provider) || PROVIDER_REDIS.equalsIgnoreCase(provider)) {
+            return new RedisIdentityStore(createRedisApi(properties.getRedis(), vertx));
+        }
+        if (PROVIDER_AEROSPIKE.equalsIgnoreCase(provider)) {
+            return createAerospikeStore(properties.getAerospike());
+        }
+        throw new IllegalArgumentException("hooks.modules." + IntentiqIdentityModule.CODE
+                + ".cache.provider must be redis or aerospike, not: " + provider);
     }
 
     @Bean
@@ -131,6 +150,33 @@ public class IntentiqIdentityConfig {
                 new IntentiqIdentityProcessedAuctionRequestHook(
                         configResolver, httpClient, mapper, identityCache, keyExtractor, metrics),
                 new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, mapper, metrics)));
+    }
+
+    private static AerospikeIdentityStore createAerospikeStore(AerospikeProperties aerospike) {
+        if (aerospike == null || StringUtils.isAnyBlank(aerospike.getHost(), aerospike.getNamespace(),
+                aerospike.getSet())) {
+            throw new IllegalArgumentException("hooks.modules." + IntentiqIdentityModule.CODE
+                    + ".aerospike.host, namespace and set are required when cache.provider is aerospike");
+        }
+
+        final EventLoops eventLoops = new NioEventLoops(new EventPolicy(), aerospike.getEventLoopThreads());
+        final ClientPolicy policy = new ClientPolicy();
+        policy.eventLoops = eventLoops;
+        // PBS starts even when Aerospike is down; the client keeps reconnecting and the cache fails open.
+        policy.failIfNotConnected = false;
+        policy.timeout = aerospike.getConnectTimeoutMs();
+        policy.asyncMaxConnsPerNode = aerospike.getMaxConnectionsPerNode();
+        if (StringUtils.isNotBlank(aerospike.getUser())) {
+            policy.user = aerospike.getUser();
+            policy.password = aerospike.getPassword();
+        }
+
+        return new AerospikeIdentityStore(
+                new AerospikeClient(policy, new Host(aerospike.getHost(), aerospike.getPort())),
+                eventLoops,
+                aerospike.getNamespace(),
+                aerospike.getSet(),
+                aerospike.getTimeoutMs());
     }
 
     private static RedisAPI createRedisApi(RedisProperties redis, Vertx vertx) {

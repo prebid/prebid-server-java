@@ -27,6 +27,8 @@ public final class IntentiqIdentityProperties {
 
     RedisProperties redis;
 
+    AerospikeProperties aerospike;
+
     @JsonProperty("cache-max-size")
     long cacheMaxSize = 100_000L;
 

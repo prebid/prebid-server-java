@@ -13,6 +13,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisIdentityStor
 import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisStatsReporter;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.NoopIntentiqIdentityMetrics;
+import org.prebid.server.hooks.modules.intentiq.identity.model.config.AerospikeProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.RedisProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityModule;
@@ -92,6 +93,34 @@ public class IntentiqIdentityConfigTest {
         // when and then
         assertThatThrownBy(() -> target.intentiqIdentityStore(properties, vertx))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void identityStoreBeanShouldFailWhenAerospikeNamespaceMissing() {
+        // given
+        final AerospikeProperties aerospike = new AerospikeProperties();
+        aerospike.setHost("localhost");
+        aerospike.setSet("iiq");
+        final IntentiqIdentityProperties properties = new IntentiqIdentityProperties();
+        properties.getCache().setProvider("aerospike");
+        properties.setAerospike(aerospike);
+
+        // when and then
+        assertThatThrownBy(() -> target.intentiqIdentityStore(properties, vertx))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("namespace");
+    }
+
+    @Test
+    public void identityStoreBeanShouldFailWhenCacheProviderUnknown() {
+        // given
+        final IntentiqIdentityProperties properties = new IntentiqIdentityProperties();
+        properties.getCache().setProvider("memcached");
+
+        // when and then
+        assertThatThrownBy(() -> target.intentiqIdentityStore(properties, vertx))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("memcached");
     }
 
     @Test

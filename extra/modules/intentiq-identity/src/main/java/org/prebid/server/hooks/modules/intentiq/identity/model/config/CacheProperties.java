@@ -10,6 +10,9 @@ public class CacheProperties {
 
     private boolean enabled;
 
+    /** Shared (L2) store: {@code redis} (also Valkey) or {@code aerospike}. */
+    private String provider = "redis";
+
     /** Positive TTL used when the IntentIQ API omits {@code cttl}. */
     private int ttlseconds = 43_200;
 

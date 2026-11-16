@@ -113,6 +113,17 @@ with `cache.enabled: false`, but caching on an account needs it enabled on the h
 | redis.cluster     | host    | no       | boolean | false    | Redis / Valkey cluster mode (e.g. ElastiCache Serverless or cluster mode enabled) |
 | redis.max-pool-size    | host | no | int | 32   | Max pooled Redis connections                                         |
 | redis.max-pool-waiting | host | no | int | 1024 | Max commands queued for a free connection before failing fast        |
+| cache.provider    | host    | no       | string  | redis    | Shared (L2) store: `redis` (also Valkey) or `aerospike`              |
+| aerospike.host    | host    | cond.    | string  | none     | Aerospike seed host (required with `cache.provider: aerospike`)      |
+| aerospike.port    | host    | no       | int     | 3000     | Aerospike port                                                       |
+| aerospike.namespace | host  | cond.    | string  | none     | Namespace (required); must allow TTLs, see below                     |
+| aerospike.set     | host    | cond.    | string  | none     | Set (required)                                                       |
+| aerospike.user    | host    | no       | string  | none     | User, when security is enabled (Enterprise Edition)                  |
+| aerospike.password | host   | no       | string  | none     | Password                                                             |
+| aerospike.timeout-ms | host | no       | int     | 100      | Total timeout of one read, write or delete                           |
+| aerospike.connect-timeout-ms | host | no | int   | 1000     | Timeout of the initial cluster connection                            |
+| aerospike.max-connections-per-node | host | no | int | 100 | Max async connections per node                                       |
+| aerospike.event-loop-threads | host | no | int   | 2        | Threads of the Aerospike client's event loop                         |
 
 The hook sends `at/mi/pt/dpn/srvrReq` constants plus `dpi` (= `partner-id`), and — when present on
 the request — `ip`, `ipv6`, `uas`, `ref` (site domain / app name), `iiquid` (an existing
@@ -129,9 +140,24 @@ string (`user.consent`): IntentIQ rejects such a request. The consent string is 
 ### Caching
 
 When caching is enabled, resolved eids are cached in two layers: **Caffeine** (L1, in-process) backed
-by an `IdentityStore` (L2, shared) — **Redis** by default. L2 failures are non-fatal: the hook falls
-through to a live API call. A partner can use a non-Redis backend by supplying their own
-`IdentityStore` bean (the default Redis store is `@ConditionalOnMissingBean`).
+by an `IdentityStore` (L2, shared): **Redis** (or Valkey) by default, or **Aerospike** with
+`cache.provider: aerospike`. L2 failures are non-fatal: the hook falls through to a live API call, and PBS
+starts even when the store is down. A partner can use another backend by supplying their own
+`IdentityStore` bean (the built-in store is `@ConditionalOnMissingBean`).
+
+```yaml
+      cache:
+        enabled: true
+        provider: aerospike
+      aerospike:
+        host: aerospike.internal
+        namespace: cache
+        set: iiq
+```
+
+Aerospike entries are written with a TTL, so the namespace must have `nsup-period` above 0 (or
+`allow-ttl-without-nsup true`). Otherwise Aerospike rejects every write: the module still works, but only
+from the local layer.
 
 **Multi-key (alias) caching.** Every relevant first-party id on the request becomes a namespaced
 alias key, ordered by priority: `iiq:<id>` (`intentiq.com`), `pubcid:<id>` (`pubcid.org` /
