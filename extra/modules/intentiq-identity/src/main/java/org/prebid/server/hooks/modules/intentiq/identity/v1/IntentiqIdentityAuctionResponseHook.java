@@ -17,6 +17,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentity
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PrivacySignals;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -78,6 +79,7 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
     @Override
     public Future<InvocationResult<AuctionResponsePayload>> call(AuctionResponsePayload auctionResponsePayload,
                                                                  AuctionInvocationContext invocationContext) {
+        final boolean trace = HookTrace.isEnabled(invocationContext);
         final IntentiqIdentityProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final IntentiqIdentityModuleContext context =
                 invocationContext.moduleContext() instanceof IntentiqIdentityModuleContext ctx ? ctx : null;
@@ -89,25 +91,38 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
 
         final BidResponse bidResponse = auctionResponsePayload.bidResponse();
         if (StringUtils.isBlank(properties.getReportsEndpoint()) || bidResponse == null) {
-            return Future.succeededFuture(noAction());
+            return skipped(trace, "no reports-endpoint configured or no bid response");
         }
 
         final BidRequest bidRequest = bidRequest(invocationContext);
         // Same gates as the resolution call: the report carries the user's IP and UA.
-        if (StringUtils.isBlank(properties.getPartnerId())
-                || (bidRequest != null && PrivacySignals.isGdprWithoutConsent(bidRequest))) {
-            return Future.succeededFuture(noAction());
+        if (StringUtils.isBlank(properties.getPartnerId())) {
+            return skipped(trace, "no partner-id configured");
+        }
+        if (bidRequest != null && PrivacySignals.isCoppa(bidRequest)) {
+            metrics.skipCoppa(properties.getPartnerId());
+            return skipped(trace, "regs.coppa=1");
+        }
+        if (bidRequest != null && PrivacySignals.isGdprWithoutConsent(bidRequest)) {
+            return skipped(trace, "regs.gdpr=1 without a consent string");
         }
 
         final String abTestUuid = context != null ? context.abTestUuid() : null;
         final Long terminationCause = context != null ? context.terminationCause() : null;
         final String currency = bidResponse.getCur() != null ? bidResponse.getCur() : DEFAULT_CURRENCY;
 
-        for (final SeatBidRef winner : winningBids(bidResponse)) {
+        final List<SeatBidRef> winners = winningBids(bidResponse);
+        for (final SeatBidRef winner : winners) {
             report(properties, bidRequest, winner.seat(), winner.bid(), currency, abTestUuid, terminationCause);
         }
 
-        return Future.succeededFuture(noAction());
+        return Future.succeededFuture(noAction(HookTrace.messages(trace,
+                "[report] sent " + winners.size() + " winning bid(s) to reports-endpoint (abTestUuid="
+                        + abTestUuid + ")")));
+    }
+
+    private static Future<InvocationResult<AuctionResponsePayload>> skipped(boolean trace, String reason) {
+        return Future.succeededFuture(noAction(HookTrace.messages(trace, "[report] skipped: " + reason)));
     }
 
     // The response holds every seat's bid for an impression, but only one of them can render: report the
@@ -249,10 +264,11 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
         return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
-    private static InvocationResult<AuctionResponsePayload> noAction() {
+    private static InvocationResult<AuctionResponsePayload> noAction(List<String> debugMessages) {
         return InvocationResultImpl.<AuctionResponsePayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .debugMessages(debugMessages)
                 .build();
     }
 

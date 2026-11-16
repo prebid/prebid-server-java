@@ -304,6 +304,22 @@ public class IntentiqIdentityAuctionResponseHookTest {
     }
 
     @Test
+    public void callShouldNotReportWhenCoppaApplies() {
+        // given
+        givenRequest(BidRequest.builder()
+                .regs(Regs.builder().coppa(1).build())
+                .device(Device.builder().ip("1.2.3.4").ua("UA").build())
+                .build());
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        verifyNoInteractions(httpClient);
+    }
+
+    @Test
     public void callShouldReportWhenGdprAppliesWithConsent() {
         // given
         givenRequest(BidRequest.builder()

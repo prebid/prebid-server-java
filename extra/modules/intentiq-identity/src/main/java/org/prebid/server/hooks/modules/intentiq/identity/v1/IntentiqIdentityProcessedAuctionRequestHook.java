@@ -33,6 +33,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityM
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PrivacySignals;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -62,6 +63,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
@@ -112,20 +114,25 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
         final long startNanos = System.nanoTime();
+        final boolean trace = HookTrace.isEnabled(invocationContext);
         final IntentiqIdentityProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final String dpi = properties.getPartnerId();
         if (StringUtils.isBlank(properties.getApiEndpoint())) {
             metrics.skipNoEndpoint(dpi);
-            return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
+            return skipped(startNanos, trace, "no api-endpoint configured");
         }
         if (StringUtils.isBlank(dpi)) {
             metrics.skipNoPartner(dpi);
-            return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
+            return skipped(startNanos, trace, "no partner-id configured");
         }
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
+        if (PrivacySignals.isCoppa(bidRequest)) {
+            metrics.skipCoppa(dpi);
+            return skipped(startNanos, trace, "regs.coppa=1");
+        }
         if (PrivacySignals.isGdprWithoutConsent(bidRequest)) {
             metrics.skipNoConsent(dpi);
-            return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null)));
+            return skipped(startNanos, trace, "regs.gdpr=1 without a consent string");
         }
 
         return resolveEids(properties, bidRequest)
@@ -135,17 +142,42 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                             startNanos, resolution.abTestUuid(), resolution.terminationCause());
                     if (eids == null || eids.isEmpty()) {
                         metrics.eidsNone(dpi);
-                        return noAction(context);
+                        return noAction(context, HookTrace.messages(trace, resolvedMessage(resolution, startNanos)));
                     }
                     metrics.enriched(dpi);
-                    return update(payload -> enrichUserEids(payload, eids), context);
+                    return update(payload -> enrichUserEids(payload, eids), context,
+                            HookTrace.messages(trace, resolvedMessage(resolution, startNanos)));
                 })
                 .otherwise(throwable -> {
                     conditionalLogger.warn("IntentIQ identity resolution failed, proceeding without enrichment: "
                             + throwable.getMessage(), LOG_SAMPLING_RATE);
                     metrics.apiError(dpi);
-                    return noAction(new IntentiqIdentityModuleContext(startNanos, null, null));
+                    return noAction(new IntentiqIdentityModuleContext(startNanos, null, null),
+                            HookTrace.messages(trace, "[enrich] failed: " + throwable.getMessage()
+                                    + "; auction continues without IntentIQ ids; took " + millisSince(startNanos)
+                                    + " ms"));
                 });
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> skipped(long startNanos,
+                                                                           boolean trace,
+                                                                           String reason) {
+        return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null),
+                HookTrace.messages(trace, "[enrich] skipped: " + reason + "; no API call, user.eids unchanged")));
+    }
+
+    private static String resolvedMessage(Resolution resolution, long startNanos) {
+        final List<Eid> eids = resolution.eids();
+        final String result = eids == null || eids.isEmpty()
+                ? "no ids"
+                : eids.size() + " eid(s): " + eids.stream().map(Eid::getSource).collect(Collectors.joining(", "));
+        return "[enrich] " + result + "; source: " + resolution.source()
+                + "; tc=" + resolution.terminationCause() + ", abTestUuid=" + resolution.abTestUuid()
+                + "; took " + millisSince(startNanos) + " ms";
+    }
+
+    private static long millisSince(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
 
     private Future<Resolution> resolveEids(IntentiqIdentityProperties properties, BidRequest bidRequest) {
@@ -155,7 +187,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         if (keys.isEmpty()) {
             return fetch(properties, bidRequest)
                     .map(response -> new Resolution(
-                            extractEids(response), response.getAbTestUuid(), response.getTc()));
+                            extractEids(response), response.getAbTestUuid(), response.getTc(), "IntentIQ API"));
         }
 
         final String dpi = properties.getPartnerId();
@@ -170,7 +202,11 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         if (inFlight != null) {
             metrics.inFlightJoined(dpi);
             // The failure of the shared call is counted once, by the request that made it.
-            return inFlight.recover(ignored -> Future.succeededFuture(new Resolution(null, null, null)));
+            return inFlight
+                    .map(resolution -> resolution.withSource(
+                            "the same user's call in flight on this instance (" + resolution.source() + ")"))
+                    .recover(ignored -> Future.succeededFuture(new Resolution(null, null, null,
+                            "the same user's call in flight on this instance, which failed")));
         }
 
         owned.future().onComplete(ignored -> keys.forEach(key -> inFlightByKey.remove(key.key(), owned.future())));
@@ -201,8 +237,9 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         return cache.get(keys).compose(result -> switch (result.state()) {
             case HIT -> {
                 metrics.cacheHit(layerToken(result.layer()), keyTypeToken(result.keyType()), dpi);
-                yield Future.succeededFuture(
-                        new Resolution(result.eids(), result.abTestUuid(), result.terminationCause()));
+                yield Future.succeededFuture(new Resolution(result.eids(), result.abTestUuid(),
+                        result.terminationCause(), "cache " + layerToken(result.layer()) + " hit ("
+                        + keyTypeToken(result.keyType()) + " key)"));
             }
             case NEGATIVE -> {
                 // A negative sentinel is a cached miss (id is known-unresolvable): no identity to
@@ -211,14 +248,17 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                 final String type = keyTypeToken(result.keyType());
                 metrics.cacheMiss(type, dpi);
                 metrics.cacheNegativeHit(layerToken(result.layer()), type, dpi);
-                yield Future.succeededFuture(
-                        new Resolution(null, result.abTestUuid(), result.terminationCause()));
+                yield Future.succeededFuture(new Resolution(null, result.abTestUuid(), result.terminationCause(),
+                        "cache " + layerToken(result.layer()) + " negative entry (" + type
+                                + " key), no API call"));
             }
             case IN_PROGRESS -> {
                 // A resolution call for this id is already in flight; skip firing a duplicate and
                 // proceed without enrichment (the in-flight call will populate the cache).
                 metrics.cacheInProgress(layerToken(result.layer()), keyTypeToken(result.keyType()), dpi);
-                yield Future.succeededFuture(new Resolution(null, null, null));
+                yield Future.succeededFuture(new Resolution(null, null, null,
+                        "cache " + layerToken(result.layer()) + " in-progress marker ("
+                                + keyTypeToken(result.keyType()) + " key): another PBS instance is calling the API"));
             }
             case MISS -> {
                 metrics.cacheMiss(primaryType, dpi);
@@ -250,7 +290,8 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                     } else {
                         cache.putNegative(keys, response.getAbTestUuid(), response.getTc(), cttl);
                     }
-                    return new Resolution(eids, response.getAbTestUuid(), response.getTc());
+                    return new Resolution(eids, response.getAbTestUuid(), response.getTc(),
+                            "IntentIQ API (cache miss)");
                 })
                 // A failed call caches nothing: drop its in-progress marker so the next request retries.
                 .onFailure(ignored -> cache.clearInProgress(keys));
@@ -474,20 +515,24 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private static InvocationResult<AuctionRequestPayload> update(PayloadUpdate<AuctionRequestPayload> payloadUpdate,
-                                                                  IntentiqIdentityModuleContext context) {
+                                                                  IntentiqIdentityModuleContext context,
+                                                                  List<String> debugMessages) {
         return InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(payloadUpdate)
                 .moduleContext(context)
+                .debugMessages(debugMessages)
                 .build();
     }
 
-    private static InvocationResult<AuctionRequestPayload> noAction(IntentiqIdentityModuleContext context) {
+    private static InvocationResult<AuctionRequestPayload> noAction(IntentiqIdentityModuleContext context,
+                                                                    List<String> debugMessages) {
         return InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
                 .moduleContext(context)
+                .debugMessages(debugMessages)
                 .build();
     }
 
@@ -496,7 +541,12 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         return CODE;
     }
 
-    private record Resolution(List<Eid> eids, String abTestUuid, Long terminationCause) {
+    // source: where the result came from, for the debug trace.
+    private record Resolution(List<Eid> eids, String abTestUuid, Long terminationCause, String source) {
+
+        Resolution withSource(String newSource) {
+            return new Resolution(eids, abTestUuid, terminationCause, newSource);
+        }
     }
 
     @Data

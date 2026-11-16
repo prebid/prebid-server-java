@@ -88,6 +88,11 @@ public class IntentiqIdentityMetrics {
         inc("skip.no_consent", dpi);
     }
 
+    /** Resolution and reporting skipped because the request is subject to COPPA (regs.coppa=1). */
+    public void skipCoppa(String dpi) {
+        inc("skip.coppa", dpi);
+    }
+
     public void terminationCause(long tc, String dpi) {
         if (tc >= 0 && tc < 200) {
             inc("tc." + tc, dpi);

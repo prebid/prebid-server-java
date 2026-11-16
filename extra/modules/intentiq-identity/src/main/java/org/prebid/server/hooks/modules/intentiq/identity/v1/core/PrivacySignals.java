@@ -65,6 +65,12 @@ public final class PrivacySignals {
         return "1".equals(gdpr(bidRequest)) && StringUtils.isBlank(consent(bidRequest));
     }
 
+    /** The request is subject to COPPA ({@code regs.coppa = 1}). */
+    public static boolean isCoppa(BidRequest bidRequest) {
+        final Regs regs = bidRequest.getRegs();
+        return regs != null && Integer.valueOf(1).equals(regs.getCoppa());
+    }
+
     /**
      * A short, stable digest of all privacy signals of the request. Requests whose signals differ (e.g. a
      * user who changed their consent or opted out) get different fingerprints.

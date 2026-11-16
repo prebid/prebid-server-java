@@ -26,13 +26,13 @@ hooks:
           "stages": {
             "processed-auction-request": {
               "groups": [
-                { "timeout": 100, "hook-sequence": [
+                { "timeout": 200, "hook-sequence": [
                   { "module-code": "intentiq-identity",
                     "hook-impl-code": "intentiq-identity-processed-auction-request-hook" } ] } ]
             },
             "auction-response": {
               "groups": [
-                { "timeout": 100, "hook-sequence": [
+                { "timeout": 50, "hook-sequence": [
                   { "module-code": "intentiq-identity",
                     "hook-impl-code": "intentiq-identity-auction-response-hook" } ] } ]
             }
@@ -69,9 +69,11 @@ Use the region-specific `api-endpoint`: US `be-api-s2s.intentiq.com`, EU `be-api
 APAC `be-api-s2s-apac.intentiq.com`, and the matching `reports-endpoint`: US `reports-s2s.intentiq.com`,
 EU `reports-s2s-gdpr.intentiq.com`. When `api-endpoint` is empty the hook is a no-op.
 
-The `processed-auction-request` group timeout bounds how long the auction waits for IntentIQ. Set it
-above the real round trip from the PBS host to the API (and `timeout` at or below it); a call that
-outlives the group timeout is dropped and the auction proceeds without enrichment.
+The `processed-auction-request` group timeout is how long the auction waits for IntentIQ. `timeout` is
+how long the call itself may run. Keep `timeout` above the group timeout: a call that outlives the group
+timeout keeps running in the background, and with caching on its result fills the cache, so the next
+request of that user is enriched from the cache. With `timeout` at or below the group timeout, a slow call
+is dropped and the auction proceeds without enrichment.
 
 ### Account-level config
 
@@ -120,9 +122,9 @@ CTV with the id upper-cased; skipped when `device.lmt = 1`). The response `data.
 publisher's own eid is kept). On any failure, including a non-2xx answer, the hook takes no action and
 the auction proceeds unchanged.
 
-The call is skipped (no action) when the account has no `partner-id`, or when GDPR applies
-(`regs.gdpr = 1`) and the request carries no consent string (`user.consent`): IntentIQ rejects such a
-request. The consent string is sent in the `gdpr-consent` header.
+The call is skipped (no action) when the account has no `partner-id`, when the request is subject to
+COPPA (`regs.coppa = 1`), or when GDPR applies (`regs.gdpr = 1`) and the request carries no consent
+string (`user.consent`): IntentIQ rejects such a request. The consent string is sent in the `gdpr-consent` header.
 
 ### Caching
 
@@ -175,7 +177,22 @@ one returned by the resolution response — the resolution hook stashes it in th
 this hook reads it. On a cache hit it is the `abTestUuid` (and `terminationCause`) of the response
 that filled the cache entry. With
 `reports-endpoint` blank the hook is a no-op. Nothing is reported when the account has no `partner-id`,
-or when GDPR applies without a consent string (the report carries the user's IP and UA). The bid response is never modified.
+when the request is subject to COPPA, or when GDPR applies without a consent string (the report carries the user's IP and UA). The bid response is never modified.
+
+### Debug trace
+
+Send a request with `ext.prebid.trace: "verbose"` to see what the module did, per hook, in
+`ext.prebid.modules.trace` of the response (`debugmessages`):
+
+```
+[enrich] 1 eid(s): intentiq.com; source: cache l1 hit (device key); tc=0, abTestUuid=ab-1; took 1 ms
+[enrich] skipped: regs.coppa=1; no API call, user.eids unchanged
+[report] sent 1 winning bid(s) to reports-endpoint (abTestUuid=ab-1)
+```
+
+The source is `IntentIQ API`, a cache hit, negative entry or in-progress marker (with layer and key type),
+or the same user's call in flight on this instance. A hook that did not finish in time shows
+`status: timeout` and no message.
 
 ### Metrics
 
@@ -213,6 +230,7 @@ modules.module.intentiq-identity.custom.eids.none_<dpi>                    # res
 modules.module.intentiq-identity.custom.skip.no_endpoint_<dpi>             # no api-endpoint configured; resolution skipped before any API call
 modules.module.intentiq-identity.custom.skip.no_partner                    # no partner-id configured; resolution skipped
 modules.module.intentiq-identity.custom.skip.no_consent_<dpi>              # regs.gdpr=1 without a consent string; resolution skipped
+modules.module.intentiq-identity.custom.skip.coppa_<dpi>                   # regs.coppa=1; resolution and reporting skipped
 modules.module.intentiq-identity.custom.tc.<id>_<dpi>                      # one counter per enumerated termination-cause id
 modules.module.intentiq-identity.custom.impression.reported_<dpi>          # winning bid reported to reports-endpoint (overall)
 modules.module.intentiq-identity.custom.impression.error_<dpi>             # impression report call failed or answered non-2xx

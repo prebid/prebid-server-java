@@ -12,8 +12,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.UserAgent;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -26,6 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheResult;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
@@ -44,6 +44,9 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -867,6 +870,71 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(counter("skip.no_consent")).isEqualTo(1);
         verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldSkipHttpWhenCoppaApplies() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().regs(Regs.builder().coppa(1).build()).build();
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(counter("skip.coppa")).isEqualTo(1);
+        verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldReturnDebugMessagesWhenVerboseTraceRequested() {
+        // given
+        givenResponse(EIDS_BODY);
+        givenTraceLevel(TraceLevel.verbose);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(AuctionRequestPayloadImpl.of(BidRequest.builder().build()), invocationContext).result();
+
+        // then
+        assertThat(result.debugMessages()).singleElement().asString()
+                .startsWith("[enrich] 1 eid(s): intentiq.com; source: IntentIQ API");
+    }
+
+    @Test
+    public void callShouldReturnSkipReasonAsDebugMessageWhenVerboseTraceRequested() {
+        // given
+        givenTraceLevel(TraceLevel.verbose);
+        final BidRequest bidRequest = BidRequest.builder().regs(Regs.builder().coppa(1).build()).build();
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext).result();
+
+        // then
+        assertThat(result.debugMessages())
+                .containsExactly("[enrich] skipped: regs.coppa=1; no API call, user.eids unchanged");
+    }
+
+    @Test
+    public void callShouldNotReturnDebugMessagesWithoutVerboseTrace() {
+        // given
+        givenResponse(EIDS_BODY);
+        givenTraceLevel(TraceLevel.basic);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(AuctionRequestPayloadImpl.of(BidRequest.builder().build()), invocationContext).result();
+
+        // then
+        assertThat(result.debugMessages()).isNull();
+    }
+
+    private void givenTraceLevel(TraceLevel traceLevel) {
+        when(invocationContext.auctionContext()).thenReturn(AuctionContext.builder()
+                .debugContext(DebugContext.of(true, false, traceLevel))
+                .build());
     }
 
     @Test
