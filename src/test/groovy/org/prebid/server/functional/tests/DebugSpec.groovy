@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -32,6 +33,12 @@ class DebugSpec extends BaseSpec {
     private static final String DEBUG_REQUESTS_METRIC = "debug_requests"
     private static final String ACCOUNT_DEBUG_REQUESTS_METRIC = "account.%s.debug_requests"
     private static final String REQUEST_OK_WEB_METRICS = "requests.ok.openrtb2-web"
+
+    private static final PbsContainerConfig BIDDER_DEBUG_DISABLED_CONFIG = new PbsContainerConfig(["adapters.generic.debug.allow": "false"])
+    private static final PbsContainerConfig BIDDER_DEBUG_ENABLED_CONFIG = new PbsContainerConfig(["adapters.generic.debug.allow": "true"])
+    private static final PbsContainerConfig DEBUG_OVERRIDE_DISABLED_CONFIG = BIDDER_DEBUG_DISABLED_CONFIG + ["debug.override-token": overrideToken]
+    private static final PbsContainerConfig DEBUG_OVERRIDE_ENABLED_CONFIG = BIDDER_DEBUG_ENABLED_CONFIG + ["debug.override-token": overrideToken]
+    private static final PbsContainerConfig DEBUG_OVERRIDE_TOKEN_CONFIG = new PbsContainerConfig(["debug.override-token": overrideToken])
 
     def "PBS should return debug information and emit metrics when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
@@ -65,7 +72,7 @@ class DebugSpec extends BaseSpec {
     def "PBS shouldn't return debug information when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.debug = test
+        bidRequest.ext.prebid.debug = debug
         bidRequest.test = test
 
         and: "Flash metrics"
@@ -93,7 +100,7 @@ class DebugSpec extends BaseSpec {
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "false"])
+        def pbsService = pbsServiceFactory.getService(BIDDER_DEBUG_DISABLED_CONFIG)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -113,7 +120,7 @@ class DebugSpec extends BaseSpec {
 
     def "PBS should return debug information when bidder-level setting debug.allowed = true"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "true"])
+        def pbsService = pbsServiceFactory.getService(BIDDER_DEBUG_ENABLED_CONFIG)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -131,7 +138,7 @@ class DebugSpec extends BaseSpec {
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false is overridden by account-level setting debug-allowed = false"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "false"])
+        def pbsService = pbsServiceFactory.getService(BIDDER_DEBUG_DISABLED_CONFIG)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -161,7 +168,7 @@ class DebugSpec extends BaseSpec {
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false is overridden by account-level setting debug-allowed = true"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "false"])
+        def pbsService = pbsServiceFactory.getService(BIDDER_DEBUG_DISABLED_CONFIG)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -190,7 +197,7 @@ class DebugSpec extends BaseSpec {
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = true is overridden by account-level setting debug-allowed = false"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.debug.allow": "true"])
+        def pbsService = pbsServiceFactory.getService(BIDDER_DEBUG_ENABLED_CONFIG)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -228,9 +235,9 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    def "PBS should return debug information when bidder-level setting debug.allowed = #debugAllowedConfig and account-level setting debug-allowed = #debugAllowedAccount is overridden by x-pbs-debug-override header"() {
+    def "PBS should return debug information when bidder and account debug restrictions are overridden by x-pbs-debug-override header"() {
         given: "PBS with debug configuration"
-        def pbsService = pbsServiceFactory.getService(pbdConfig)
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -251,18 +258,15 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         where:
-        debugAllowedConfig | debugAllowedAccount | pbdConfig
-        false              | true                | ["debug.override-token"        : overrideToken,
-                                                    "adapters.generic.debug.allow": "false"]
-        true               | false               | ["debug.override-token"        : overrideToken,
-                                                    "adapters.generic.debug.allow": "true"]
-        false              | false               | ["debug.override-token"        : overrideToken,
-                                                    "adapters.generic.debug.allow": "false"]
+        config                         | debugAllowedAccount
+        DEBUG_OVERRIDE_DISABLED_CONFIG | true
+        DEBUG_OVERRIDE_ENABLED_CONFIG  | false
+        DEBUG_OVERRIDE_DISABLED_CONFIG | false
     }
 
     def "PBS should not return debug information when x-pbs-debug-override header is incorrect"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["debug.override-token": overrideToken])
+        def pbsService = pbsServiceFactory.getService(DEBUG_OVERRIDE_TOKEN_CONFIG)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest

@@ -35,6 +35,7 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.util.PBSUtils
 
@@ -65,17 +66,23 @@ class TargetingSpec extends BaseSpec {
     private static final String EMPTY_CPM = "0.0"
     private static final Integer DEFAULT_TRUNCATE_CHARS = 20
     private static final Integer EXTENDED_TRUNCATE_CHARS = PbsConfig.targetingConfig.get('settings.targeting.truncate-attr-chars').toInteger()
-    private static final Map<String, String> EMPTY_TARGETING_CONFIG = ['settings.targeting.truncate-attr-chars': null] as Map
-    private static final Map<String, String> ONLY_WINNING_BIDS_CONFIG = ["auction.cache.only-winning-bids": "true"]
-    private static final Map<String, String> DISABLED_ONLY_WINNING_BIDS_CONFIG = ["auction.cache.only-winning-bids": "false"]
     private static final String DROP_PREFIX_WARNING = "Key prefix value is dropped to default. " +
             "Decrease custom prefix length or increase truncateattrchars by %s"
     private static final String TRUNCATED_WARNING = "The following keys have been truncated:"
 
-    private static final PrebidServerService pbsWithDefaultTargetingLength = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG)
-    private static final PrebidServerService pbsWithOnlyWinningBids = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG + ONLY_WINNING_BIDS_CONFIG)
-    private static final PrebidServerService pbsWithDisabledOnlyWinningBids = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG + DISABLED_ONLY_WINNING_BIDS_CONFIG)
+    private static final PbsContainerConfig EMPTY_TARGETING_CONFIG = new PbsContainerConfig(['settings.targeting.truncate-attr-chars': null])
+    private static final PbsContainerConfig ONLY_WINNING_BIDS_CONFIG = EMPTY_TARGETING_CONFIG + ['auction.cache.only-winning-bids': 'true']
+    private static final PbsContainerConfig DISABLED_ONLY_WINNING_BIDS_CONFIG = EMPTY_TARGETING_CONFIG + ['auction.cache.only-winning-bids': 'false']
 
+    private static PrebidServerService pbsWithDefaultTargetingLength
+    private static PrebidServerService pbsWithOnlyWinningBids
+    private static PrebidServerService pbsWithDisabledOnlyWinningBids
+
+    def setupSpec() {
+        pbsWithDefaultTargetingLength = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG)
+        pbsWithOnlyWinningBids = pbsServiceFactory.getService(ONLY_WINNING_BIDS_CONFIG)
+        pbsWithDisabledOnlyWinningBids = pbsServiceFactory.getService(DISABLED_ONLY_WINNING_BIDS_CONFIG)
+    }
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(EMPTY_TARGETING_CONFIG + ONLY_WINNING_BIDS_CONFIG)
         pbsServiceFactory.removeContainer(EMPTY_TARGETING_CONFIG + DISABLED_ONLY_WINNING_BIDS_CONFIG)
@@ -429,10 +436,10 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS should auction populate ext.prebid.targeting with proper size when truncateTargetAttr is define"() {
         given: "PBs config with additional openx bidder"
-        def pbsConfig = [
+        def pbsConfig = new PbsContainerConfig([
                 "adapters.openx.enabled" : "true",
-                "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-        def pbsWithDefaultTargetingLength = pbsServiceFactory.getService(pbsConfig)
+                "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def pbsWithOpenx = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request"
         def accountId = PBSUtils.randomNumber as String
@@ -449,7 +456,7 @@ class TargetingSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = pbsWithDefaultTargetingLength.sendAuctionRequest(bidRequest)
+        def response = pbsWithOpenx.sendAuctionRequest(bidRequest)
 
         then: "Response should contain targeting with corresponding length"
         assert response.seatbid.bid.ext.prebid.targeting
@@ -1281,7 +1288,7 @@ class TargetingSpec extends BaseSpec {
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
 
         and: "PBS with default account"
-        def pbsConfig = ["settings.default-account-config": encode(accountConfig)]
+        def pbsConfig = new PbsContainerConfig(["settings.default-account-config": encode(accountConfig)])
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest"
@@ -1632,8 +1639,8 @@ class TargetingSpec extends BaseSpec {
     def "PBS should assign bid ranks across all seatbids combined when the request contains imps with multiple bidders"() {
         given: "PBS config with openX bidder"
         def endpoint = '/openx-auction'
-        def pbsConfig = ["adapters.openx.enabled" : "true",
-                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri$endpoint".toString()]
+        def pbsConfig = new PbsContainerConfig(["adapters.openx.enabled" : "true",
+                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri$endpoint".toString()])
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
         def openxBidder = new Bidder(networkServiceContainer, endpoint)
 

@@ -7,8 +7,8 @@ import org.prebid.server.functional.model.request.auction.SourceExt
 import org.prebid.server.functional.model.request.auction.SupplyChain
 import org.prebid.server.functional.model.request.auction.SupplyChainNode
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
@@ -16,15 +16,28 @@ import static org.prebid.server.functional.model.request.auction.Fd.EXCHANGE
 
 class SchainSpec extends BaseSpec {
 
-    private static final GLOBAL_SUPPLY_SCHAIN_NODE = new SupplyChainNode().tap {
+    private static final SupplyChainNode GLOBAL_SUPPLY_SCHAIN_NODE = new SupplyChainNode().tap {
         asi = PBSUtils.randomString
         sid = PBSUtils.randomString
         hp = PBSUtils.randomNumber
         rid = PBSUtils.randomString
     }
 
-    @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": encode(GLOBAL_SUPPLY_SCHAIN_NODE)])
+    private static final PbsContainerConfig GLOBAL_SCHAIN_CONFIG = new PbsContainerConfig(['auction.host-schain-node': encode(GLOBAL_SUPPLY_SCHAIN_NODE)])
+    private static final PbsContainerConfig ORTB_25_CONFIG = new PbsContainerConfig(['adapters.generic.ortb-version': '2.5'])
+
+    private static PrebidServerService prebidServerService
+    private static PrebidServerService ortb25PbsService
+
+    def setupSpec() {
+        prebidServerService = pbsServiceFactory.getService(GLOBAL_SCHAIN_CONFIG)
+        ortb25PbsService = pbsServiceFactory.getService(ORTB_25_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(GLOBAL_SCHAIN_CONFIG)
+        pbsServiceFactory.removeContainer(ORTB_25_CONFIG)
+    }
 
     def "Global schain node should be appended when only ext.prebid.schains exists"() {
         given: "Basic bid request"
@@ -161,10 +174,7 @@ class SchainSpec extends BaseSpec {
     }
 
     def "PBS should use source.ext.schain when ext.prebid.schains.bidder isn't requested"() {
-        given: "Pbs config"
-        def defaultPbsService = pbsServiceFactory.getService([("adapters.generic.ortb-version"): "2.5"])
-
-        and: "Default basic BidRequest with schain obj"
+        given: "Default basic BidRequest with schain obj"
         def supplyChain = SupplyChain.defaultSupplyChain
         def bidRequest = BidRequest.defaultBidRequest.tap {
             source = new Source(ext: new SourceExt(schain: supplyChain))
@@ -172,7 +182,7 @@ class SchainSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        ortb25PbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain requested source.ext.schain"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -181,10 +191,7 @@ class SchainSpec extends BaseSpec {
     }
 
     def "PBS should use ext.prebid.schains.schain instead of source.ext.chain when ext.prebid.schains.bidder is requested"() {
-        given: "Pbs config"
-        def defaultPbsService = pbsServiceFactory.getService([("adapters.generic.ortb-version"): "2.5"])
-
-        and: "Default basic BidRequest with schain obj"
+        given: "Default basic BidRequest with schain obj"
         def supplyChain = SupplyChain.defaultSupplyChain
         def bidRequest = BidRequest.defaultBidRequest.tap {
             source = new Source(ext: new SourceExt(schain: SupplyChain.defaultSupplyChain))
@@ -192,7 +199,7 @@ class SchainSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        ortb25PbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain requested ext.prebid.schains[*].schain"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)

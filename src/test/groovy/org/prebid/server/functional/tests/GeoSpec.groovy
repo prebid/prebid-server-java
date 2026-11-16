@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -26,22 +27,24 @@ class GeoSpec extends BaseSpec {
     private static final String GEO_LOCATION_REQUESTS = "geolocation_requests"
     private static final String GEO_LOCATION_FAIL = "geolocation_fail"
     private static final String GEO_LOCATION_SUCCESSFUL = "geolocation_successful"
-    private static final Map<String, String> GEO_LOCATION = ["geolocation.type"                               : "configuration",
-                                                             "geolocation.configurations.[0].address-pattern" : USA_IP.v4,
-                                                             "geolocation.configurations.[0].geo-info.country": USA.ISOAlpha2,
-                                                             "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation,
-                                                             "geolocation.configurations.[1].address-pattern" : CAN_IP.v4,
-                                                             "geolocation.configurations.[1].geo-info.country": CAN.ISOAlpha2,
-                                                             "geolocation.configurations.[1].geo-info.region" : QUEBEC.abbreviation]
+    private static final PbsContainerConfig GEO_LOCATION_CONFIG = new PbsContainerConfig([
+            'geolocation.enabled'                            : 'true',
+            'geolocation.type'                               : 'configuration',
+            'geolocation.configurations.[0].address-pattern' : USA_IP.v4,
+            'geolocation.configurations.[0].geo-info.country': USA.ISOAlpha2,
+            'geolocation.configurations.[0].geo-info.region' : ALABAMA.abbreviation,
+            'geolocation.configurations.[1].address-pattern' : CAN_IP.v4,
+            'geolocation.configurations.[1].geo-info.country': CAN.ISOAlpha2,
+            'geolocation.configurations.[1].geo-info.region' : QUEBEC.abbreviation
+    ])
 
     def "PBS should populate geo with country and region and take precedence from device.id when geo location enabled in host and account config and ip specified in both places"() {
         given: "PBS service with geolocation and default account configs"
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = settingDefaultAccountGeoLookup
         }
-        def defaultPbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(config),
-                 "geolocation.enabled"            : "true"] + GEO_LOCATION)
+        def pbsConfig = GEO_LOCATION_CONFIG + ['settings.default-account-config': encode(config)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -64,10 +67,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": CAN_IP.v4])
+        pbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": CAN_IP.v4])
 
         then: "Bidder request should contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -75,7 +78,7 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
         and: "Metrics processed across activities should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
         assert !metrics[GEO_LOCATION_FAIL]
@@ -94,9 +97,8 @@ class GeoSpec extends BaseSpec {
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookup)
         }
-        def defaultPbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(config),
-                 "geolocation.enabled"            : "true"] + GEO_LOCATION)
+        def pbsConfig = GEO_LOCATION_CONFIG + ['settings.default-account-config': encode(config)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -119,10 +121,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -130,7 +132,7 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
         and: "Metrics processed across activities should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
         assert !metrics[GEO_LOCATION_FAIL]
@@ -147,9 +149,8 @@ class GeoSpec extends BaseSpec {
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookup)
         }
-        def defaultPbsService = pbsServiceFactory.getService(
-                ["settings.default-account-config": encode(config),
-                 "geolocation.enabled"            : "true"] + GEO_LOCATION)
+        def pbsConfig = GEO_LOCATION_CONFIG + ['settings.default-account-config': encode(config)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -172,10 +173,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
+        pbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Bidder request should contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -183,7 +184,7 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
         and: "Metrics processed across activities should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
         assert !metrics[GEO_LOCATION_FAIL]
@@ -200,9 +201,10 @@ class GeoSpec extends BaseSpec {
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookupConfig)
         }
-        def defaultPbsService = pbsServiceFactory.getService(GEO_LOCATION +
-                ["settings.default-account-config": encode(config),
-                 "geolocation.enabled"            : hostGeolocation])
+        def pbsConfig = GEO_LOCATION_CONFIG +
+                ['settings.default-account-config': encode(config),
+                 'geolocation.enabled'            : hostGeolocation]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -225,10 +227,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -236,7 +238,7 @@ class GeoSpec extends BaseSpec {
         assert !bidderRequests.device.geo.region
 
         and: "Metrics processed across geo location shouldn't be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[GEO_LOCATION_REQUESTS]
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
         assert !metrics[GEO_LOCATION_FAIL]
@@ -254,9 +256,10 @@ class GeoSpec extends BaseSpec {
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookupConfig)
         }
-        def defaultPbsService = pbsServiceFactory.getService(GEO_LOCATION +
-                ["settings.default-account-config": encode(config),
-                 "geolocation.enabled"            : hostGeolocation])
+        def pbsConfig = GEO_LOCATION_CONFIG +
+                ['settings.default-account-config': encode(config),
+                 'geolocation.enabled'            : hostGeolocation]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -279,10 +282,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
+        pbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Bidder request shouldn't contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -290,7 +293,7 @@ class GeoSpec extends BaseSpec {
         assert !bidderRequests.device.geo.region
 
         and: "Metrics processed across geo location shouldn't be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[GEO_LOCATION_REQUESTS]
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
         assert !metrics[GEO_LOCATION_FAIL]
@@ -308,9 +311,9 @@ class GeoSpec extends BaseSpec {
         def startTime = Instant.now()
 
         and: "PBS service with geolocation"
-        def defaultPbsService = pbsServiceFactory.getService(GEO_LOCATION +
-                ["geolocation.configurations.[0].address-pattern": PBSUtils.randomNumber as String,
-                 "geolocation.enabled"                           : "true"])
+        def pbsConfig = GEO_LOCATION_CONFIG +
+                ['geolocation.configurations.[0].address-pattern': PBSUtils.randomNumber as String]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -333,10 +336,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -344,17 +347,20 @@ class GeoSpec extends BaseSpec {
         assert !bidderRequests.device.geo.region
 
         and: "Metrics processed across geo location should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_FAIL] == 1
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
 
         and: "PBs should emit geo failed logs"
-        def logs = defaultPbsService.getLogsByTime(startTime)
+        def logs = pbsService.getLogsByTime(startTime)
         def getLocation = getLogsByText(logs, "GeoLocationServiceWrapper")
         assert getLocation.size() == 1
         assert getLocation[0].contains("Geolocation lookup failed: " +
                 "ConfigurationGeoLocationService: Geo location lookup failed.")
+
+        cleanup:
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't populate geo with country, region and emit error in log and metric when geo look up failed and ip present in header"() {
@@ -362,9 +368,9 @@ class GeoSpec extends BaseSpec {
         def startTime = Instant.now()
 
         and: "PBS service with geolocation"
-        def defaultPbsService = pbsServiceFactory.getService(GEO_LOCATION +
-                ["geolocation.configurations.[0].address-pattern": PBSUtils.randomNumber as String,
-                 "geolocation.enabled"                           : "true"])
+        def pbsConfig = GEO_LOCATION_CONFIG +
+                ['geolocation.configurations.[0].address-pattern': PBSUtils.randomNumber as String]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -387,10 +393,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
+        pbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Bidder request shouldn't contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -398,23 +404,25 @@ class GeoSpec extends BaseSpec {
         assert !bidderRequests.device.geo.region
 
         and: "Metrics processed across geo location should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_FAIL] == 1
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
 
         and: "PBs should emit geo failed logs"
-        def logs = defaultPbsService.getLogsByTime(startTime)
+        def logs = pbsService.getLogsByTime(startTime)
         def getLocation = getLogsByText(logs, "GeoLocationServiceWrapper")
         assert getLocation.size() == 1
         assert getLocation[0].contains("Geolocation lookup failed: " +
                 "ConfigurationGeoLocationService: Geo location lookup failed.")
+
+        cleanup:
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't populate country and region via geo when geo enabled in account and country and region specified in request and ip present in device.id"() {
         given: "PBS service with geolocation"
-        def defaultPbsService = pbsServiceFactory.getService(
-                ["geolocation.enabled": "true"] + GEO_LOCATION)
+        def pbsService = pbsServiceFactory.getService(GEO_LOCATION_CONFIG)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -437,10 +445,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -448,7 +456,7 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.region == ONTARIO.abbreviation
 
         and: "Metrics processed across activities shouldn't be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[GEO_LOCATION_REQUESTS]
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
         assert !metrics[GEO_LOCATION_FAIL]
@@ -456,8 +464,7 @@ class GeoSpec extends BaseSpec {
 
     def "PBS shouldn't populate country and region via geo when geo enabled in account and country and region specified in request and ip present in header"() {
         given: "PBS service with geolocation"
-        def defaultPbsService = pbsServiceFactory.getService(
-                ["geolocation.enabled": "true"] + GEO_LOCATION)
+        def pbsService = pbsServiceFactory.getService(GEO_LOCATION_CONFIG)
 
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -480,10 +487,10 @@ class GeoSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flush metric"
-        flushMetrics(defaultPbsService)
+        flushMetrics(pbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
+        pbsService.sendAuctionRequest(bidRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Bidder request should contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -491,7 +498,7 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.region == ONTARIO.abbreviation
 
         and: "Metrics processed across activities shouldn't be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[GEO_LOCATION_REQUESTS]
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
         assert !metrics[GEO_LOCATION_FAIL]

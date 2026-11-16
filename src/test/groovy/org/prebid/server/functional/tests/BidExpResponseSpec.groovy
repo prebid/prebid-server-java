@@ -8,12 +8,14 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
-import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
-import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
+import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
+import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 class BidExpResponseSpec extends BaseSpec {
 
@@ -23,22 +25,46 @@ class BidExpResponseSpec extends BaseSpec {
     private static final def VIDEO_TTL_DEFAULT_CACHE = PBSUtils.randomNumber
     private static final def AUDIO_TTL_DEFAULT_CACHE = PBSUtils.randomNumber
     private static final def NATIVE_TTL_DEFAULT_CACHE = PBSUtils.randomNumber
-    private static final Map<String, String> CACHE_TTL_HOST_CONFIG = ["cache.banner-ttl-seconds": BANNER_TTL_HOST_CACHE as String,
-                                                                      "cache.video-ttl-seconds" : VIDEO_TTL_HOST_CACHE as String]
-    private static final Map<String, String> DEFAULT_CACHE_TTL_CONFIG = ["cache.default-ttl-seconds.banner": BANNER_TTL_DEFAULT_CACHE as String,
-                                                                         "cache.default-ttl-seconds.video" : VIDEO_TTL_DEFAULT_CACHE as String,
-                                                                         "cache.default-ttl-seconds.native": NATIVE_TTL_DEFAULT_CACHE as String,
-                                                                         "cache.default-ttl-seconds.audio" : AUDIO_TTL_DEFAULT_CACHE as String]
-    private static final Map<String, String> EMPTY_CACHE_TTL_CONFIG = ["cache.default-ttl-seconds.banner": "",
-                                                                       "cache.default-ttl-seconds.video" : "",
-                                                                       "cache.default-ttl-seconds.native": "",
-                                                                       "cache.default-ttl-seconds.audio" : ""]
-    private static final Map<String, String> EMPTY_CACHE_TTL_HOST_CONFIG = ["cache.banner-ttl-seconds": "",
-                                                                            "cache.video-ttl-seconds" : ""]
-    private static def pbsOnlyHostCacheTtlService = pbsServiceFactory.getService(CACHE_TTL_HOST_CONFIG + EMPTY_CACHE_TTL_CONFIG)
-    private static def pbsEmptyTtlService = pbsServiceFactory.getService(EMPTY_CACHE_TTL_CONFIG + EMPTY_CACHE_TTL_HOST_CONFIG)
-    private static def pbsHostAndDefaultCacheTtlService = pbsServiceFactory.getService(CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG)
+    private static final PbsContainerConfig CACHE_TTL_HOST_CONFIG = new PbsContainerConfig([
+            "cache.banner-ttl-seconds": BANNER_TTL_HOST_CACHE,
+            "cache.video-ttl-seconds" : VIDEO_TTL_HOST_CACHE])
+    private static final PbsContainerConfig DEFAULT_CACHE_TTL_CONFIG = new PbsContainerConfig([
+            "cache.default-ttl-seconds.banner": BANNER_TTL_DEFAULT_CACHE,
+            "cache.default-ttl-seconds.video" : VIDEO_TTL_DEFAULT_CACHE,
+            "cache.default-ttl-seconds.native": NATIVE_TTL_DEFAULT_CACHE,
+            "cache.default-ttl-seconds.audio" : AUDIO_TTL_DEFAULT_CACHE])
+    private static final PbsContainerConfig EMPTY_CACHE_TTL_CONFIG = new PbsContainerConfig([
+            "cache.default-ttl-seconds.banner": "",
+            "cache.default-ttl-seconds.video" : "",
+            "cache.default-ttl-seconds.native": "",
+            "cache.default-ttl-seconds.audio" : ""])
+    private static final PbsContainerConfig EMPTY_CACHE_TTL_HOST_CONFIG = new PbsContainerConfig([
+            "cache.banner-ttl-seconds": "",
+            "cache.video-ttl-seconds" : ""])
 
+    private static final PbsContainerConfig ONLY_HOST_CACHE_TTL_CONFIG = CACHE_TTL_HOST_CONFIG + EMPTY_CACHE_TTL_CONFIG
+    private static final PbsContainerConfig EMPTY_TTL_CONFIG = EMPTY_CACHE_TTL_HOST_CONFIG + EMPTY_CACHE_TTL_CONFIG
+    private static final PbsContainerConfig HOST_AND_DEFAULT_CACHE_TTL_CONFIG = CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG
+    private static final PbsContainerConfig ONLY_DEFAULT_CACHE_TTL_CONFIG = EMPTY_CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG
+
+    private static PrebidServerService pbsOnlyHostCacheTtlService
+    private static PrebidServerService pbsEmptyTtlService
+    private static PrebidServerService pbsHostAndDefaultCacheTtlService
+    private static PrebidServerService pbsOnlyDefaultCacheTtlService
+
+    def setupSpec() {
+        pbsOnlyHostCacheTtlService = pbsServiceFactory.getService(ONLY_HOST_CACHE_TTL_CONFIG)
+        pbsEmptyTtlService = pbsServiceFactory.getService(EMPTY_TTL_CONFIG)
+        pbsHostAndDefaultCacheTtlService = pbsServiceFactory.getService(HOST_AND_DEFAULT_CACHE_TTL_CONFIG)
+        pbsOnlyDefaultCacheTtlService = pbsServiceFactory.getService(ONLY_DEFAULT_CACHE_TTL_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(ONLY_HOST_CACHE_TTL_CONFIG)
+        pbsServiceFactory.removeContainer(EMPTY_TTL_CONFIG)
+        pbsServiceFactory.removeContainer(HOST_AND_DEFAULT_CACHE_TTL_CONFIG)
+        pbsServiceFactory.removeContainer(ONLY_DEFAULT_CACHE_TTL_CONFIG)
+    }
 
     def "PBS auction should resolve bid.exp from response that is set by the bidder’s adapter"() {
         given: "Default basicResponse with exp"
@@ -614,11 +640,7 @@ class BidExpResponseSpec extends BaseSpec {
     }
 
     def "PBS auction should resolve bid.exp when cache.default-ttl-seconds.{banner,video,audio,native} is specified and no higher-priority fields are present"() {
-        given: "Prebid server with empty host config and default cache ttl config"
-        def config = EMPTY_CACHE_TTL_HOST_CONFIG + DEFAULT_CACHE_TTL_CONFIG
-        def prebidServerService = pbsServiceFactory.getService(config)
-
-        and: "Default bid request"
+        given: "Default bid request"
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             imp[0] = Imp.getDefaultImpression(mediaType)
         }
@@ -628,13 +650,10 @@ class BidExpResponseSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        def response = pbsOnlyDefaultCacheTtlService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain exp data"
         assert response.seatbid.first.bid.first.exp == bidExpValue
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(config)
 
         where:
         mediaType | bidExpValue

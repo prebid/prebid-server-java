@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
@@ -41,8 +42,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
     private static final String ERROR_BID_CODE_VALIDATION = "BidId `%s` validation messages: " +
             "Error: invalid bidder code %s was set by the adapter %s for the account %s"
     private static final String INVALID_BIDDER_CODE_LOGS = "invalid bidder code %s was set by the adapter %s for the account %s"
-    private static final Map AMX_CONFIG = ["adapters.amx.enabled" : "true",
-                                           "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final PbsContainerConfig AMX_CONFIG = new PbsContainerConfig(["adapters.amx.enabled" : "true",
+                                           "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
     @Shared
     private static final PrebidServerService pbsServiceWithAmxBidder = pbsServiceFactory.getService(AMX_CONFIG)
 
@@ -634,7 +635,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert exception.responseBody == "Invalid request format: " +
                 "request.ext.prebid.alternatebiddercodes.bidders.unknown is not a known bidder or alias"
 
-
         where:
         requestedAlternateBidderCodes << [new AlternateBidderCodes(bidders: [(UNKNOWN): new CodesBidderConfig()]),
                                           new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new CodesBidderConfig()]),
@@ -1159,9 +1159,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Alert.general metric shouldn't be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(config)
     }
 
     def "PBS should discard the bid and emit a response warning when request alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
@@ -1330,9 +1327,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-
         where:
         allowedBidderCodes << [BOGUS, UNKNOWN]
     }
@@ -1387,9 +1381,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS shouldn't emit validation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allow and soft alias with case"() {
@@ -1574,9 +1565,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS shouldn't emit validation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should populate two seat bid when different bidder response with same seat"() {

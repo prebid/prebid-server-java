@@ -4,6 +4,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
@@ -23,7 +24,7 @@ class StorageBaseSpec extends BaseSpec {
         s3Service.deleteBucket(DEFAULT_BUCKET)
     }
 
-    protected static Map<String, String> s3StorageConfig = [
+    protected static PbsContainerConfig s3StorageConfig = new PbsContainerConfig([
             'settings.s3.accessKeyId'         : s3Service.accessKeyId,
             'settings.s3.secretAccessKey'     : s3Service.secretKeyId,
             'settings.s3.endpoint'            : s3Service.endpoint,
@@ -33,10 +34,9 @@ class StorageBaseSpec extends BaseSpec {
             'settings.s3.accounts-dir'        : S3Service.DEFAULT_ACCOUNT_DIR,
             'settings.s3.stored-imps-dir'     : S3Service.DEFAULT_IMPS_DIR,
             'settings.s3.stored-requests-dir' : S3Service.DEFAULT_REQUEST_DIR,
-            'settings.s3.stored-responses-dir': S3Service.DEFAULT_RESPONSE_DIR,
-    ]
+            'settings.s3.stored-responses-dir': S3Service.DEFAULT_RESPONSE_DIR])
 
-    protected static Map<String, String> mySqlDisabledConfig =
+    protected static PbsContainerConfig mySqlDisabledConfig = new PbsContainerConfig(
             ['settings.database.type'                     : null,
              'settings.database.host'                     : null,
              'settings.database.port'                     : null,
@@ -48,9 +48,7 @@ class StorageBaseSpec extends BaseSpec {
              'settings.database.account-query'            : null,
              'settings.database.stored-requests-query'    : null,
              'settings.database.amp-stored-requests-query': null,
-             'settings.database.stored-responses-query'   : null
-            ].asImmutable() as Map<String, String>
-
+             'settings.database.stored-responses-query'   : null])
 
     protected PrebidServerService s3StoragePbsService = PbsServiceFactory.getService(s3StorageConfig + mySqlDisabledConfig)
 }

@@ -6,10 +6,10 @@ import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
-import spock.lang.Shared
 
 import java.time.Clock
 import java.time.ZonedDateTime
@@ -21,9 +21,9 @@ import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.GRID
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
-import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
@@ -42,13 +42,14 @@ class SetUidSpec extends BaseSpec {
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final String GENERIC_COOKIE_FAMILY_NAME = GENERIC.value
     private static final String VENDOR_ID = PBSUtils.randomNumber as String
-    private static final Map<String, String> UID_COOKIES_CONFIG = ['setuid.number-of-uid-cookies': MAX_NUMBER_OF_UID_COOKIES.toString()]
-    private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled"          : "true",
-                                                                     "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
-                                                                     "adapters.generic.aliases.alias.endpoint"         : "$networkServiceContainer.rootUri/auction".toString()]
+    private static final PbsContainerConfig UID_COOKIES_CONFIG = new PbsContainerConfig(
+            ['setuid.number-of-uid-cookies': MAX_NUMBER_OF_UID_COOKIES.toString()])
+    private static final PbsContainerConfig GENERIC_ALIAS_CONFIG = new PbsContainerConfig(["adapters.generic.aliases.alias.enabled"            : "true",
+                                                                                           "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
+                                                                                           "adapters.generic.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()])
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
-    private static final Map<String, String> PBS_CONFIG =
+    private static final PbsContainerConfig PBS_CONFIG = new PbsContainerConfig(
             ["host-cookie.max-cookie-size-bytes"                                                       : MAX_COOKIE_SIZE as String,
 
              "adapters.${MAGNITE.value}.enabled"                                                       : "true",
@@ -83,12 +84,25 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.meta-info.vendor-id"                          : VENDOR_ID,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.cookie-family-name"                  : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.uid-macro"   : ""]
+             "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.uid-macro"   : ""])
 
-    @Shared
-    PrebidServerService singleCookiesPbsService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_ALIAS_CONFIG)
-    @Shared
-    PrebidServerService multipleCookiesPbsService = pbsServiceFactory.getService(PBS_CONFIG + UID_COOKIES_CONFIG + GENERIC_ALIAS_CONFIG)
+    private static final PbsContainerConfig SINGLE_COOKIES_CONFIG = PBS_CONFIG + GENERIC_ALIAS_CONFIG
+    private static final PbsContainerConfig MULTIPLE_COOKIES_CONFIG = SINGLE_COOKIES_CONFIG + UID_COOKIES_CONFIG
+    private static final PbsContainerConfig PRIORITIZED_GENERIC_CONFIG = PBS_CONFIG + ['cookie-sync.pri': GENERIC.value]
+
+    private static PrebidServerService singleCookiesPbsService
+    private static PrebidServerService multipleCookiesPbsService
+
+    def setupSpec() {
+        singleCookiesPbsService = pbsServiceFactory.getService(SINGLE_COOKIES_CONFIG)
+        multipleCookiesPbsService = pbsServiceFactory.getService(MULTIPLE_COOKIES_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(SINGLE_COOKIES_CONFIG)
+        pbsServiceFactory.removeContainer(MULTIPLE_COOKIES_CONFIG)
+        pbsServiceFactory.removeContainer(PRIORITIZED_GENERIC_CONFIG)
+    }
 
     def "PBS should set uids cookie"() {
         given: "Default SetuidRequest"
@@ -195,7 +209,7 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS setuid should remove most distant expiration bidder when size is full"() {
         given: "PBS config"
-        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": GENERIC.value]
+        def pbsConfig = PRIORITIZED_GENERIC_CONFIG
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Setuid request"
@@ -219,9 +233,6 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[MAGNITE]
         assert response.uidsCookie.tempUIDs[GENERIC]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS setuid should ignore requested bidder and log metric when cookie's filled and requested bidder not in prioritize list"() {
@@ -291,7 +302,7 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS setuid should remove most distant expiration uid and log metric when cookie's filled and this uid's not on the pri"() {
         given: "PBS config"
-        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": GENERIC.value]
+        def pbsConfig = PRIORITIZED_GENERIC_CONFIG
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Flush metrics"
@@ -317,9 +328,6 @@ class SetUidSpec extends BaseSpec {
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
         assert response.uidsCookie.tempUIDs[GENERIC]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS set uid should emit sizeblocked metric and remove most distant expiration bidder from uids cookie for non-prioritized bidder"() {
@@ -452,6 +460,9 @@ class SetUidSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 401
         assert exception.responseBody == 'Unauthorized: Sync is not allowed for this uids'
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should merge cookies when incoming request have multiple uids cookies"() {
@@ -479,12 +490,9 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS should send multiple uids cookies by priority and expiration timestamp"() {
         given: "PBS config"
-        def pbsConfig = PBS_CONFIG +
-                UID_COOKIES_CONFIG +
-                ["cookie-sync.pri": "$OPENX.value, $GENERIC.value" as String] +
-                ["host-cookie.max-cookie-size-bytes": MAX_COOKIE_SIZE as String]
+        def pbsConfig = PBS_CONFIG + UID_COOKIES_CONFIG +
+                ['cookie-sync.pri': "${OPENX.value}, ${GENERIC.value}"]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
-
 
         and: "Setuid request"
         def request = SetuidRequest.defaultSetuidRequest

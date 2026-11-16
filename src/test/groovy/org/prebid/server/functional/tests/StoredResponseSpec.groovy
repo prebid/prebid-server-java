@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -18,7 +19,11 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 class StoredResponseSpec extends BaseSpec {
 
-    private final PrebidServerService pbsService = pbsServiceFactory.getService(["cache.default-ttl-seconds.banner": ""])
+    private static PrebidServerService pbsService
+
+    def setupSpec() {
+        pbsService = pbsServiceFactory.getService(new PbsContainerConfig(["cache.default-ttl-seconds.banner": ""]))
+    }
 
     @PendingFeature
     def "PBS should not fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {

@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests
+package org.prebid.server.functional.tests.bidder
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -18,9 +18,10 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
+import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
@@ -32,8 +33,15 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.GENE
 
 class BidderFormatSpec extends BaseSpec {
 
-    @Shared
     private static final RANDOM_NUMBER = PBSUtils.randomNumber
+
+    private static final PbsContainerConfig BANNER_DEFAULT_CONFIG = new PbsContainerConfig(['auction.validations.banner-creative-max-size': null])
+    private static final PbsContainerConfig BANNER_WARN_CONFIG = BANNER_DEFAULT_CONFIG + ['auction.validations.banner-creative-max-size': WARN.value]
+    private static final PbsContainerConfig BANNER_SKIP_CONFIG = BANNER_DEFAULT_CONFIG + ['auction.validations.banner-creative-max-size': SKIP.value]
+    private static final PbsContainerConfig BANNER_ENFORCE_CONFIG = BANNER_DEFAULT_CONFIG + ['auction.validations.banner-creative-max-size': ENFORCE.value]
+    private static final PbsContainerConfig SECURE_WARN_CONFIG = new PbsContainerConfig(['auction.validations.secure-markup': WARN.value])
+    private static final PbsContainerConfig SECURE_SKIP_CONFIG = new PbsContainerConfig(['auction.validations.secure-markup': SKIP.value])
+    private static final PbsContainerConfig SECURE_ENFORCE_CONFIG = new PbsContainerConfig(['auction.validations.secure-markup': ENFORCE.value])
 
     def "PBS should successfully pass when banner.format width and height is valid"() {
         given: "Default bid request with banner format"
@@ -156,7 +164,7 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit error and metrics when banner-creative-max-size: warn and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -212,18 +220,18 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
-        null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                  | WARN.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        WARN                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        WARN                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        WARN                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        accountCretiveMaxSize | pbsConfig             | responseWidth     | responseHeight
+        null                  | BANNER_WARN_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                  | BANNER_WARN_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                  | BANNER_WARN_CONFIG    | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        WARN                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        WARN                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        WARN                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
     def "PBS shouldn't emit error and metrics when banner-creative-max-size: skip and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -250,6 +258,9 @@ class BidderFormatSpec extends BaseSpec {
         def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsService)
+
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
@@ -270,24 +281,21 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSizeSnakeCase | accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
-        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                           | null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        null                           | SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                           | SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                           | SKIP                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                           | null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        SKIP                           | null                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        SKIP                           | null                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        SKIP                           | null                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        accountCretiveMaxSizeSnakeCase | accountCretiveMaxSize | pbsConfig             | responseWidth     | responseHeight
+        null                           | null                  | BANNER_SKIP_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                           | null                  | BANNER_SKIP_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                           | null                  | BANNER_SKIP_CONFIG    | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        null                           | SKIP                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                           | SKIP                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                           | SKIP                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        SKIP                           | null                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        SKIP                           | null                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        SKIP                           | null                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
     def "PBS should emit error and metrics and remove bid response from consideration when banner-creative-max-size: enforce and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -314,7 +322,7 @@ class BidderFormatSpec extends BaseSpec {
         def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
-        and:
+        and: "Flush metrics"
         flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
@@ -341,18 +349,18 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
-        null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                  | ENFORCE.value         | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        ENFORCE               | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        ENFORCE               | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        ENFORCE               | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        accountCretiveMaxSize | pbsConfig             | responseWidth     | responseHeight
+        null                  | BANNER_ENFORCE_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                  | BANNER_ENFORCE_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                  | BANNER_ENFORCE_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
-    def "PBS shouldn't emit error and metrics when banner-creative-max-size #configCreativeMaxSize and bid response W or H is same that request W or H"() {
+    def "PBS shouldn't emit error and metrics when bid response dimensions match banner format with configured max-size enforcement"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -377,6 +385,9 @@ class BidderFormatSpec extends BaseSpec {
         def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsService)
+
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
@@ -397,18 +408,18 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize
-        null                  | SKIP.value
-        SKIP                  | null
-        ENFORCE               | null
-        null                  | ENFORCE.value
-        WARN                  | null
-        null                  | WARN.value
+        accountCretiveMaxSize | pbsConfig
+        null                  | BANNER_SKIP_CONFIG
+        SKIP                  | BANNER_DEFAULT_CONFIG
+        ENFORCE               | BANNER_DEFAULT_CONFIG
+        null                  | BANNER_ENFORCE_CONFIG
+        WARN                  | BANNER_DEFAULT_CONFIG
+        null                  | BANNER_WARN_CONFIG
     }
 
-    def "PBS shouldn't emit error and metrics when media type isn't banner and banner-creative-max-size #configCreativeMaxSize and bid response W or H is larger that request W or H"() {
+    def "PBS shouldn't emit error and metrics when media type is not banner regardless of configured banner max-size enforcement"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with video W and H"
         def storedResponseId = PBSUtils.randomNumber
@@ -433,6 +444,9 @@ class BidderFormatSpec extends BaseSpec {
         def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(pbsService)
+
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
@@ -451,30 +465,30 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
-        null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                  | ENFORCE.value         | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        ENFORCE               | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        ENFORCE               | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        ENFORCE               | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        SKIP                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                  | WARN.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        WARN                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        WARN                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        WARN                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        accountCretiveMaxSize | pbsConfig             | responseWidth     | responseHeight
+        null                  | BANNER_ENFORCE_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                  | BANNER_ENFORCE_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                  | BANNER_ENFORCE_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        null                  | BANNER_SKIP_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                  | BANNER_SKIP_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                  | BANNER_SKIP_CONFIG    | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        SKIP                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        SKIP                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        SKIP                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        null                  | BANNER_WARN_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                  | BANNER_WARN_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                  | BANNER_WARN_CONFIG    | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        WARN                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        WARN                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        WARN                  | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
     def "PBS should emit error and metrics and remove bid response from consideration and account value should take precedence over host when banner-creative-max-size enforce and bid response W or H is larger that request W or H"() {
         given: "PBS with banner creative max size"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.banner-creative-max-size": configCreativeMaxSize])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
@@ -501,7 +515,7 @@ class BidderFormatSpec extends BaseSpec {
         def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
-        and:
+        and: "Flush metrics"
         flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
@@ -528,22 +542,22 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
-        ENFORCE               | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        ENFORCE               | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        ENFORCE               | WARN.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        ENFORCE               | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        ENFORCE               | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        ENFORCE               | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        ENFORCE               | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        ENFORCE               | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        ENFORCE               | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        accountCretiveMaxSize | pbsConfig             | responseWidth     | responseHeight
+        ENFORCE               | BANNER_WARN_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_WARN_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        ENFORCE               | BANNER_WARN_CONFIG    | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        ENFORCE               | BANNER_DEFAULT_CONFIG | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_SKIP_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        ENFORCE               | BANNER_SKIP_CONFIG    | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        ENFORCE               | BANNER_SKIP_CONFIG    | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
     @PendingFeature(reason = "Waiting for confirmation")
-    def "PBS shouldn't make a validation for audio media type when secure is #secure and secure markUp is #secureMarkup"() {
-        given: "PBS with secure-markUp: #secureMarkup"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": secureMarkup])
+    def "PBS shouldn't make a validation for audio media type when secure is #secure and configured secure-markup"() {
+        given: "PBS with secure-markup configuration"
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Audio bid request"
         def storedResponseId = PBSUtils.randomNumber
@@ -561,6 +575,9 @@ class BidderFormatSpec extends BaseSpec {
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -582,18 +599,18 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        secure     | secureMarkup
-        SECURE     | SKIP.value
-        SECURE     | ENFORCE.value
-        SECURE     | WARN.value
-        NON_SECURE | SKIP.value
-        NON_SECURE | ENFORCE.value
-        NON_SECURE | WARN.value
+        secure     | pbsConfig
+        SECURE     | SECURE_SKIP_CONFIG
+        SECURE     | SECURE_ENFORCE_CONFIG
+        SECURE     | SECURE_WARN_CONFIG
+        NON_SECURE | SECURE_SKIP_CONFIG
+        NON_SECURE | SECURE_ENFORCE_CONFIG
+        NON_SECURE | SECURE_WARN_CONFIG
     }
 
     def "PBS should emit metrics and error when imp[0].secure = 1 and config WARN and bid response adm contain #url"() {
         given: "PBS with secure-markUp: warn"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": WARN.value])
+        def pbsService = pbsServiceFactory.getService(SECURE_WARN_CONFIG)
 
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
@@ -616,6 +633,9 @@ class BidderFormatSpec extends BaseSpec {
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -651,7 +671,7 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit metrics and error when imp[0].secure = 1, banner and config SKIP and bid response adm contain #url"() {
         given: "PBS with secure-markUp: skip"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": SKIP.value])
+        def pbsService = pbsServiceFactory.getService(SECURE_SKIP_CONFIG)
 
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
@@ -669,6 +689,9 @@ class BidderFormatSpec extends BaseSpec {
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -701,7 +724,7 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS should emit metrics and error and remove bid response when imp[0].secure = 1, banner and config ENFORCE and bid response adm contain #url"() {
         given: "PBS with secure-markUp: enforce"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": ENFORCE.value])
+        def pbsService = pbsServiceFactory.getService(SECURE_ENFORCE_CONFIG)
 
         and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
@@ -724,6 +747,9 @@ class BidderFormatSpec extends BaseSpec {
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -759,8 +785,7 @@ class BidderFormatSpec extends BaseSpec {
 
     def "PBS shouldn't emit errors and metrics when imp[0].secure = #secure and bid response adm contain #url"() {
         given: "PBS with secure-markUp"
-        def pbsService = pbsServiceFactory
-                .getService(["auction.validations.secure-markup": secureMarkup])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with secure"
         def storedResponseId = PBSUtils.randomNumber
@@ -777,6 +802,9 @@ class BidderFormatSpec extends BaseSpec {
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -798,21 +826,21 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        url       | secure     | secureMarkup
-        "http%3A" | NON_SECURE | SKIP.value
-        "http"    | NON_SECURE | SKIP.value
-        "https"   | SECURE     | SKIP.value
-        "http%3A" | NON_SECURE | WARN.value
-        "http"    | NON_SECURE | WARN.value
-        "https"   | SECURE     | WARN.value
-        "http%3A" | NON_SECURE | ENFORCE.value
-        "http"    | NON_SECURE | ENFORCE.value
-        "https"   | SECURE     | ENFORCE.value
+        url       | secure     | pbsConfig
+        "http%3A" | NON_SECURE | SECURE_SKIP_CONFIG
+        "http"    | NON_SECURE | SECURE_SKIP_CONFIG
+        "https"   | SECURE     | SECURE_SKIP_CONFIG
+        "http%3A" | NON_SECURE | SECURE_WARN_CONFIG
+        "http"    | NON_SECURE | SECURE_WARN_CONFIG
+        "https"   | SECURE     | SECURE_WARN_CONFIG
+        "http%3A" | NON_SECURE | SECURE_ENFORCE_CONFIG
+        "http"    | NON_SECURE | SECURE_ENFORCE_CONFIG
+        "https"   | SECURE     | SECURE_ENFORCE_CONFIG
     }
 
-    def "PBS should ignore specified secureMarkup #secureMarkup validation when secure is 0"() {
+    def "PBS should ignore specified secure-markup validation when secure is 0"() {
         given: "PBS with secure-markUp"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": secureMarkup])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with stored bid response and secure"
         def storedResponseId = PBSUtils.randomNumber
@@ -830,6 +858,9 @@ class BidderFormatSpec extends BaseSpec {
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -849,16 +880,16 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        secureMarkup  | url
-        WARN.value    | "http"
-        WARN.value    | "http%3A"
-        WARN.value    | "https"
-        ENFORCE.value | "http"
-        ENFORCE.value | "http%3A"
-        ENFORCE.value | "https"
-        SKIP.value    | "https"
-        SKIP.value    | "http%3A"
-        SKIP.value    | "https"
+        pbsConfig             | url
+        SECURE_WARN_CONFIG    | "http"
+        SECURE_WARN_CONFIG    | "http%3A"
+        SECURE_WARN_CONFIG    | "https"
+        SECURE_ENFORCE_CONFIG | "http"
+        SECURE_ENFORCE_CONFIG | "http%3A"
+        SECURE_ENFORCE_CONFIG | "https"
+        SECURE_SKIP_CONFIG    | "https"
+        SECURE_SKIP_CONFIG    | "http%3A"
+        SECURE_SKIP_CONFIG    | "http"
     }
 
     private static Account getAccountWithSpecifiedBannerMax(String accountId, BidValidationEnforcement bannerMaxSizeEnforcement) {

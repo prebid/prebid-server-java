@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy.tcf
 
-
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.privacy.TcfUtils
@@ -21,7 +20,7 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
     private static PrebidServerService privacyPbsServiceWithMultipleGvl
 
     def setupSpec() {
-        privacyPbsServiceWithMultipleGvl = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG, GLV_LISTS_FILES)
+        privacyPbsServiceWithMultipleGvl = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG.withFiles(GVL_LISTS_FILES))
     }
 
     def cleanupSpec() {

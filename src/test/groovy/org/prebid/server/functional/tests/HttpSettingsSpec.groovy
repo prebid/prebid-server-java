@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.apache.http.HttpStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.db.StoredRequest
@@ -14,6 +13,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
@@ -25,19 +25,26 @@ import static org.prebid.server.functional.testcontainers.Dependencies.networkSe
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.
 
-    static PrebidServerService prebidServerService
-    static PrebidServerService prebidServerServiceWithRfc
+    private static PrebidServerService prebidServerService
+    private static PrebidServerService prebidServerServiceWithRfc
 
     private static final String rfcEndpoint = "/stored-requests-rfc"
     private static final HttpSettings httpSettings = new HttpSettings(networkServiceContainer)
     private static final HttpSettings httpSettingsWithRfc = new HttpSettings(networkServiceContainer, rfcEndpoint)
-    private static final Map<String, String> PBS_CONFIG_WITH_RFC = new HashMap<>(PbsConfig.httpSettingsConfig) +
+
+    private static final PbsContainerConfig HTTP_SETTINGS_CONFIG = new PbsContainerConfig(PbsConfig.httpSettingsConfig)
+    private static final PbsContainerConfig HTTP_SETTINGS_RFC_CONFIG = HTTP_SETTINGS_CONFIG +
             ['settings.http.endpoint'          : "${networkServiceContainer.rootUri}${rfcEndpoint}".toString(),
              'settings.http.rfc3986-compatible': 'true']
 
     def setupSpec() {
-        prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
-        prebidServerServiceWithRfc = pbsServiceFactory.getService(PBS_CONFIG_WITH_RFC)
+        prebidServerService = pbsServiceFactory.getService(HTTP_SETTINGS_CONFIG)
+        prebidServerServiceWithRfc = pbsServiceFactory.getService(HTTP_SETTINGS_RFC_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(HTTP_SETTINGS_CONFIG)
+        pbsServiceFactory.removeContainer(HTTP_SETTINGS_RFC_CONFIG)
     }
 
     def "PBS should take account information from http data source on auction request"() {
@@ -190,10 +197,10 @@ class HttpSettingsSpec extends BaseSpec {
 
     def "PBS should take account information from http data source on setuid request"() {
         given: "Pbs config with adapters.generic.usersync.redirect.*"
-        def pbsConfig = PbsConfig.httpSettingsConfig +
-                ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
-                 "adapters.generic.usersync.redirect.format-override": "blank"]
-        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+        def config = HTTP_SETTINGS_CONFIG +
+                ['adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
+                 'adapters.generic.usersync.redirect.format-override': 'blank']
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
@@ -206,7 +213,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(request.account, httpSettingsResponse)
 
         when: "PBS processes setuid request"
-        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+        def response = pbsService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain tempUIDs cookie"
         assert !response.uidsCookie.uids
@@ -217,18 +224,16 @@ class HttpSettingsSpec extends BaseSpec {
         and: "There should be only one account request"
         assert httpSettings.getRequestCount(request.account) == 1
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
+        cleanup:
+        pbsServiceFactory.removeContainer(config)
     }
 
     def "PBS should take account information from http data source on setuid request when rfc3986 enabled"() {
         given: "Pbs config with adapters.generic.usersync.redirect.*"
-        def pbsConfig = new HashMap<>(PbsConfig.httpSettingsConfig) +
-                ['settings.http.endpoint'                            : "${networkServiceContainer.rootUri}${rfcEndpoint}".toString(),
-                 'settings.http.rfc3986-compatible'                  : 'true',
-                 'adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
+        def config = HTTP_SETTINGS_RFC_CONFIG +
+                ['adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                  'adapters.generic.usersync.redirect.format-override': 'blank']
-        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
@@ -241,7 +246,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettingsWithRfc.setRfcResponse(request.account, httpSettingsResponse)
 
         when: "PBS processes setuid request"
-        def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
+        def response = pbsService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain tempUIDs cookie"
         assert !response.uidsCookie.uids
@@ -252,8 +257,8 @@ class HttpSettingsSpec extends BaseSpec {
         and: "There should be only one account request"
         assert httpSettingsWithRfc.getRfcRequestCount(request.account) == 1
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
+        cleanup:
+        pbsServiceFactory.removeContainer(config)
     }
 
     def "PBS should take account information from http data source on vtrack request"() {

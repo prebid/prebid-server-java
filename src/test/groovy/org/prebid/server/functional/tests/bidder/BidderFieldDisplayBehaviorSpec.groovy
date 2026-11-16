@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests
+package org.prebid.server.functional.tests.bidder
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.Generic
@@ -42,13 +42,14 @@ import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
 import org.prebid.server.functional.model.request.auction.UserTime
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse.defaultConversionRates
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER

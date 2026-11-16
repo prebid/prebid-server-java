@@ -10,14 +10,15 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.AnalyticTagStatus
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
-import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
@@ -25,16 +26,16 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
     public static final BigDecimal FLOOR_MAX = 2
-    public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled": "true"]
+    public static final PbsContainerConfig FLOORS_CONFIG = new PbsContainerConfig(["price-floors.enabled": "true"])
 
     protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
 
@@ -136,7 +137,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     protected void cacheFloorsProviderRules(BidRequest bidRequest,
                                             PrebidServerService pbsService = floorsPbsService,
                                             BidderName bidderName = BidderName.GENERIC,
-                                            FetchStatus fetchStatus = INPROGRESS) {
+                                            AnalyticTagStatus fetchStatus = INPROGRESS) {
         PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != fetchStatus },
                 5000,
                 1000)

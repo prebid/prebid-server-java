@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.CurrencyUtil
 
@@ -18,12 +19,17 @@ import static org.prebid.server.functional.util.CurrencyUtil.DEFAULT_CURRENCY
 
 class CurrencySpec extends BaseSpec {
 
+    private static final PbsContainerConfig PBS_CONFIG = new PbsContainerConfig(PbsConfig.currencyConverterConfig)
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
     private static PrebidServerService pbsService
 
     def setupSpec() {
         currencyConversion.setCurrencyConversionRatesResponse()
-        pbsService = pbsServiceFactory.getService(PbsConfig.currencyConverterConfig)
+        pbsService = pbsServiceFactory.getService(PBS_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
     }
 
     def "PBS should return currency rates"() {
