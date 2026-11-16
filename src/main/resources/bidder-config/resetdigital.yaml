@@ -1,6 +1,6 @@
 adapters:
   resetdigital:
-    endpoint: https://ads.resetsrv.com/RTB
+    endpoint: https://adsreq.resetdigital.co/RTB
     meta-info:
       maintainer-email: biddersupport@resetdigital.co
       app-media-types:
