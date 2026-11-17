@@ -14,17 +14,20 @@
       },
       "ext": {
         "bidder": {
-          "bid_token": "bid_token",
           "app_store_id": "app_store_id",
           "placement_reference_id": "placement_reference_id"
         },
         "vungle": {
+          "bid_token": "bid_token",
           "app_store_id": "app_store_id",
           "placement_reference_id": "placement_reference_id"
         }
       }
     }
   ],
+  "user": {
+    "buyeruid": "bid_token"
+  },
   "source": {
     "tid": "${json-unit.any-string}"
   },

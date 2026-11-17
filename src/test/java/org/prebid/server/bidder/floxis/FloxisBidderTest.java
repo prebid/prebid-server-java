@@ -172,6 +172,49 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldIgnoreRegionAndPartnerWhenAliasEndpointDeclaresNoHostMacro() {
+        // given
+        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "eu", "acme")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://hb.adapex.io/pbs?seat=abc");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRouteOnceWhenImpsDifferOnlyInRegionAndPartnerOnAliasEndpoint() {
+        // given
+        final FloxisBidder bidder = new FloxisBidder("https://hb.adapex.io/pbs?seat={SeatId}", jacksonMapper);
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-a", "eu"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-a", "apac", "acme"))),
+                        givenImp(imp -> imp.id("imp-3").ext(givenImpExt("seat-b", "eu")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getUri, request -> request.getPayload().getImp().stream()
+                        .map(Imp::getId)
+                        .toList())
+                .containsExactly(
+                        tuple("https://hb.adapex.io/pbs?seat=seat-a", asList("imp-1", "imp-2")),
+                        tuple("https://hb.adapex.io/pbs?seat=seat-b", singletonList("imp-3")));
+    }
+
+    @Test
     public void makeHttpRequestsShouldRouteOnceAndForwardAllImpsWhenSeatAndRegionMatch() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -537,22 +580,34 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenBidImpIdNotFound() throws Exception {
+    public void makeBidsShouldReturnErrorWhenBidImpIdIsNotInOutgoingRequest() throws Exception {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp-1").banner(Banner.builder().build()).build()))
+                .imp(asList(givenImp(imp -> imp.id("imp-1")), givenImp(imp -> imp.id("imp-2"))))
                 .build();
-        final BidResponse bidResponse = givenBidResponse(Bid.builder().impid("no-such-imp").build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+        final BidRequest outgoingRequest = bidRequest.toBuilder()
+                .imp(singletonList(bidRequest.getImp().getFirst()))
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(asList(
+                                Bid.builder().impid("imp-1").mtype(1).build(),
+                                Bid.builder().impid("imp-2").mtype(1).build()))
+                        .build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(outgoingRequest, mapper.writeValueAsString(bidResponse));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse(
-                        "unable to find impression no-such-imp for bid"));
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getImpid)
+                .containsExactly("imp-1");
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("unable to find impression imp-2 for bid"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

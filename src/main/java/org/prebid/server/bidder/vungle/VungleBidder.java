@@ -59,11 +59,16 @@ public class VungleBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
+        final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
+        if (StringUtils.isBlank(buyerId)) {
+            return Result.withError(BidderError.badInput("missing bidder token in user.buyeruid"));
+        }
+
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final Price price = resolveBidFloor(imp, bidRequest);
                 final VungleImpressionExt impExt = parseImpExt(imp);
-                final VungleImpressionExt modifiedImpExt = modifyImpExt(impExt, bidRequest);
+                final VungleImpressionExt modifiedImpExt = modifyImpExt(impExt, buyerId);
                 final Imp modifiedImp = modifyImp(imp, modifiedImpExt, price);
                 final BidRequest modifiedRequest = modifyBidRequest(
                         bidRequest,
@@ -95,9 +100,8 @@ public class VungleBidder implements Bidder<BidRequest> {
         return mapper.mapper().convertValue(imp.getExt(), VungleImpressionExt.class);
     }
 
-    private static VungleImpressionExt modifyImpExt(VungleImpressionExt impExt, BidRequest bidRequest) {
+    private static VungleImpressionExt modifyImpExt(VungleImpressionExt impExt, String buyerId) {
         final ExtImpVungle bidder = impExt.getBidder();
-        final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
         final ExtImpVungle vungle = ExtImpVungle.of(
                 buyerId,
                 bidder.getAppStoreId(),
