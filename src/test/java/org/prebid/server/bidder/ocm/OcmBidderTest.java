@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -112,7 +111,7 @@ public class OcmBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReportPublisherIdFirstWhenBothParamsAreBlank() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").ext(givenImpExt(null, null))));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").ext(givenImpExt(" ", " "))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -322,34 +321,7 @@ public class OcmBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetDoohPublisherIdAndRemoveParentAccount() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.dooh(Dooh.builder()
-                        .name("billboard")
-                        .publisher(Publisher.builder()
-                                .id("host-publisher")
-                                .ext(ExtPublisher.of(ExtPublisherPrebid.of("host-account")))
-                                .build())
-                        .build()),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getDooh)
-                .containsExactly(Dooh.builder()
-                        .name("billboard")
-                        .publisher(Publisher.builder().id("publisher-1").build())
-                        .build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetPublisherIdOnEveryChannelPresent() {
+    public void makeHttpRequestsShouldSetPublisherIdOnBothSiteAndApp() {
         // given
         final Publisher hostPublisher = Publisher.builder()
                 .id("host-publisher")
@@ -358,8 +330,7 @@ public class OcmBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
                         .site(Site.builder().domain("example.gr").publisher(hostPublisher).build())
-                        .app(App.builder().bundle("com.example.app").publisher(hostPublisher).build())
-                        .dooh(Dooh.builder().name("billboard").publisher(hostPublisher).build()),
+                        .app(App.builder().bundle("com.example.app").publisher(hostPublisher).build()),
                 givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
 
         // when
@@ -372,9 +343,8 @@ public class OcmBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(
                         payload -> payload.getSite().getPublisher(),
-                        payload -> payload.getApp().getPublisher(),
-                        payload -> payload.getDooh().getPublisher())
-                .containsExactly(tuple(expectedPublisher, expectedPublisher, expectedPublisher));
+                        payload -> payload.getApp().getPublisher())
+                .containsExactly(tuple(expectedPublisher, expectedPublisher));
     }
 
     @Test
@@ -624,15 +594,13 @@ public class OcmBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().publisher(publisher).build())
                         .user(user)
-                        .ext(requestExt)
-                        .tmax(1000L),
+                        .ext(requestExt),
                 givenImp(imp -> imp.id("imp1").ext(impExt)));
 
         // when
         target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(bidRequest.getTmax()).isEqualTo(1000L);
         assertThat(bidRequest.getUser()).isSameAs(user);
         assertThat(user.getId()).isEqualTo("host-user-id");
         assertThat(user.getBuyeruid()).isEqualTo("ocm-uid");
@@ -663,169 +631,6 @@ public class OcmBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly(ENDPOINT_URL);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldDeductDefaultBufferFromTmax() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(1000L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(750L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldDeductCustomBufferFromTmax() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(1000L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1", 400))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(600L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotChangeTmaxWhenBufferIsZero() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(1000L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1", 0))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(1000L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseLargestBufferAcrossImps() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(1000L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1", 100))),
-                givenImp(imp -> imp.id("imp2").ext(givenImpExt("publisher-1", "placement-2"))),
-                givenImp(imp -> imp.id("imp3").ext(givenImpExt("publisher-1", "placement-3", 300))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(700L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldIgnoreNegativeBuffer() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(1000L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1", -100))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(750L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotReduceTmaxBelowBuffer() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(300L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(250L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldKeepTmaxWhenSmallerThanBuffer() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(200L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(200L);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldKeepTmaxWhenAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldKeepTmaxWhenZero() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.tmax(0L),
-                givenImp(imp -> imp.id("imp1").ext(givenImpExt("publisher-1", "placement-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getTmax)
-                .containsExactly(0L);
     }
 
     @Test
@@ -1276,11 +1081,7 @@ public class OcmBidderTest extends VertxTest {
     }
 
     private static ObjectNode givenImpExt(String publisherId, String placementId) {
-        return givenImpExt(publisherId, placementId, null);
-    }
-
-    private static ObjectNode givenImpExt(String publisherId, String placementId, Integer tmaxBufferMs) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpOcm.of(publisherId, placementId, tmaxBufferMs)));
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpOcm.of(publisherId, placementId)));
     }
 
     private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {

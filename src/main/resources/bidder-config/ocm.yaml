@@ -8,6 +8,9 @@ adapters:
     ortb-version: "2.6"
     endpoint: https://pbam.orangeclickmedia.com/openrtb2/auction
     endpoint-compression: gzip
+    # The endpoint spends the whole tmax it receives on its own bidders, so leave headroom for
+    # the round trip back and that server's response preparation.
+    tmax-deduction-ms: 250
     geoscope:
       - global
     ortb:

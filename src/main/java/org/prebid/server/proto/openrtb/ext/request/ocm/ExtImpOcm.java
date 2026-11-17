@@ -19,12 +19,4 @@ public class ExtImpOcm {
      */
     @JsonProperty("placementId")
     String placementId;
-
-    /**
-     * Deducted from the request tmax before it is forwarded. The OCM endpoint is itself a Prebid Server
-     * that would otherwise spend the whole budget on its own bidders, leaving no room for the round trip
-     * back. Null selects the adapter default; an explicit 0 disables the buffer.
-     */
-    @JsonProperty("tmaxBufferMs")
-    Integer tmaxBufferMs;
 }

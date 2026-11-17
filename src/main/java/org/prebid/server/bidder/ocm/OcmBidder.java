@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -61,12 +60,6 @@ public class OcmBidder implements Bidder<BidRequest> {
     private static final String ID_FIELD = "id";
     private static final String DEFAULT_CURRENCY = "USD";
 
-    /**
-     * Headroom deducted from tmax when no impression sets tmaxBufferMs. It covers the host's own
-     * processing, the round trip to the OCM endpoint and that endpoint's response preparation.
-     */
-    private static final long DEFAULT_TMAX_BUFFER_MS = 250L;
-
     private static final Set<BidType> SUPPORTED_BID_TYPES = Set.of(BidType.banner, BidType.video, BidType.xNative);
 
     private final String endpointUrl;
@@ -81,32 +74,24 @@ public class OcmBidder implements Bidder<BidRequest> {
      * Packs every impression into a single request. The publisherId param becomes the request-level
      * publisher id, so all impressions must agree on it; a divergent value is a misconfiguration
      * that rejects the whole request rather than a single impression.
-     * <p>
-     * The OCM endpoint is another Prebid Server, so tmax is reduced by a buffer before forwarding;
-     * see {@link #reduceTmax(Long, long)}.
      */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> modifiedImps = new ArrayList<>();
         String publisherId = null;
-        Integer tmaxBufferMs = null;
 
         for (Imp imp : request.getImp()) {
-            final ExtImpOcm extImpOcm;
             try {
-                extImpOcm = parseImpExt(imp);
+                final ExtImpOcm extImpOcm = parseImpExt(imp);
                 validateImpExt(extImpOcm, imp.getId());
                 publisherId = resolvePublisherId(publisherId, extImpOcm.getPublisherId(), imp.getId());
+                modifiedImps.add(modifyImp(imp, extImpOcm.getPlacementId()));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
-
-            tmaxBufferMs = resolveTmaxBufferMs(tmaxBufferMs, extImpOcm.getTmaxBufferMs());
-            modifiedImps.add(modifyImp(imp, extImpOcm.getPlacementId()));
         }
 
-        final long bufferMs = tmaxBufferMs != null ? tmaxBufferMs : DEFAULT_TMAX_BUFFER_MS;
-        final BidRequest modifiedRequest = modifyBidRequest(request, publisherId, bufferMs, modifiedImps);
+        final BidRequest modifiedRequest = modifyBidRequest(request, publisherId, modifiedImps);
         return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper));
     }
 
@@ -153,17 +138,6 @@ public class OcmBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * tmax is request-level, so the largest buffer any impression asks for wins: it errs toward
-     * answering before the host's deadline.
-     */
-    private static Integer resolveTmaxBufferMs(Integer tmaxBufferMs, Integer impTmaxBufferMs) {
-        if (impTmaxBufferMs == null || impTmaxBufferMs < 0) {
-            return tmaxBufferMs;
-        }
-        return tmaxBufferMs == null ? impTmaxBufferMs : Math.max(tmaxBufferMs, impTmaxBufferMs);
-    }
-
-    /**
      * Consumes imp.ext.bidder and records placementId as the impression's stored-request id, where
      * the OCM endpoint looks for it. The surrounding ext is merged rather than replaced so that
      * members this adapter knows nothing about survive the round trip.
@@ -184,23 +158,17 @@ public class OcmBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Writes publisherId to every distribution channel present rather than to just one: the OCM
-     * endpoint resolves its account from whichever channel it ranks first, so each one must name the
-     * OCM publisher.
+     * Writes publisherId to both site and app when present rather than to just one: the OCM endpoint
+     * resolves its account from whichever channel it ranks first, so each one must name the OCM
+     * publisher.
      */
-    private static BidRequest modifyBidRequest(BidRequest request,
-                                               String publisherId,
-                                               long tmaxBufferMs,
-                                               List<Imp> modifiedImps) {
-
+    private static BidRequest modifyBidRequest(BidRequest request, String publisherId, List<Imp> modifiedImps) {
         return request.toBuilder()
                 .imp(modifiedImps)
                 .user(modifyUser(request.getUser()))
-                .tmax(reduceTmax(request.getTmax(), tmaxBufferMs))
                 .ext(withoutHostOnlyData(request.getExt()))
                 .site(modifySite(request.getSite(), publisherId))
                 .app(modifyApp(request.getApp(), publisherId))
-                .dooh(modifyDooh(request.getDooh(), publisherId))
                 .build();
     }
 
@@ -217,23 +185,6 @@ public class OcmBidder implements Bidder<BidRequest> {
         }
 
         return user.toBuilder().id(buyeruid).buyeruid(null).build();
-    }
-
-    /**
-     * Reduces tmax by bufferMs. The receiving Prebid Server gives its own bidders the full tmax it is
-     * sent, so forwarding the host's value unchanged would land the response after the host's deadline
-     * by the round trip plus the downstream overhead. The result never exceeds the original tmax and,
-     * as long as the original allows it, never drops below the buffer, so a tight budget is not cut to
-     * nothing.
-     * <p>
-     * An absent or non-positive tmax means the request set none; it is forwarded unchanged so the
-     * receiving Prebid Server applies its own default.
-     */
-    private static Long reduceTmax(Long tmax, long bufferMs) {
-        if (tmax == null || tmax <= 0) {
-            return tmax;
-        }
-        return Math.min(Math.max(tmax - bufferMs, bufferMs), tmax);
     }
 
     /**
@@ -291,12 +242,6 @@ public class OcmBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private static Dooh modifyDooh(Dooh dooh, String publisherId) {
-        return dooh != null
-                ? dooh.toBuilder().publisher(modifyPublisher(dooh.getPublisher(), publisherId)).build()
-                : null;
-    }
-
     private static Publisher modifyPublisher(Publisher publisher, String publisherId) {
         return Optional.ofNullable(publisher)
                 .map(Publisher::toBuilder)
@@ -330,7 +275,7 @@ public class OcmBidder implements Bidder<BidRequest> {
      * not discard the rest of the seat.
      */
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final String body = httpCall.getResponse().getBody();
         if (StringUtils.isBlank(body)) {
             return Result.empty();
