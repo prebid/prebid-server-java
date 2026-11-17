@@ -2,6 +2,7 @@ package org.prebid.server.bidder.sellwild;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -89,9 +90,8 @@ public class SellwildBidder implements Bidder<BidRequest> {
         if (extImp == null) {
             throw new PreBidException("Missing bidder parameters for imp " + impId);
         }
-        if (StringUtils.isBlank(extImp.getPartnerCode())) {
-            throw new PreBidException("Missing partnerCode for imp " + impId);
-        }
+        // The bidder-params schema enforces partnerCode and a non-empty token, but a whitespace-only
+        // token passes the schema and can never authenticate.
         if (StringUtils.isBlank(extImp.getToken())) {
             throw new PreBidException("Missing token for imp " + impId);
         }
@@ -103,6 +103,13 @@ public class SellwildBidder implements Bidder<BidRequest> {
 
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
+
+        final Device device = request.getDevice();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
+                    StringUtils.defaultIfEmpty(device.getIp(), device.getIpv6()));
+        }
 
         return BidderUtil.defaultRequest(outgoingRequest, headers, uri, mapper);
     }

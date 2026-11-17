@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -85,16 +86,16 @@ public class SellwildBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenPartnerCodeIsBlank() {
+    public void makeHttpRequestsShouldReturnErrorWhenTokenIsBlank() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity(), ExtImpSellwild.of(" ", "token")));
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity(), ExtImpSellwild.of("partner", "   ")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing partnerCode for imp 123"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing token for imp 123"));
     }
 
     @Test
@@ -216,6 +217,44 @@ public class SellwildBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldForwardDeviceUserAgentAndIp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity())).toBuilder()
+                .device(Device.builder().ua("test-ua").ip("123.123.123.123").ipv6("2001:db8::1").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .allSatisfy(headers -> {
+                    assertThat(headers.get(HttpUtil.USER_AGENT_HEADER)).isEqualTo("test-ua");
+                    assertThat(headers.getAll(HttpUtil.X_FORWARDED_FOR_HEADER)).containsExactly("123.123.123.123");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldForwardDeviceIpv6WhenIpIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity())).toBuilder()
+                .device(Device.builder().ipv6("2001:db8::1").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .allSatisfy(headers -> {
+                    assertThat(headers.contains(HttpUtil.USER_AGENT_HEADER)).isFalse();
+                    assertThat(headers.getAll(HttpUtil.X_FORWARDED_FOR_HEADER)).containsExactly("2001:db8::1");
+                });
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(givenImp(identity())), "invalid");
@@ -299,6 +338,23 @@ public class SellwildBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(bidderBid -> bidderBid.getBid().getId())
                 .containsExactly("valid");
+    }
+
+    @Test
+    public void makeBidsShouldUseMtypeForMultiFormatImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(givenImp(imp -> imp.video(Video.builder().build()))),
+                givenBidResponse(givenBid("bid1", "123", 2)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(bidderBid -> bidderBid.getBid().getId(), BidderBid::getType)
+                .containsExactly(tuple("bid1", BidType.video));
     }
 
     @Test
