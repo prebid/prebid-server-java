@@ -111,20 +111,20 @@ public class OptableTargetingConfig {
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   JsonMerger jsonMerger,
-                                                  OptableTargetingFlowExecutor earlyOptableCallResolver,
+                                                  OptableTargetingFlowExecutor optableTargetingFlowExecutor,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingRawAuctionRequestHook(
                         configResolver,
-                        earlyOptableCallResolver,
+                        optableTargetingFlowExecutor,
                         logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
-                        earlyOptableCallResolver),
+                        optableTargetingFlowExecutor),
                 new OptableTargetingAsyncProcessedAuctionRequestHook(
                         configResolver,
-                        earlyOptableCallResolver,
+                        optableTargetingFlowExecutor,
                         logSamplingRate),
                 new OptableTargetingBidderRequestHook(),
                 new OptableTargetingAuctionResponseHook(ObjectMapperProvider.mapper(), jsonMerger)));

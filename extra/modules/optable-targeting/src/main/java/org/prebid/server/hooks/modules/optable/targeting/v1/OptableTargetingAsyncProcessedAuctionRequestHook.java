@@ -34,11 +34,11 @@ public class OptableTargetingAsyncProcessedAuctionRequestHook implements Process
     private final double logSamplingRate;
 
     public OptableTargetingAsyncProcessedAuctionRequestHook(ConfigResolver configResolver,
-                                                            OptableTargetingFlowExecutor earlyOptableCallResolver,
+                                                            OptableTargetingFlowExecutor optableTargetingFlowExecutor,
                                                             double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.optableTargetingFlowExecutor = Objects.requireNonNull(earlyOptableCallResolver);
+        this.optableTargetingFlowExecutor = Objects.requireNonNull(optableTargetingFlowExecutor);
         this.logSamplingRate = logSamplingRate;
     }
 

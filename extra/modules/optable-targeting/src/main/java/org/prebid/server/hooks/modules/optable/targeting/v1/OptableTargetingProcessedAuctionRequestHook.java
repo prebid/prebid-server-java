@@ -26,10 +26,10 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     private final OptableTargetingFlowExecutor optableTargetingFlowExecutor;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
-                                                        OptableTargetingFlowExecutor earlyOptableCallResolver) {
+                                                        OptableTargetingFlowExecutor optableTargetingFlowExecutor) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.optableTargetingFlowExecutor = Objects.requireNonNull(earlyOptableCallResolver);
+        this.optableTargetingFlowExecutor = Objects.requireNonNull(optableTargetingFlowExecutor);
     }
 
     @Override

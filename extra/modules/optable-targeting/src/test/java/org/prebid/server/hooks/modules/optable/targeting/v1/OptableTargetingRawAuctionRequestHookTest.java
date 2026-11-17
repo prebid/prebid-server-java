@@ -79,14 +79,14 @@ public class OptableTargetingRawAuctionRequestHookTest extends BaseOptableTest {
         targetingRequestExecutor = new TargetingRequestExecutor(
                 optableTargeting, userFpdActivityMask, ipAddressHelper, 0.01);
         target = new OptableTargetingRawAuctionRequestHook(
-                configResolver, givenEarlyOptableCallResolver(), 0.01);
+                configResolver, givenOptableTargetingFlowExecutor(), 0.01);
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         when(invocationContext.timeout()).thenReturn(timeout);
         when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
         when(timeout.remaining()).thenReturn(1000L);
     }
 
-    private OptableTargetingFlowExecutor givenEarlyOptableCallResolver() {
+    private OptableTargetingFlowExecutor givenOptableTargetingFlowExecutor() {
         return new OptableTargetingFlowExecutor(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
@@ -145,7 +145,7 @@ public class OptableTargetingRawAuctionRequestHookTest extends BaseOptableTest {
         configResolver = new ConfigResolver(
                 mapper, jsonMerger, givenOptableTargetingProperties("key", "tenant", null, true));
         target = new OptableTargetingRawAuctionRequestHook(
-                configResolver, givenEarlyOptableCallResolver(), 0.01);
+                configResolver, givenOptableTargetingFlowExecutor(), 0.01);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> result =
@@ -181,7 +181,7 @@ public class OptableTargetingRawAuctionRequestHookTest extends BaseOptableTest {
 
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         target = new OptableTargetingRawAuctionRequestHook(
-                configResolver, givenEarlyOptableCallResolver(), 0.01);
+                configResolver, givenOptableTargetingFlowExecutor(), 0.01);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> result =
