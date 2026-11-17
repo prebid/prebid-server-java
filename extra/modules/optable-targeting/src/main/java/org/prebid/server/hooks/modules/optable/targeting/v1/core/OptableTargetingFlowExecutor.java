@@ -115,7 +115,7 @@ public class OptableTargetingFlowExecutor {
                 payload,
                 invocationContext,
                 properties,
-                null);
+                invocationContext.timeout());
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichPayload(
