@@ -1,0 +1,33 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "goadserver": {
+          "token": "test-token",
+          "subid": "sports"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "app": {
+    "bundle": "com.example.trails",
+    "publisher": {
+      "id": "pbs-account"
+    }
+  },
+  "device": {
+    "ifa": "87857b31-8942-4646-ae80-ab9c95bf3fab"
+  }
+}
