@@ -1,0 +1,19 @@
+adapters:
+  revantage:
+    endpoint: https://bid.revantage.io/bid
+    geoscope:
+      - GLOBAL
+    meta-info:
+      maintainer-email: prebid@revantage.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      redirect:
+        url: "https://sync.revantage.io/pbs/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}"
+        uid-macro: "$UID"
