@@ -6,30 +6,35 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
-import java.util.Objects;
-import java.util.function.Predicate;
-
 public class TestRule extends AbstractMatchRule implements Loggable {
 
-    private final Predicate<ActivityInvocationPayload> predicate;
+    private final boolean matches;
     private final boolean allowed;
 
-    private TestRule(Predicate<ActivityInvocationPayload> predicate, boolean allowed) {
-        this.predicate = Objects.requireNonNull(predicate);
+    private TestRule(boolean matches, boolean allowed) {
+        this.matches = matches;
         this.allowed = allowed;
     }
 
-    public static TestRule allowIfMatches(Predicate<ActivityInvocationPayload> predicate) {
-        return new TestRule(predicate, true);
+    public static TestRule noMatchAndAllow() {
+        return new TestRule(false, true);
     }
 
-    public static TestRule disallowIfMatches(Predicate<ActivityInvocationPayload> predicate) {
-        return new TestRule(predicate, false);
+    public static TestRule matchAndAllow() {
+        return new TestRule(true, true);
+    }
+
+    public static TestRule noMatchAndDisallow() {
+        return new TestRule(false, false);
+    }
+
+    public static TestRule matchAndDisallow() {
+        return new TestRule(true, false);
     }
 
     @Override
     public boolean matches(ActivityInvocationPayload activityInvocationPayload) {
-        return predicate.test(activityInvocationPayload);
+        return matches;
     }
 
     @Override

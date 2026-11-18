@@ -19,13 +19,14 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.HostActivityInfrastructureConfiguration;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeEid;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.privacy.AccountUSCustomLogicModuleConfig;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
-import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import java.util.Map;
 
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier.US_NAT;
 
@@ -59,7 +61,7 @@ public class ActivityInfrastructureCreatorTest {
 
     @BeforeEach
     public void setUp() {
-        creator = new ActivityInfrastructureCreator(activityRuleFactory, null, metrics, jacksonMapper);
+        creator = new ActivityInfrastructureCreator(activityRuleFactory, null, null, metrics, jacksonMapper);
     }
 
     @Test
@@ -91,8 +93,7 @@ public class ActivityInfrastructureCreatorTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
-                        .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
-                                null, singletonList(AccountActivityConditionsRuleConfig.of(null, null)))))
+                        .activities(Map.of(Activity.SYNC_USER, activityConfigurationWithRule(null)))
                         .modules(asList(
                                 AccountUSNatModuleConfig.of(null, 0, null),
                                 AccountUSNatModuleConfig.of(null, 0, null)))
@@ -112,8 +113,7 @@ public class ActivityInfrastructureCreatorTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
-                        .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
-                                null, singletonList(AccountActivityConditionsRuleConfig.of(null, null)))))
+                        .activities(Map.of(Activity.SYNC_USER, activityConfigurationWithRule(null)))
                         .modules(asList(
                                 AccountUSNatModuleConfig.of(null, 100, null),
                                 AccountUSCustomLogicModuleConfig.of(null, 0, null)))
@@ -136,11 +136,10 @@ public class ActivityInfrastructureCreatorTest {
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
                         .activities(Map.of(
-                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
-                                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
-                                Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
-                                        AccountActivityConditionsRuleConfig.of(null, null)))))
+                                Activity.SYNC_USER, activityConfiguration(null),
+                                Activity.CALL_BIDDER, activityConfiguration(false),
+                                Activity.MODIFY_UFDP, activityConfiguration(true),
+                                Activity.TRANSMIT_UFPD, activityConfigurationWithRule(true)))
                         .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
@@ -148,7 +147,7 @@ public class ActivityInfrastructureCreatorTest {
         given(activityRuleFactory.from(
                 same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().getFirst()),
                 argThat(arg -> arg.getGppContext() == gppContext)))
-                .willReturn(TestRule.disallowIfMatches(payload -> true));
+                .willReturn(TestRule.matchAndDisallow());
 
         // when
         final Map<Activity, ActivityController> controllers = creator.parse(account, gppContext, debug);
@@ -168,7 +167,7 @@ public class ActivityInfrastructureCreatorTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
-                        .activities(Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)))
+                        .activities(Map.of(Activity.TRANSMIT_UFPD, activityConfiguration(false)))
                         .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
@@ -194,7 +193,7 @@ public class ActivityInfrastructureCreatorTest {
                                         .p4(Purpose.of(null, null, null, PurposeEid.of(true, false, null)))
                                         .build())
                                 .build())
-                        .activities(Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)))
+                        .activities(Map.of(Activity.TRANSMIT_UFPD, activityConfiguration(false)))
                         .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
@@ -216,11 +215,10 @@ public class ActivityInfrastructureCreatorTest {
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
                         .activities(Map.of(
-                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
-                                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
-                                Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
-                                        AccountActivityConditionsRuleConfig.of(null, null)))))
+                                Activity.SYNC_USER, activityConfiguration(null),
+                                Activity.CALL_BIDDER, activityConfiguration(false),
+                                Activity.MODIFY_UFDP, activityConfiguration(true),
+                                Activity.TRANSMIT_UFPD, activityConfigurationWithRule(false)))
                         .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
@@ -240,8 +238,105 @@ public class ActivityInfrastructureCreatorTest {
                 .isEqualTo(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT);
         assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(false);
         assertThat(controllers.get(Activity.MODIFY_UFDP).isAllowed(null)).isEqualTo(true);
-        assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(true);
+        assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(false);
 
         verify(metrics).updateAlertsMetrics(eq(MetricName.general));
+    }
+
+    @Test
+    public void parseShouldUseHostConfigIfAccountConfigAbsent() {
+        // given
+        creator = new ActivityInfrastructureCreator(
+                activityRuleFactory,
+                HostActivityInfrastructureConfiguration.of(Map.of(Activity.SYNC_USER, activityConfiguration(false))),
+                null,
+                metrics,
+                jacksonMapper);
+
+        final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
+
+        // when
+        final Map<Activity, ActivityController> controllers =
+                creator.parse(Account.builder().build(), gppContext, debug);
+
+        // then
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.get(Activity.SYNC_USER).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(true);
+    }
+
+    @Test
+    public void parseShouldOverrideAccountConfigNullsWithHostConfig() {
+        // given
+        creator = new ActivityInfrastructureCreator(
+                activityRuleFactory,
+                HostActivityInfrastructureConfiguration.of(Map.of(
+                        Activity.SYNC_USER, activityConfiguration(false),
+                        Activity.CALL_BIDDER, activityConfiguration(true),
+                        Activity.MODIFY_UFDP, activityConfigurationWithRule(true))),
+                null,
+                metrics,
+                jacksonMapper);
+
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(
+                                Activity.SYNC_USER, activityConfiguration(null),
+                                Activity.CALL_BIDDER, activityConfiguration(false),
+                                Activity.MODIFY_UFDP, activityConfiguration(true)))
+                        .build())
+                .build();
+        final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
+
+        given(activityRuleFactory.from(any(), any())).willReturn(TestRule.matchAndDisallow());
+
+        // when
+        final Map<Activity, ActivityController> controllers = creator.parse(account, gppContext, debug);
+
+        // then
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.get(Activity.SYNC_USER).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.MODIFY_UFDP).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(true);
+    }
+
+    @Test
+    public void parseShouldMergeAccountConfigWithHostConfig() {
+        // given
+        creator = new ActivityInfrastructureCreator(
+                activityRuleFactory,
+                HostActivityInfrastructureConfiguration.of(
+                        Map.of(Activity.SYNC_USER, activityConfigurationWithRule(true))),
+                null,
+                metrics,
+                jacksonMapper);
+
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(Activity.SYNC_USER, activityConfigurationWithRule(true)))
+                        .build())
+                .build();
+        final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
+
+        given(activityRuleFactory.from(any(), any()))
+                .willReturn(TestRule.noMatchAndAllow(), TestRule.matchAndDisallow());
+
+        // when
+        final Map<Activity, ActivityController> controllers = creator.parse(account, gppContext, debug);
+
+        // then
+        assertThat(controllers.keySet()).containsExactlyInAnyOrder(Activity.values());
+        assertThat(controllers.get(Activity.SYNC_USER).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(true);
+    }
+
+    private static AccountActivityConfiguration activityConfiguration(Boolean allow) {
+        return AccountActivityConfiguration.of(allow, null);
+    }
+
+    private static AccountActivityConfiguration activityConfigurationWithRule(Boolean allow) {
+        final AccountActivityRuleConfig ruleConfig = mock();
+        return AccountActivityConfiguration.of(allow, singletonList(ruleConfig));
     }
 }
