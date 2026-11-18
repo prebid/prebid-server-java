@@ -40,8 +40,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
-    protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
-
     protected static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'"
     }
     protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"

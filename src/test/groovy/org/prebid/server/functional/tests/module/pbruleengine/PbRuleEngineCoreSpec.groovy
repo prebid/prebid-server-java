@@ -7,13 +7,14 @@ import org.prebid.server.functional.model.config.RuleSet
 import org.prebid.server.functional.model.config.RulesEngineModelGroup
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.ResultFunction.LOG_A_TAG
 import static org.prebid.server.functional.model.config.RuleEngineModelRuleResult.createRuleEngineModelRuleWithExcludeResult
@@ -65,8 +66,8 @@ class PbRuleEngineCoreSpec extends PbRuleEngineBaseSpec {
 
         and: "PBs should populate call and update metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
-        assert metrics[UPDATE_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[MetricsUtil.Module.call(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[MetricsUtil.Module.update(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
 
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1

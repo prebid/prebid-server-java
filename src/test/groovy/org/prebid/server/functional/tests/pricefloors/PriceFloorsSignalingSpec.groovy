@@ -16,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
@@ -85,7 +86,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert !metrics[MetricsUtil.General.alert()]
 
         where:
         requestEnabled | accountEnabled
@@ -573,7 +574,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert !metrics[MetricsUtil.General.alert()]
     }
 
     def "PBS should emit warning when request has more rules than price-floor.max-rules"() {
@@ -612,7 +613,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         maxRules       | maxRulesSnakeCase
@@ -653,7 +654,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         maxSchemaDims              | maxSchemaDimsSnakeCase
@@ -705,8 +706,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Metrics should be updated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.Account.invalidConfigFloors(bidRequest.accountId)] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsFloorConfig)
@@ -758,8 +759,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Metrics should be updated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.Account.invalidConfigFloors(bidRequest.accountId)] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsFloorConfig)
@@ -799,7 +800,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         maxSchemaDims              | maxSchemaDimsSnakeCase
@@ -844,7 +845,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
     }
 
     def "PBS shouldn't fail with error and maxSchemaDims take precede over fetch.maxSchemaDims when requested both"() {
@@ -919,7 +920,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         maxRules       | maxRulesSnakeCase
@@ -955,7 +956,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         requestSkipRate << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(100)]
@@ -989,7 +990,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         requestModelGroups << [null, []]
@@ -1025,7 +1026,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
 
         where:
         requestModelWeight << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(100)]
@@ -1062,7 +1063,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
     }
 
     def "PBS should emit error in log and response when modelGroup defaultFloor is negative"() {
@@ -1097,7 +1098,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
     }
 
     def "PBS should emit error in log and response when account have disabled dynamic data config"() {
@@ -1137,7 +1138,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[MetricsUtil.General.alert()] == 1
     }
 
     private static int getSchemaSize(BidRequest bidRequest) {
