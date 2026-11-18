@@ -735,7 +735,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(0, null))
+                        .ext(ExtDevice.of(0, null, null))
                         .build())
                 .build();
 
@@ -755,7 +755,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .lmt(0)
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(0, null))
+                        .ext(ExtDevice.of(0, null, null))
                         .build())
                 .build();
 
@@ -774,7 +774,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(1, null))
+                        .ext(ExtDevice.of(1, null, null))
                         .build())
                 .build();
 
@@ -794,7 +794,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .lmt(0)
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(1, null))
+                        .ext(ExtDevice.of(1, null, null))
                         .build())
                 .build();
 
@@ -813,7 +813,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("15.0")
-                        .ext(ExtDevice.of(0, null))
+                        .ext(ExtDevice.of(0, null, null))
                         .build())
                 .build();
 
@@ -832,7 +832,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("15.0")
-                        .ext(ExtDevice.of(1, null))
+                        .ext(ExtDevice.of(1, null, null))
                         .build())
                 .build();
 
@@ -851,7 +851,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("15.0")
-                        .ext(ExtDevice.of(2, null))
+                        .ext(ExtDevice.of(2, null, null))
                         .build())
                 .build();
 
@@ -871,7 +871,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .lmt(0)
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(2, null))
+                        .ext(ExtDevice.of(2, null, null))
                         .build())
                 .build();
 
@@ -890,7 +890,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(3, null))
+                        .ext(ExtDevice.of(3, null, null))
                         .build())
                 .build();
 
@@ -910,7 +910,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .lmt(1)
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(3, null))
+                        .ext(ExtDevice.of(3, null, null))
                         .build())
                 .build();
 
@@ -929,7 +929,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("14.3")
-                        .ext(ExtDevice.of(4, null))
+                        .ext(ExtDevice.of(4, null, null))
                         .build())
                 .build();
 
@@ -948,7 +948,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("14.3")
-                        .ext(ExtDevice.of(null, null))
+                        .ext(ExtDevice.of(null, null, null))
                         .build())
                 .build();
 

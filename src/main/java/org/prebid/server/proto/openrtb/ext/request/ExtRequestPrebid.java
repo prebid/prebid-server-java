@@ -197,4 +197,10 @@ public class ExtRequestPrebid {
 
     @JsonProperty("secondarybidders")
     Set<String> secondaryBidders;
+
+    @JsonProperty("outputformat")
+    String outputFormat;
+
+    @JsonProperty("outputmodule")
+    String outputModule;
 }
