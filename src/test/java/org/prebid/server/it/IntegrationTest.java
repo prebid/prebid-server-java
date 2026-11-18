@@ -70,6 +70,10 @@ public abstract class IntegrationTest extends VertxTest {
                     .extensions(IntegrationTest.CacheResponseTransformer.class))
             .build();
 
+    @RegisterExtension
+    public static final WireMockAfterTestDiagnostics WIRE_MOCK_DIAGNOSTICS =
+            new WireMockAfterTestDiagnostics(WIRE_MOCK_RULE);
+
     protected static final RequestSpecification SPEC = spec(APP_PORT);
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
     private static final String CACHE_PATH = "/cache";
