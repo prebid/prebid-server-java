@@ -147,7 +147,6 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
-            case 4 -> BidType.xNative;
             case null -> null;
             default -> throw new PreBidException("Unsupported MType: " + mtype);
         };
@@ -162,8 +161,6 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
             return BidType.video;
         } else if (imp.getAudio() != null) {
             return BidType.audio;
-        } else if (imp.getXNative() != null) {
-            return BidType.xNative;
         }
         return BidType.banner;
     }
