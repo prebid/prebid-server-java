@@ -11,15 +11,15 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
-import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -29,6 +29,7 @@ import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.IFRAME
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
@@ -36,18 +37,18 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEV
 class GppCookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
+    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final GppSectionId FIRST_GPP_SECTION = PBSUtils.getRandomEnum(GppSectionId.class)
     private static final GppSectionId SECOND_GPP_SECTION = PBSUtils.getRandomEnum(GppSectionId.class, [FIRST_GPP_SECTION])
 
-    private static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
-    private static final Map<String, String> GENERIC_WITH_SKIP_CONFIG = [
-            "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
-            "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'true',
-            "adapters.${GENERIC.value}.usersync.skipwhen.gpp_sid"                    : "${FIRST_GPP_SECTION.value}, ${SECOND_GPP_SECTION.value}".toString()]
+    private static final PbsContainerConfig GENERIC_CONFIG = new PbsContainerConfig([
+            "adapters.${GENERIC.value}.meta-info.vendor-id"                 : GENERIC_VENDOR_ID as String,
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url": USER_SYNC_URL])
+    private static final PbsContainerConfig GENERIC_WITH_SKIP_CONFIG = new PbsContainerConfig([
+            "adapters.${GENERIC.value}.meta-info.vendor-id"                 : GENERIC_VENDOR_ID as String,
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url": "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
+            "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"              : 'true',
+            "adapters.${GENERIC.value}.usersync.skipwhen.gpp_sid"           : "${FIRST_GPP_SECTION.value}, ${SECOND_GPP_SECTION.value}".toString()])
 
     private static PrebidServerService prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
     private static PrebidServerService prebidServerServiceWithSkipConfig = pbsServiceFactory.getService(GENERIC_WITH_SKIP_CONFIG + GENERIC_ALIAS_CONFIG)
@@ -227,7 +228,8 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should return empty gpp and gppSid in usersync url when gpp and gppSid is not present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString()]
+        def pbsConfig = new PbsContainerConfig(
+                ["adapters.generic.usersync.${userSyncFormat.value}.url": "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString()])
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest without gpp and gppSid"
@@ -253,7 +255,8 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should populate gpp and gppSid in usersync url when gpp and gppSid is present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString()]
+        def pbsConfig = new PbsContainerConfig(
+                ["adapters.generic.usersync.${userSyncFormat.value}.url": "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString()])
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest with gpp and gppSid"
@@ -404,10 +407,10 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS shouldn't emit error message when request does contain gdpr config and global skip gdpr config disabled for adapter"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = [
-                "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
-                "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-                "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'false']
+        def pbsConfig = new PbsContainerConfig([
+                "adapters.${GENERIC.value}.meta-info.vendor-id"                 : GENERIC_VENDOR_ID as String,
+                "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url": USER_SYNC_URL,
+                "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"              : 'false'])
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest with gdpr config"

@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
@@ -320,7 +321,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Create new container"
-        def config = GDPR_VENDOR_LIST_CONFIG + ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String]
+        def config = new PbsContainerConfig(GDPR_VENDOR_LIST_CONFIG + ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID])
         def defaultPrivacyPbsService = pbsServiceFactory.getService(config)
 
         and: "Prepare tcf consent string"
@@ -358,9 +359,6 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def logs = defaultPrivacyPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
                 "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(config)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
@@ -468,9 +466,6 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Reset vendor list response"
         vendorListResponse.reset()
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V4, TCF_POLICY_V5]
@@ -702,9 +697,6 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         PBSUtils.waitUntil { defaultPrivacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = defaultPrivacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.gvlSpecificationVersion == V3
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V4, TCF_POLICY_V5]

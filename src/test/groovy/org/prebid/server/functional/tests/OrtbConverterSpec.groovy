@@ -30,8 +30,8 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Content.Channel
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -41,10 +41,13 @@ class OrtbConverterSpec extends BaseSpec {
 
     private final static String ORTB_PROPERTY_VERSION = "adapters.generic.ortb-version"
 
-    @Shared
-    PrebidServerService prebidServerServiceWithNewOrtb = pbsServiceFactory.getService([(ORTB_PROPERTY_VERSION): "2.6"])
-    @Shared
-    PrebidServerService prebidServerServiceWithElderOrtb = pbsServiceFactory.getService([(ORTB_PROPERTY_VERSION): "2.5"])
+    private static PrebidServerService prebidServerServiceWithNewOrtb
+    private static PrebidServerService prebidServerServiceWithElderOrtb
+
+    def setupSpec() {
+        prebidServerServiceWithNewOrtb = pbsServiceFactory.getService(new PbsContainerConfig([(ORTB_PROPERTY_VERSION): "2.6"]))
+        prebidServerServiceWithElderOrtb = pbsServiceFactory.getService(new PbsContainerConfig([(ORTB_PROPERTY_VERSION): "2.5"]))
+    }
 
     def "PBS shouldn't move regs.{gdpr,usPrivacy} to regs.ext.{gdpr,usPrivacy} when adapter support ortb 2.6"() {
         given: "Default bid request with regs object"

@@ -5,8 +5,8 @@ import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
 import org.prebid.server.functional.model.privacy.gpp.UsColoradoV1ChildSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.GppConsent
 import org.prebid.server.functional.model.privacy.gpp.UsColoradoV1SensitiveData
+import org.prebid.server.functional.util.privacy.gpp.GppConsent
 
 class UsCoV1Consent extends GppConsent {
 

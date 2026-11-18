@@ -63,7 +63,6 @@ class TcfUtils {
         }
     }
 
-
     static ConsentString getConsentString(EnforcementRequirement requirement) {
         def purposeConsent = requirement.enforcePurpose != NO ? requirement.purpose : null
         def purposeId = purposeConsent ? PurposeId.convertPurposeToPurposeId(purposeConsent) : null

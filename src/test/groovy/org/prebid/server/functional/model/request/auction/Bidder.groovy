@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.bidder.Magnite
+import org.prebid.server.functional.model.bidder.Openx
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Bidder {
@@ -15,7 +15,7 @@ class Bidder {
     @JsonProperty("ALIAS")
     Generic aliasUpperCase
     Generic generic
-    @JsonProperty("gener_x")
+    @JsonProperty("gener-x")
     Generic generX
     @JsonProperty("GeNerIc")
     Generic genericCamelCase

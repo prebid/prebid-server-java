@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.prometheus
 
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -122,17 +123,17 @@ class PrometheusSpec extends BaseSpec {
                 serviceFailedToStartTimeoutMs)
     }
 
-    private Map<String, String> getBasePrometheusConfig() {
-        ["metrics.prometheus.enabled": "true",
-         "metrics.prometheus.port"   : PROMETHEUS_PORT as String]
+    private static PbsContainerConfig getBasePrometheusConfig() {
+        new PbsContainerConfig(["metrics.prometheus.enabled": "true",
+         "metrics.prometheus.port"   : PROMETHEUS_PORT as String])
     }
 
-    private Map<String, String> getNamespaceSubsystemConfig(String namespace, String subsystem) {
+    private static Map<String, String> getNamespaceSubsystemConfig(String namespace, String subsystem) {
         ["metrics.prometheus.namespace": namespace,
          "metrics.prometheus.subsystem": subsystem]
     }
 
-    private String normalizeMetricName(String metricName) {
+    private static String normalizeMetricName(String metricName) {
         metricName.replace(".", "_")
                   .replace("-", "_")
     }

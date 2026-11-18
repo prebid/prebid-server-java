@@ -27,6 +27,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
 
@@ -61,7 +62,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
     private static final Integer MAX_STATIC_ADJUST_VALUE = Integer.MAX_VALUE
     private static final String WILDCARD = '*'
 
-    private static final Map PBS_CONFIG = PbsConfig.currencyConverterConfig +
+    private static final PbsContainerConfig PBS_CONFIG = new PbsContainerConfig(PbsConfig.currencyConverterConfig) +
             FLOORS_CONFIG +
             GENERIC_ALIAS_CONFIG +
             ["adapters.openx.enabled" : "true",

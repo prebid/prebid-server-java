@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -48,7 +49,8 @@ class BidValidationSpec extends BaseSpec {
 
     def "PBS should throw an exception when bid request includes more than one distribution channel and strict setting enabled for service"() {
         given: "PBS with string setting enabled"
-        def strictPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'true'])
+        def config = new PbsContainerConfig(['auction.strict-app-site-dooh': 'true'])
+        def strictPrebidService = pbsServiceFactory.getService(config)
 
         and: "Flush metrics"
         flushMetrics(strictPrebidService)
@@ -83,7 +85,8 @@ class BidValidationSpec extends BaseSpec {
         def randomReferer = PBSUtils.randomString
 
         and: "PBS with string setting disabled"
-        def softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
+        def config = new PbsContainerConfig(['auction.strict-app-site-dooh': 'false'])
+        def softPrebidService = pbsServiceFactory.getService(config)
 
         and: "Request distribution channels"
         def requestDistributionChannels = bidRequest.getRequestDistributionChannels()

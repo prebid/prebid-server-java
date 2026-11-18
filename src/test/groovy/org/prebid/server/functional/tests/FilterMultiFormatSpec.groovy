@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidderControls
 import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
 import org.prebid.server.functional.model.request.auction.Native
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
@@ -20,10 +21,15 @@ import static org.prebid.server.functional.model.response.auction.MediaType.NULL
 
 class FilterMultiFormatSpec extends BaseSpec {
 
+    private static final PbsContainerConfig DEFAULT_MULTIFORMAT_ENABLED_CONFIG = new PbsContainerConfig(['adapter-defaults.ortb.multiformat-supported': 'true'])
+    private static final PbsContainerConfig DEFAULT_MULTIFORMAT_DISABLED_CONFIG = new PbsContainerConfig(['adapter-defaults.ortb.multiformat-supported': 'false'])
+    private static final PbsContainerConfig GENERIC_MULTIFORMAT_ENABLED_CONFIG = new PbsContainerConfig(['adapters.generic.ortb.multiformat-supported': 'true'])
+    private static final PbsContainerConfig GENERIC_MULTIFORMAT_DISABLED_CONFIG = new PbsContainerConfig(['adapters.generic.ortb.multiformat-supported': 'false'])
+    private static final PbsContainerConfig DEFAULT_AND_GENERIC_MULTIFORMAT_DISABLED_CONFIG = DEFAULT_MULTIFORMAT_DISABLED_CONFIG + GENERIC_MULTIFORMAT_DISABLED_CONFIG
+
     def "PBS should respond with all requested media types when default adapters multi format is true in config and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapter-defaults.ortb.multiformat-supported": "true")
+        def pbsService = pbsServiceFactory.getService(DEFAULT_MULTIFORMAT_ENABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -47,8 +53,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with all requested media types when default adapters multi format is true in config and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapter-defaults.ortb.multiformat-supported": "true")
+        def pbsService = pbsServiceFactory.getService(DEFAULT_MULTIFORMAT_ENABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -77,8 +82,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with one requested preferred media type when default adapters multi format is false in config and  preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapter-defaults.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(DEFAULT_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -102,8 +106,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with one requested preferred media type when default adapters multi format is false in config and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapter-defaults.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(DEFAULT_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -132,8 +135,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with all requested media type when multi format is true in config and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "true")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_ENABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -162,8 +164,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with all requested media type when multi format is true in config and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "true")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_ENABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -187,8 +188,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with one requested preferred media type when multi format is false in config and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -212,8 +212,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with one requested preferred media type when multi format is false in config and preferred media type preferred at request level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -242,8 +241,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with warning and don't make a bidder call when multi format at request and preferred media type specified at account level with non requested media type"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with audio and nativeObj type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -271,8 +269,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with warning and don't make a bidder call when multi format at request and preferred media type specified at request level with non requested media type"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with audio and nativeObj type and preferredMediaType BANNER"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -302,8 +299,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with audio and nativeObj type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -329,8 +325,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with audio and nativeObj type and preferredMediaType BANNER"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -358,8 +353,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and multi format is false and preferred media type specified at request level with null"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -386,8 +380,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and multi format is false and preferred media type specified at account level with null"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -412,9 +405,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should respond with preferred media type that specified in request when preferred media type specified in both places"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapter-defaults.ortb.multiformat-supported": "false",
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(DEFAULT_AND_GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with banner and audio type"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -445,9 +436,7 @@ class FilterMultiFormatSpec extends BaseSpec {
 
     def "PBS should not preferred media type specified at request level when it's alias bidder"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                "adapter-defaults.ortb.multiformat-supported": "false",
-                "adapters.generic.ortb.multiformat-supported": "false")
+        def pbsService = pbsServiceFactory.getService(DEFAULT_AND_GENERIC_MULTIFORMAT_DISABLED_CONFIG)
 
         and: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {

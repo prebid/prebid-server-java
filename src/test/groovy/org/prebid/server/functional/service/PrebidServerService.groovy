@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory
 
 import java.time.Duration
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
@@ -60,7 +59,6 @@ import static org.prebid.server.functional.model.config.Endpoint.STATUS
 import static org.prebid.server.functional.model.config.Endpoint.VTRACK
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
 import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
-
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -467,7 +465,6 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
         []
     }
-
 
     Boolean isContainMetricByValue(String value) {
         try {

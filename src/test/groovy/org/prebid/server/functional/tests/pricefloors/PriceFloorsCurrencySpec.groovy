@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
 
@@ -17,8 +18,8 @@ import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
-import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.NONE
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
@@ -26,14 +27,15 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
+    private static final PbsContainerConfig PBS_CONFIG = FLOORS_CONFIG + PbsConfig.currencyConverterConfig
     private static PrebidServerService currencyFloorsPbsService
 
     def setupSpec() {
-        currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
+        currencyFloorsPbsService = pbsServiceFactory.getService(PBS_CONFIG)
     }
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
     }
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {

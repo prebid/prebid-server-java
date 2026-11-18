@@ -12,29 +12,32 @@ import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
-    public static final String ADMIN_ENDPOINT_USERNAME = "admin"
-    public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
-    public static final String APP_WORKDIR = "/app/prebid-server/"
-    public static final int PROMETHEUS_PORT = 8070
+    static final String ADMIN_ENDPOINT_USERNAME = "admin"
+    static final String ADMIN_ENDPOINT_PASSWORD = "admin"
+    static final String APP_WORKDIR = "/app/prebid-server/"
+    static final int PROMETHEUS_PORT = 8070
 
-    private static final int DEFAULT_PORT = 8080
-    private static final int DEFAULT_ADMIN_PORT = 8060
-    private static final int DEFAULT_DEBUG_PORT = 8000
-    private static final int PORT = SystemProperties.getPropertyOrDefault("port", DEFAULT_PORT)
-    private static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
-    private static final int DEBUG_PORT = SystemProperties.getPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT)
+    private static final int PORT = SystemProperties.getPropertyOrDefault("port", 8080)
+    private static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", 8060)
+    private static final int DEBUG_PORT = SystemProperties.getPropertyOrDefault("debug.port", 8000)
 
     private static final String PBS_DOCKER_IMAGE_NAME = "prebid/prebid-server:latest"
 
-    PrebidServerContainer(Map<String, String> customConfig) {
+    private final boolean debugEnabled
+
+    PrebidServerContainer(PbsContainerConfig config, boolean debugEnabled = false) {
         super(PBS_DOCKER_IMAGE_NAME)
-        withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
+        this.debugEnabled = debugEnabled
+        def ports = [PORT, ADMIN_PORT, PROMETHEUS_PORT]
+        if (debugEnabled) {
+            ports << DEBUG_PORT
+        }
+        withExposedPorts(*ports)
         withFixedPorts()
         withStartupAttempts(3)
         waitingFor(Wait.forHttp(STATUS.value)
                 .forPort(PORT)
                 .forStatusCode(200))
-        withDebug()
         withNetwork(Dependencies.network)
         def commonConfig = [:] << DEFAULT_ENV
                 << PbsConfig.defaultBiddersConfig
@@ -46,23 +49,46 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.mySqlConfig
                 << PbsConfig.targetingConfig
         withConfig(commonConfig)
-        withConfig(customConfig)
+        withConfig(config.extraProperties)
+
+        config.additionalFiles.each { path, file ->
+            withCopyToContainer(file, path)
+        }
+
+        if (debugEnabled) {
+            withDebug()
+        }
     }
 
     private void withFixedPorts() {
-        if (SystemProperties.USE_FIXED_CONTAINER_PORTS) {
-            addFixedExposedPort(PORT, PORT)
-            addFixedExposedPort(ADMIN_PORT, ADMIN_PORT)
+        if (!SystemProperties.USE_FIXED_CONTAINER_PORTS) {
+            return
+        }
+        addFixedExposedPort(PORT, PORT)
+        addFixedExposedPort(ADMIN_PORT, ADMIN_PORT)
+        if (debugEnabled) {
             addFixedExposedPort(DEBUG_PORT, DEBUG_PORT)
         }
     }
 
-    void withDebug() {
-        withEnv("JAVA_TOOL_OPTIONS", "-agentlib:jdwp=transport=dt_socket,address=*:$DEBUG_PORT,server=y,suspend=n")
+    private void withDebug() {
+        def options = [
+                envMap.JAVA_TOOL_OPTIONS,
+                "-agentlib:jdwp=transport=dt_socket,address=*:$DEBUG_PORT,server=y,suspend=n"
+        ].findAll().join(' ')
+        withEnv("JAVA_TOOL_OPTIONS", options)
     }
 
     void withConfig(Map<String, String> config) {
-        withEnv(normalizeProperties(config))
+        withEnv(config.collectEntries { key, value ->
+            [(normalizeProperty(key)): value]
+        })
+    }
+
+    private static String normalizeProperty(String property) {
+        property.replace(".", "_")
+                .replace("[", "_")
+                .replace("]", "_")
     }
 
     int getPort() {
@@ -77,50 +103,38 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         getMappedPort(PROMETHEUS_PORT)
     }
 
+    String getDebugAddress() {
+        debugEnabled ? "$host:${getMappedPort(DEBUG_PORT)}" : null
+    }
+
     String getInfluxUri() {
-        return "http://$host:$Dependencies.influxdbContainer.firstMappedPort"
+        "http://$host:${Dependencies.influxdbContainer.firstMappedPort}"
     }
 
     String getRootUri() {
-        return "http://$host:$port"
+        "http://$host:$port"
     }
 
     String getAdminRootUri() {
-        return "http://$host:$adminPort"
+        "http://$host:$adminPort"
     }
 
     String getPrometheusRootUri() {
-        return "http://$host:$prometheusPort"
-    }
-
-    private static Map<String, String> normalizeProperties(Map<String, String> properties) {
-        properties.collectEntries { [normalizeProperty(it.key), it.value] } as Map<String, String>
-    }
-
-    private static String normalizeProperty(String property) {
-        property.replace(".", "_")
-                .replace("[", "_")
-                .replace("]", "_")
+        "http://$host:$prometheusPort"
     }
 
     PrebidServerContainer withFolder(String containerPath) {
-        this.withCopyToContainer(
+        withCopyToContainer(
                 Transferable.of(new byte[0], 010755),
-                containerPath + "/.keep"
+                "$containerPath/.keep"
         )
         return this
     }
 
-    // This is a workaround for cases when container is killed mid-test due to OOM
     void refresh() {
         if (!running) {
             stop()
             start()
         }
-    }
-
-    @Override
-    void close() {
-        super.close()
     }
 }
