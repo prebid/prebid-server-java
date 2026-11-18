@@ -1298,12 +1298,16 @@ public class MagniteBidder implements Bidder<BidRequest> {
         return device == null
                 ? null
                 : device.toBuilder()
-                  .ext(mapper.fillExtension(
-                          ExtDevice.of(ObjectUtil.getIfNotNull(device.getExt(), ExtDevice::getAtts), null),
-                          MagniteDeviceExt.of(MagniteDeviceExtRp.of(device.getPxratio()))))
-                  .build();
+                .ext(mapper.fillExtension(
+                        ExtDevice.of(resolveAtts(device.getExt()), null),
+                        MagniteDeviceExt.of(MagniteDeviceExtRp.of(device.getPxratio()))))
+                .build();
     }
 
+    private static Integer resolveAtts(ExtDevice extDevice) {
+        final Integer atts = ObjectUtil.getIfNotNull(extDevice, ExtDevice::getAtts);
+        return (atts != null && atts >= 0 && atts <= 3) ? atts : null;
+    }
     private Site makeSite(Site site, String impLanguage, ExtImpMagnite magniteImpExt) {
         if (site == null && StringUtils.isBlank(impLanguage)) {
             return null;
