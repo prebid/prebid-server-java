@@ -27,6 +27,7 @@ import org.mockito.quality.Strictness;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheKey;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheResult;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.KeyType;
@@ -45,6 +46,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -76,6 +79,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
     private static final String EIDS_BODY =
             "{\"data\":{\"eids\":[{\"source\":\"intentiq.com\",\"uids\":[{\"id\":\"abc\",\"atype\":1}]}]}}";
     private static final String EMPTY_BODY = "{\"data\":{\"eids\":[]}}";
+    private static final String PREFIX = "modules.module.intentiq-identity.custom.";
 
     @Mock
     private HttpClient httpClient;
@@ -899,7 +903,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
 
         // then
         assertThat(result.debugMessages()).singleElement().asString()
-                .startsWith("[enrich] 1 eid(s): intentiq.com; source: IntentIQ API");
+                .startsWith("[enrich] partner 123: 1 eid(s): intentiq.com; source: IntentIQ API");
     }
 
     @Test
@@ -1039,6 +1043,197 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         verify(httpClient, times(1)).get(any(), any(), anyLong());
         assertThat(first.result().action()).isEqualTo(InvocationAction.update);
         assertThat(second.result().action()).isEqualTo(InvocationAction.update);
+    }
+
+    // --- partner id from the request (ext.intentiq.partnerId) ---------------------------------------
+
+    @Test
+    public void callShouldUseAnAllowedRequestPartnerIdForTheCallTheCacheScopeTheMetricsAndTheContext() {
+        // given
+        final IdentityCache cache = mock(IdentityCache.class);
+        when(cache.get(any())).thenReturn(Future.succeededFuture(CacheResult.miss()));
+        givenCapturedResponse();
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("777")
+                .device(Device.builder().ifa("MAID-1").build()).build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), cache).call(payload, invocationContext).result();
+
+        // then
+        assertThat(extractParam(urlCaptor.getValue(), "dpi")).isEqualTo("777");
+        @SuppressWarnings("unchecked")
+        final ArgumentCaptor<List<CacheKey>> keys = ArgumentCaptor.forClass(List.class);
+        verify(cache).get(keys.capture());
+        assertThat(keys.getValue()).isNotEmpty().allSatisfy(key -> assertThat(key.key()).startsWith("777:"));
+        assertThat(((IntentiqIdentityModuleContext) result.moduleContext()).partnerId()).isEqualTo("777");
+        assertThat(metricRegistry.counter(PREFIX + "api.success_777").getCount()).isEqualTo(1);
+        assertThat(counter("api.success")).isZero();
+    }
+
+    @Test
+    public void callShouldIgnoreARequestPartnerIdThatIsNotAllowedAndCountIt() {
+        // given
+        givenCapturedResponse();
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("999").build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(extractParam(urlCaptor.getValue(), "dpi")).isEqualTo("123");
+        assertThat(((IntentiqIdentityModuleContext) result.moduleContext()).partnerId()).isEqualTo("123");
+        assertThat(metricRegistry.counter(PREFIX + "partner.not_allowed").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void callShouldSkipWhenTheRequestPartnerIdIsNotAllowedAndNoneIsConfigured() {
+        // given
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("999").build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist(null, List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(applyUpdate(result, payload).getExt().containsProperty("intentiq")).isFalse();
+    }
+
+    @Test
+    public void callShouldWorkWithOnlyARequestPartnerIdAndNoConfiguredOne() {
+        // given
+        givenCapturedResponse();
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("777").build());
+
+        // when
+        targetWithAllowlist(null, List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(extractParam(urlCaptor.getValue(), "dpi")).isEqualTo("777");
+    }
+
+    @Test
+    public void callShouldTakeTheAllowlistFromTheAccountConfig() {
+        // given
+        givenCapturedResponse();
+        final ObjectNode account = MAPPER.mapper().createObjectNode();
+        account.putArray("allowed-partner-ids").add("888");
+        when(invocationContext.accountConfig()).thenReturn(account);
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("888").build());
+
+        // when
+        targetWithAllowlist("123", List.of(), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(extractParam(urlCaptor.getValue(), "dpi")).isEqualTo("888");
+    }
+
+    @Test
+    public void callShouldRemoveExtIntentiqAndKeepTheRestOfTheExtWhenEnriching() {
+        // given
+        givenResponse(EIDS_BODY);
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder().debug(1).build());
+        ext.addProperty("intentiq", MAPPER.mapper().createObjectNode().put("partnerId", "777"));
+        ext.addProperty("other", MAPPER.mapper().getNodeFactory().textNode("keep"));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().ext(ext).build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        final BidRequest updated = applyUpdate(result, payload);
+        assertThat(updated.getExt().containsProperty("intentiq")).isFalse();
+        assertThat(updated.getExt().getProperty("other").asText()).isEqualTo("keep");
+        assertThat(updated.getExt().getPrebid().getDebug()).isEqualTo(1);
+        assertThat(updated.getUser().getEids()).extracting(Eid::getSource).containsExactly("intentiq.com");
+    }
+
+    @Test
+    public void callShouldRemoveExtIntentiqWhenThereAreNoIds() {
+        // given
+        givenResponse(EMPTY_BODY);
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("777").build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        final BidRequest updated = applyUpdate(result, payload);
+        assertThat(updated.getExt().containsProperty("intentiq")).isFalse();
+        assertThat(updated.getUser()).isNull();
+    }
+
+    @Test
+    public void callShouldRemoveExtIntentiqWhenTheCallFails() {
+        // given
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.failedFuture("timeout"));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("777").build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(applyUpdate(result, payload).getExt().containsProperty("intentiq")).isFalse();
+        assertThat(((IntentiqIdentityModuleContext) result.moduleContext()).partnerId()).isEqualTo("777");
+    }
+
+    @Test
+    public void callShouldRemoveExtIntentiqWhenSkippedForMissingConsent() {
+        // given
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(requestWithPartner("777")
+                .regs(Regs.builder().gdpr(1).build()).build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(applyUpdate(result, payload).getExt().containsProperty("intentiq")).isFalse();
+    }
+
+    @Test
+    public void callShouldStayNoActionWithoutExtIntentiqAndWithoutIds() {
+        // given
+        givenResponse(EMPTY_BODY);
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(((IntentiqIdentityModuleContext) result.moduleContext()).partnerId()).isEqualTo("123");
+    }
+
+    private IntentiqIdentityProcessedAuctionRequestHook targetWithAllowlist(String partnerId,
+                                                                           List<String> allowed,
+                                                                           IdentityCache cache) {
+        final IntentiqIdentityProperties properties = new IntentiqIdentityProperties();
+        properties.setApiEndpoint(API_ENDPOINT);
+        properties.setPartnerId(partnerId);
+        properties.setAllowedPartnerIds(allowed);
+        properties.setTimeout(1000L);
+        if (cache != null) {
+            properties.getCache().setEnabled(true);
+        }
+        final ConfigResolver configResolver = new ConfigResolver(MAPPER.mapper(), MERGER, properties);
+        return new IntentiqIdentityProcessedAuctionRequestHook(
+                configResolver, httpClient, MAPPER, cache, new FirstPartyKeyExtractor(10), metrics);
+    }
+
+    private static BidRequest.BidRequestBuilder requestWithPartner(String partnerId) {
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("intentiq", MAPPER.mapper().createObjectNode().put("partnerId", partnerId));
+        return BidRequest.builder().ext(ext);
     }
 
     private void givenResponse(String body) {

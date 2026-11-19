@@ -88,6 +88,14 @@ public class IntentiqIdentityMetrics {
         inc("skip.no_consent", dpi);
     }
 
+    /**
+     * The request carried an {@code ext.intentiq.partnerId} that is not in {@code allowed-partner-ids}; the
+     * configured partner id is used instead. Global (no dpi), so a caller cannot add series.
+     */
+    public void partnerNotAllowed() {
+        inc("partner.not_allowed", null);
+    }
+
     /** Resolution and reporting skipped because the request is subject to COPPA (regs.coppa=1). */
     public void skipCoppa(String dpi) {
         inc("skip.coppa", dpi);

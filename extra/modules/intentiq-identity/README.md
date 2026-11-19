@@ -83,6 +83,34 @@ Host-level config (above) provides defaults. Account-specific values can be set 
 (and every other `cache.*` setting) is built once from the host config: an account can switch caching off
 with `cache.enabled: false`, but caching on an account needs it enabled on the host.
 
+### Partner id in the bid request
+
+A host that serves several IntentIQ partners can send the partner id in each bid request:
+
+```json
+{ "ext": { "intentiq": { "partnerId": "1234567890" } } }
+```
+
+The value is a string or an integer. It is used only when it is listed in `allowed-partner-ids`, so a
+caller cannot act as a partner the host did not list:
+
+```yaml
+hooks:
+  modules:
+    intentiq-identity:
+      partner-id: "1234567890"          # used when the request has no partner id, or one that is not listed
+      allowed-partner-ids:
+        - "1234567890"
+        - "2345678901"
+```
+
+- A listed id is used for the resolution call, the cache scope, the impression report and the metrics.
+- An id that is not listed is ignored: `partner-id` is used instead, and `partner.not_allowed` is counted.
+  With no `partner-id` either, the auction runs without the module.
+- With `allowed-partner-ids` empty (the default) the request field is ignored.
+- The module removes `ext.intentiq` from the request, so the bidders never see it. It does so when the
+  enrich hook finishes within its timeout; after a timeout PBS drops every change of the hook.
+
 ## Module Configuration Parameters
 
 | Param Name        | Level   | Required | Type    | Default  | Description                                                          |
@@ -90,6 +118,7 @@ with `cache.enabled: false`, but caching on an account needs it enabled on the h
 | api-endpoint      | host    | yes      | string  | none     | Bid Enhancement `ProfilesEngineServlet` URL (region-specific)        |
 | reports-endpoint  | host    | no       | string  | none     | Impression-reporting `ProfilesEngineServlet` URL; blank disables it  |
 | partner-id        | account | yes      | string  | none     | Partner token from IntentIQ, sent as the `dpi` query parameter       |
+| allowed-partner-ids | account | no     | list    | empty    | Partner ids a request may pick with `ext.intentiq.partnerId` (see above) |
 | timeout           | account | no       | long    | 1000     | HTTP timeout (ms) for the identity-resolution call                   |
 | reports-timeout   | account | no       | long    | 1000     | HTTP timeout (ms) for the fire-and-forget impression report          |
 | cache.enabled     | both    | no       | boolean | false    | Use the Caffeine + Redis cache (must be on at host level, with `redis.*`); an account can turn it off |
@@ -255,6 +284,7 @@ modules.module.intentiq-identity.custom.enriched_<dpi>                     # eid
 modules.module.intentiq-identity.custom.eids.none_<dpi>                    # resolution produced no eids (pairs with enriched for match rate)
 modules.module.intentiq-identity.custom.skip.no_endpoint_<dpi>             # no api-endpoint configured; resolution skipped before any API call
 modules.module.intentiq-identity.custom.skip.no_partner                    # no partner-id configured; resolution skipped
+modules.module.intentiq-identity.custom.partner.not_allowed                # ext.intentiq.partnerId not in allowed-partner-ids; partner-id used
 modules.module.intentiq-identity.custom.skip.no_consent_<dpi>              # regs.gdpr=1 without a consent string; resolution skipped
 modules.module.intentiq-identity.custom.skip.coppa_<dpi>                   # regs.coppa=1; resolution and reporting skipped
 modules.module.intentiq-identity.custom.tc.<id>_<dpi>                      # one counter per enumerated termination-cause id

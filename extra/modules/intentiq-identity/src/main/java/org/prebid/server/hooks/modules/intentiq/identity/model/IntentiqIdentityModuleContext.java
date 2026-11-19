@@ -8,6 +8,10 @@ package org.prebid.server.hooks.modules.intentiq.identity.model;
  *                         auction-response hook record the whole-flow latency (enrich -> bid release)
  * @param abTestUuid       IIQ A/B test id returned by the resolution response, echoed back on the report
  * @param terminationCause IIQ termination cause ({@code tc}) from the resolution response, if any
+ * @param partnerId        the partner id (dpi) the enrich hook used, so the report goes to the same partner
  */
-public record IntentiqIdentityModuleContext(long startNanos, String abTestUuid, Long terminationCause) {
+public record IntentiqIdentityModuleContext(long startNanos,
+                                            String abTestUuid,
+                                            Long terminationCause,
+                                            String partnerId) {
 }

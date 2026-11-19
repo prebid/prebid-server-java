@@ -35,6 +35,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PartnerIdResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PrivacySignals;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -116,43 +117,54 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         final long startNanos = System.nanoTime();
         final boolean trace = HookTrace.isEnabled(invocationContext);
         final IntentiqIdentityProperties properties = configResolver.resolve(invocationContext.accountConfig());
-        final String dpi = properties.getPartnerId();
+        final BidRequest bidRequest = auctionRequestPayload.bidRequest();
+        // ext.intentiq is for this module only: every outcome below removes it before the bidders see it.
+        final boolean stripRequestField = PartnerIdResolver.hasRequestField(bidRequest);
+        final PartnerIdResolver.Resolved partner = PartnerIdResolver.resolve(properties, bidRequest);
+        final String dpi = partner.partnerId();
+        final String partnerNote = partner.requestRejected()
+                ? "; ext.intentiq.partnerId is not in allowed-partner-ids, ignored"
+                : "";
+        if (partner.requestRejected()) {
+            metrics.partnerNotAllowed();
+        }
         if (StringUtils.isBlank(properties.getApiEndpoint())) {
             metrics.skipNoEndpoint(dpi);
-            return skipped(startNanos, trace, "no api-endpoint configured");
+            return skipped(startNanos, dpi, stripRequestField, trace, "no api-endpoint configured" + partnerNote);
         }
         if (StringUtils.isBlank(dpi)) {
             metrics.skipNoPartner(dpi);
-            return skipped(startNanos, trace, "no partner-id configured");
+            return skipped(startNanos, dpi, stripRequestField, trace, "no partner-id configured" + partnerNote);
         }
-        final BidRequest bidRequest = auctionRequestPayload.bidRequest();
         if (PrivacySignals.isCoppa(bidRequest)) {
             metrics.skipCoppa(dpi);
-            return skipped(startNanos, trace, "regs.coppa=1");
+            return skipped(startNanos, dpi, stripRequestField, trace, "regs.coppa=1");
         }
         if (PrivacySignals.isGdprWithoutConsent(bidRequest)) {
             metrics.skipNoConsent(dpi);
-            return skipped(startNanos, trace, "regs.gdpr=1 without a consent string");
+            return skipped(startNanos, dpi, stripRequestField, trace, "regs.gdpr=1 without a consent string");
         }
 
-        return resolveEids(properties, bidRequest)
+        return resolveEids(properties, dpi, bidRequest)
                 .map(resolution -> {
                     final List<Eid> eids = resolution.eids();
                     final IntentiqIdentityModuleContext context = new IntentiqIdentityModuleContext(
-                            startNanos, resolution.abTestUuid(), resolution.terminationCause());
+                            startNanos, resolution.abTestUuid(), resolution.terminationCause(), dpi);
+                    final List<String> messages = HookTrace.messages(trace,
+                            resolvedMessage(resolution, dpi, startNanos) + partnerNote);
                     if (eids == null || eids.isEmpty()) {
                         metrics.eidsNone(dpi);
-                        return noAction(context, HookTrace.messages(trace, resolvedMessage(resolution, startNanos)));
+                        return result(context, null, stripRequestField, messages);
                     }
                     metrics.enriched(dpi);
-                    return update(payload -> enrichUserEids(payload, eids), context,
-                            HookTrace.messages(trace, resolvedMessage(resolution, startNanos)));
+                    return result(context, eids, stripRequestField, messages);
                 })
                 .otherwise(throwable -> {
                     conditionalLogger.warn("IntentIQ identity resolution failed, proceeding without enrichment: "
                             + throwable.getMessage(), LOG_SAMPLING_RATE);
                     metrics.apiError(dpi);
-                    return noAction(new IntentiqIdentityModuleContext(startNanos, null, null),
+                    return result(new IntentiqIdentityModuleContext(startNanos, null, null, dpi), null,
+                            stripRequestField,
                             HookTrace.messages(trace, "[enrich] failed: " + throwable.getMessage()
                                     + "; auction continues without IntentIQ ids; took " + millisSince(startNanos)
                                     + " ms"));
@@ -160,18 +172,39 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> skipped(long startNanos,
+                                                                           String dpi,
+                                                                           boolean stripRequestField,
                                                                            boolean trace,
                                                                            String reason) {
-        return Future.succeededFuture(noAction(new IntentiqIdentityModuleContext(startNanos, null, null),
+        return Future.succeededFuture(result(new IntentiqIdentityModuleContext(startNanos, null, null, dpi), null,
+                stripRequestField,
                 HookTrace.messages(trace, "[enrich] skipped: " + reason + "; no API call, user.eids unchanged")));
     }
 
-    private static String resolvedMessage(Resolution resolution, long startNanos) {
+    // An update when there are ids to add or ext.intentiq to remove; otherwise no_action.
+    private static InvocationResult<AuctionRequestPayload> result(IntentiqIdentityModuleContext context,
+                                                                  List<Eid> eids,
+                                                                  boolean stripRequestField,
+                                                                  List<String> debugMessages) {
+        final boolean enrich = eids != null && !eids.isEmpty();
+        if (!enrich && !stripRequestField) {
+            return noAction(context, debugMessages);
+        }
+
+        return update(payload -> {
+            final BidRequest request = stripRequestField
+                    ? PartnerIdResolver.withoutRequestField(payload.bidRequest())
+                    : payload.bidRequest();
+            return AuctionRequestPayloadImpl.of(enrich ? enrichUserEids(request, eids) : request);
+        }, context, debugMessages);
+    }
+
+    private static String resolvedMessage(Resolution resolution, String dpi, long startNanos) {
         final List<Eid> eids = resolution.eids();
         final String result = eids == null || eids.isEmpty()
                 ? "no ids"
                 : eids.size() + " eid(s): " + eids.stream().map(Eid::getSource).collect(Collectors.joining(", "));
-        return "[enrich] " + result + "; source: " + resolution.source()
+        return "[enrich] partner " + dpi + ": " + result + "; source: " + resolution.source()
                 + "; tc=" + resolution.terminationCause() + ", abTestUuid=" + resolution.abTestUuid()
                 + "; took " + millisSince(startNanos) + " ms";
     }
@@ -180,17 +213,18 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
 
-    private Future<Resolution> resolveEids(IntentiqIdentityProperties properties, BidRequest bidRequest) {
+    private Future<Resolution> resolveEids(IntentiqIdentityProperties properties,
+                                           String dpi,
+                                           BidRequest bidRequest) {
         final boolean cacheEnabled = cache != null && properties.getCache().isEnabled();
-        final List<CacheKey> keys = cacheEnabled ? keyExtractor.candidateKeys(bidRequest, properties.getPartnerId())
-                : List.of();
+        // The cache keys are scoped by partner id, so one partner never reads another partner's entries.
+        final List<CacheKey> keys = cacheEnabled ? keyExtractor.candidateKeys(bidRequest, dpi) : List.of();
         if (keys.isEmpty()) {
-            return fetch(properties, bidRequest)
+            return fetch(properties, dpi, bidRequest)
                     .map(response -> new Resolution(
                             extractEids(response), response.getAbTestUuid(), response.getTc(), "IntentIQ API"));
         }
 
-        final String dpi = properties.getPartnerId();
         // Cache counters are broken down by key type: the type of the key that actually matched for
         // HIT/NEGATIVE/IN_PROGRESS, and the request's primary (highest-priority) candidate type for a
         // full MISS, where no key matched.
@@ -263,7 +297,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
             case MISS -> {
                 metrics.cacheMiss(primaryType, dpi);
                 cache.putInProgress(keys);
-                yield fetchAndCache(properties, bidRequest, keys);
+                yield fetchAndCache(properties, dpi, bidRequest, keys);
             }
         });
     }
@@ -279,9 +313,10 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private Future<Resolution> fetchAndCache(IntentiqIdentityProperties properties,
+                                             String dpi,
                                              BidRequest bidRequest,
                                              List<CacheKey> keys) {
-        return fetch(properties, bidRequest)
+        return fetch(properties, dpi, bidRequest)
                 .map(response -> {
                     final List<Eid> eids = extractEids(response);
                     final long cttl = response.getCttl() != null ? response.getCttl() : 0L;
@@ -297,10 +332,10 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                 .onFailure(ignored -> cache.clearInProgress(keys));
     }
 
-    private Future<IiqResponse> fetch(IntentiqIdentityProperties properties, BidRequest bidRequest) {
+    private Future<IiqResponse> fetch(IntentiqIdentityProperties properties, String dpi, BidRequest bidRequest) {
         final long timeout = properties.getTimeout() != null ? properties.getTimeout() : DEFAULT_TIMEOUT_MS;
         final long startNanos = System.nanoTime();
-        return httpClient.get(resolveUrl(properties, bidRequest), resolveHeaders(bidRequest), timeout)
+        return httpClient.get(resolveUrl(properties, dpi, bidRequest), resolveHeaders(bidRequest), timeout)
                 .map(response -> {
                     final int status = response.getStatusCode();
                     if (status < 200 || status >= 300) {
@@ -310,25 +345,25 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                     if (parsed == null) {
                         throw new IllegalStateException("IntentIQ API answered an empty body");
                     }
-                    metrics.apiSuccess(properties.getPartnerId());
+                    metrics.apiSuccess(dpi);
                     if (parsed.getTc() != null) {
-                        metrics.terminationCause(parsed.getTc(), properties.getPartnerId());
+                        metrics.terminationCause(parsed.getTc(), dpi);
                     }
                     return parsed;
                 })
-                .onComplete(ignored -> metrics.apiLatency(System.nanoTime() - startNanos, properties.getPartnerId()));
+                .onComplete(ignored -> metrics.apiLatency(System.nanoTime() - startNanos, dpi));
     }
 
     private static List<Eid> extractEids(IiqResponse response) {
         return response != null && response.getData() != null ? response.getData().getEids() : null;
     }
 
-    private String resolveUrl(IntentiqIdentityProperties properties, BidRequest bidRequest) {
+    private String resolveUrl(IntentiqIdentityProperties properties, String dpi, BidRequest bidRequest) {
         final String apiEndpoint = properties.getApiEndpoint();
         final StringBuilder url = new StringBuilder(apiEndpoint);
         url.append(apiEndpoint.contains("?") ? '&' : '?').append(IiqParam.AT.key()).append("=39");
         appendIfPresent(url, IiqParam.MI, "10");
-        appendIfPresent(url, IiqParam.DPI, properties.getPartnerId());
+        appendIfPresent(url, IiqParam.DPI, dpi);
         appendIfPresent(url, IiqParam.PT, "17");
         appendIfPresent(url, IiqParam.DPN, "1");
         appendIfPresent(url, IiqParam.SRVR_REQ, "true");
@@ -488,8 +523,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
-    private static AuctionRequestPayload enrichUserEids(AuctionRequestPayload payload, List<Eid> resolvedEids) {
-        final BidRequest bidRequest = payload.bidRequest();
+    private static BidRequest enrichUserEids(BidRequest bidRequest, List<Eid> resolvedEids) {
         final User existingUser = bidRequest.getUser() != null ? bidRequest.getUser() : User.builder().build();
 
         // An eid source the request already carries is kept as sent: OpenRTB allows one eid per source,
@@ -511,7 +545,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         }
 
         final User enrichedUser = existingUser.toBuilder().eids(mergedEids).build();
-        return AuctionRequestPayloadImpl.of(bidRequest.toBuilder().user(enrichedUser).build());
+        return bidRequest.toBuilder().user(enrichedUser).build();
     }
 
     private static InvocationResult<AuctionRequestPayload> update(PayloadUpdate<AuctionRequestPayload> payloadUpdate,

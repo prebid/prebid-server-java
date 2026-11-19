@@ -32,6 +32,7 @@ import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -90,6 +91,63 @@ public class IntentiqIdentityAuctionResponseHookTest {
         return new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, MAPPER, metrics);
     }
 
+    @Test
+    public void callShouldReportToThePartnerTheEnrichHookUsed() {
+        // given
+        givenRequest(BidRequest.builder().build());
+        when(invocationContext.moduleContext())
+                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-1", null, "777"));
+        final Bid bid = Bid.builder().impid("a").price(BigDecimal.ONE).build();
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", bid)), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue()).contains("&dpi=777&");
+        assertThat(rdataJson(urlCaptor.getValue())).contains("\"partnerId\":\"777\"");
+    }
+
+    @Test
+    public void callShouldResolveTheRequestPartnerIdWhenThereIsNoModuleContext() {
+        // given — the enrich hook timed out, so the request still carries ext.intentiq
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("intentiq", MAPPER.mapper().createObjectNode().put("partnerId", "777"));
+        givenRequest(BidRequest.builder().ext(ext).build());
+        final Bid bid = Bid.builder().impid("a").price(BigDecimal.ONE).build();
+        final IntentiqIdentityAuctionResponseHook target = targetWithAllowlist(REPORTS, "999", List.of("777"));
+
+        // when
+        target.call(payload(response("seat", bid)), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue()).contains("&dpi=777&");
+    }
+
+    @Test
+    public void callShouldNotReportWhenTheEnrichHookHadNoPartner() {
+        // given
+        givenRequest(BidRequest.builder().build());
+        when(invocationContext.moduleContext())
+                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), null, null, null));
+        final Bid bid = Bid.builder().impid("a").price(BigDecimal.ONE).build();
+
+        // when
+        target(REPORTS, null).call(payload(response("seat", bid)), invocationContext);
+
+        // then
+        verifyNoInteractions(httpClient);
+    }
+
+    private IntentiqIdentityAuctionResponseHook targetWithAllowlist(String reportsEndpoint, String partnerId,
+                                                                    List<String> allowed) {
+        final IntentiqIdentityProperties properties = new IntentiqIdentityProperties();
+        properties.setReportsEndpoint(reportsEndpoint);
+        properties.setPartnerId(partnerId);
+        properties.setAllowedPartnerIds(allowed);
+        final ConfigResolver configResolver = new ConfigResolver(MAPPER.mapper(), MERGER, properties);
+        return new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, MAPPER, metrics);
+    }
+
     private AuctionResponsePayload payload(BidResponse bidResponse) {
         return AuctionResponsePayloadImpl.of(bidResponse);
     }
@@ -119,7 +177,7 @@ public class IntentiqIdentityAuctionResponseHookTest {
                 .device(Device.builder().ip("1.2.3.4").ua("UA").build())
                 .build());
         when(invocationContext.moduleContext())
-                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-123", null));
+                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-123", null, "999"));
         final Bid bid = Bid.builder().impid("imp1").price(BigDecimal.valueOf(1.18)).build();
 
         // when
@@ -196,7 +254,7 @@ public class IntentiqIdentityAuctionResponseHookTest {
         // given
         givenRequest(BidRequest.builder().build());
         when(invocationContext.moduleContext())
-                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-1", 7L));
+                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-1", 7L, "999"));
         final Bid bid = Bid.builder().impid("a").price(BigDecimal.ONE).build();
 
         // when
@@ -211,7 +269,7 @@ public class IntentiqIdentityAuctionResponseHookTest {
         // given
         givenRequest(BidRequest.builder().build());
         when(invocationContext.moduleContext())
-                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-1", null));
+                .thenReturn(new IntentiqIdentityModuleContext(System.nanoTime(), "ab-1", null, "999"));
         final Bid bid = Bid.builder().impid("a").price(BigDecimal.ONE).build();
 
         // when

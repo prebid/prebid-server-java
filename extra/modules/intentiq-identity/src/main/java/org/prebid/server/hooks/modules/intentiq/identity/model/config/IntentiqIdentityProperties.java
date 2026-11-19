@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 public final class IntentiqIdentityProperties {
@@ -16,6 +18,13 @@ public final class IntentiqIdentityProperties {
 
     @JsonProperty("partner-id")
     String partnerId;
+
+    /**
+     * Partner ids a bid request may pick with {@code ext.intentiq.partnerId}. A request id that is not
+     * listed is ignored and {@code partner-id} is used. Empty (the default): the request field is ignored.
+     */
+    @JsonProperty("allowed-partner-ids")
+    List<String> allowedPartnerIds = List.of();
 
     Long timeout;
 

@@ -19,6 +19,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqId
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PartnerIdResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.PrivacySignals;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -83,10 +84,16 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
         final IntentiqIdentityProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final IntentiqIdentityModuleContext context =
                 invocationContext.moduleContext() instanceof IntentiqIdentityModuleContext ctx ? ctx : null;
+        final BidRequest bidRequest = bidRequest(invocationContext);
+        // The partner the enrich hook used. Without its context (the enrich hook timed out) the request still
+        // carries ext.intentiq, so resolving again gives the same partner.
+        final String dpi = context != null
+                ? context.partnerId()
+                : PartnerIdResolver.resolve(properties, bidRequest).partnerId();
         // Whole-flow latency: enrich hook entry (startNanos) -> here (bid release), recorded once
         // per auction regardless of whether an impression report is configured/sent.
         if (context != null) {
-            metrics.flowLatency(System.nanoTime() - context.startNanos(), properties.getPartnerId());
+            metrics.flowLatency(System.nanoTime() - context.startNanos(), dpi);
         }
 
         final BidResponse bidResponse = auctionResponsePayload.bidResponse();
@@ -94,13 +101,12 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
             return skipped(trace, "no reports-endpoint configured or no bid response");
         }
 
-        final BidRequest bidRequest = bidRequest(invocationContext);
         // Same gates as the resolution call: the report carries the user's IP and UA.
-        if (StringUtils.isBlank(properties.getPartnerId())) {
+        if (StringUtils.isBlank(dpi)) {
             return skipped(trace, "no partner-id configured");
         }
         if (bidRequest != null && PrivacySignals.isCoppa(bidRequest)) {
-            metrics.skipCoppa(properties.getPartnerId());
+            metrics.skipCoppa(dpi);
             return skipped(trace, "regs.coppa=1");
         }
         if (bidRequest != null && PrivacySignals.isGdprWithoutConsent(bidRequest)) {
@@ -113,11 +119,13 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
 
         final List<SeatBidRef> winners = winningBids(bidResponse);
         for (final SeatBidRef winner : winners) {
-            report(properties, bidRequest, winner.seat(), winner.bid(), currency, abTestUuid, terminationCause);
+            report(properties, dpi, bidRequest, winner.seat(), winner.bid(), currency, abTestUuid,
+                    terminationCause);
         }
 
         return Future.succeededFuture(noAction(HookTrace.messages(trace,
-                "[report] sent " + winners.size() + " winning bid(s) to reports-endpoint (abTestUuid="
+                "[report] sent " + winners.size() + " winning bid(s) to reports-endpoint (partner " + dpi
+                        + ", abTestUuid="
                         + abTestUuid + ")")));
     }
 
@@ -149,6 +157,7 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
     }
 
     private void report(IntentiqIdentityProperties properties,
+                        String dpi,
                         BidRequest bidRequest,
                         String bidderCode,
                         Bid bid,
@@ -157,7 +166,7 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
                         Long terminationCause) {
         final Map<String, Object> rdata = new LinkedHashMap<>();
         put(rdata, RdataField.BIDDER_CODE, bidderCode);
-        put(rdata, RdataField.PARTNER_ID, properties.getPartnerId());
+        put(rdata, RdataField.PARTNER_ID, dpi);
         put(rdata, RdataField.CPM, bid.getPrice());
         put(rdata, RdataField.CURRENCY, currency);
         appendOriginalBid(rdata, bid);
@@ -178,12 +187,10 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
             putIfPresent(rdata, RdataField.UA, device.getUa());
         }
 
-        final String dpi = properties.getPartnerId();
-
         final long timeout = properties.getReportsTimeout() != null
                 ? properties.getReportsTimeout()
                 : DEFAULT_TIMEOUT_MS;
-        httpClient.get(reportUrl(properties, rdata), HttpUtil.headers(), timeout)
+        httpClient.get(reportUrl(properties, dpi, rdata), HttpUtil.headers(), timeout)
                 .onSuccess(response -> {
                     if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
                         metrics.impressionReported(dpi);
@@ -200,14 +207,14 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
                 });
     }
 
-    private String reportUrl(IntentiqIdentityProperties properties, Map<String, Object> rdata) {
+    private String reportUrl(IntentiqIdentityProperties properties, String dpi, Map<String, Object> rdata) {
         final String endpoint = properties.getReportsEndpoint();
         return endpoint
                 + (endpoint.contains("?") ? "&" : "?")
                 + IiqParam.AT.key() + "=45"
                 + "&" + IiqParam.RTYPE.key() + "=1"
                 + "&" + IiqParam.SOURCE.key() + "=" + SOURCE_PBJV
-                + "&" + IiqParam.DPI.key() + "=" + encodeComponent(StringUtils.defaultString(properties.getPartnerId()))
+                + "&" + IiqParam.DPI.key() + "=" + encodeComponent(dpi)
                 + "&" + IiqParam.RDATA.key() + "=" + encodeComponent(mapper.encodeToString(rdata));
     }
 
