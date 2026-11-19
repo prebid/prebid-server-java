@@ -11,9 +11,10 @@ See the [S2S integration docs](https://s2s.documents.intentiq.com/) for the full
 
 ### Execution Plan
 
-This module runs at two stages: `processed-auction-request` (enrich `user.eids`) and, optionally,
-`auction-response` (report the winning bid of each impression to `reports-endpoint`). Enable the module and
-add the hook(s) to the execution plan:
+This module runs at `processed-auction-request` (enrich `user.eids`) and, optionally, at
+`raw-auction-request` (take the partner id out of the request, see
+[Partner id in the bid request](#partner-id-in-the-bid-request)) and `auction-response` (report the winning
+bid of each impression to `reports-endpoint`). Enable the module and add the hooks to the execution plan:
 
 ```yaml
 hooks:
@@ -24,6 +25,12 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
+            "raw-auction-request": {
+              "groups": [
+                { "timeout": 20, "hook-sequence": [
+                  { "module-code": "intentiq-identity",
+                    "hook-impl-code": "intentiq-identity-raw-auction-request-hook" } ] } ]
+            },
             "processed-auction-request": {
               "groups": [
                 { "timeout": 200, "hook-sequence": [
@@ -108,8 +115,10 @@ hooks:
 - An id that is not listed is ignored: `partner-id` is used instead, and `partner.not_allowed` is counted.
   With no `partner-id` either, the auction runs without the module.
 - With `allowed-partner-ids` empty (the default) the request field is ignored.
-- The module removes `ext.intentiq` from the request, so the bidders never see it. It does so when the
-  enrich hook finishes within its timeout; after a timeout PBS drops every change of the hook.
+- The `raw-auction-request` hook removes `ext.intentiq` at the first stage, before anything else reads the
+  request, so no bidder, analytics adapter or debug output sees it. It does no I/O, so it cannot time out.
+  Without that hook in the execution plan the enrich hook removes it, but only when it finishes within its
+  timeout: PBS drops every change of a hook that timed out.
 
 ## Module Configuration Parameters
 

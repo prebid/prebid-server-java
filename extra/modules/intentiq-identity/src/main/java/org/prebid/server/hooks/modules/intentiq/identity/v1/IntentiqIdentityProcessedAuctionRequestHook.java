@@ -30,6 +30,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.KeyType;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
+import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
@@ -118,9 +119,14 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         final boolean trace = HookTrace.isEnabled(invocationContext);
         final IntentiqIdentityProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
-        // ext.intentiq is for this module only: every outcome below removes it before the bidders see it.
+        // The raw-auction-request hook normally took ext.intentiq out already and left the requested id in the
+        // module context. Without that hook in the execution plan, read it here and remove it on every outcome.
         final boolean stripRequestField = PartnerIdResolver.hasRequestField(bidRequest);
-        final PartnerIdResolver.Resolved partner = PartnerIdResolver.resolve(properties, bidRequest);
+        final String requested = invocationContext.moduleContext() instanceof RequestPartnerContext early
+                && !stripRequestField
+                ? early.partnerId()
+                : PartnerIdResolver.fromRequest(bidRequest);
+        final PartnerIdResolver.Resolved partner = PartnerIdResolver.resolve(properties, requested);
         final String dpi = partner.partnerId();
         final String partnerNote = partner.requestRejected()
                 ? "; ext.intentiq.partnerId is not in allowed-partner-ids, ignored"

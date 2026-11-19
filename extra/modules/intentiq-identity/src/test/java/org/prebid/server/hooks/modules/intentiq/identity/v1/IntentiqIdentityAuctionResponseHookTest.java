@@ -24,6 +24,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
+import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -118,6 +119,20 @@ public class IntentiqIdentityAuctionResponseHookTest {
 
         // when
         target.call(payload(response("seat", bid)), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue()).contains("&dpi=777&");
+    }
+
+    @Test
+    public void callShouldUseThePartnerIdTheRawAuctionRequestHookKeptWhenTheEnrichHookTimedOut() {
+        // given: the enrich hook timed out, so only the early hook's context is there
+        givenRequest(BidRequest.builder().build());
+        when(invocationContext.moduleContext()).thenReturn(new RequestPartnerContext("777"));
+        final Bid bid = Bid.builder().impid("a").price(BigDecimal.ONE).build();
+
+        // when
+        targetWithAllowlist(REPORTS, "999", List.of("777")).call(payload(response("seat", bid)), invocationContext);
 
         // then
         assertThat(urlCaptor.getValue()).contains("&dpi=777&");

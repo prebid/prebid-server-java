@@ -35,8 +35,12 @@ public final class PartnerIdResolver {
     }
 
     public static Resolved resolve(IntentiqIdentityProperties properties, BidRequest bidRequest) {
+        return resolve(properties, fromRequest(bidRequest));
+    }
+
+    /** @param requested the partner id the request asked for (already trimmed), or null */
+    public static Resolved resolve(IntentiqIdentityProperties properties, String requested) {
         final String configured = StringUtils.trimToNull(properties.getPartnerId());
-        final String requested = fromRequest(bidRequest);
         if (requested == null) {
             return new Resolved(configured, false);
         }

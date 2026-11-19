@@ -15,6 +15,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
+import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
@@ -85,11 +86,13 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
         final IntentiqIdentityModuleContext context =
                 invocationContext.moduleContext() instanceof IntentiqIdentityModuleContext ctx ? ctx : null;
         final BidRequest bidRequest = bidRequest(invocationContext);
-        // The partner the enrich hook used. Without its context (the enrich hook timed out) the request still
-        // carries ext.intentiq, so resolving again gives the same partner.
+        // The partner the enrich hook used. Without its context (the enrich hook timed out) resolve it again
+        // from what the raw-auction-request hook kept, or from the request when that hook is not configured.
         final String dpi = context != null
                 ? context.partnerId()
-                : PartnerIdResolver.resolve(properties, bidRequest).partnerId();
+                : PartnerIdResolver.resolve(properties, invocationContext.moduleContext()
+                        instanceof RequestPartnerContext early ? early.partnerId()
+                        : PartnerIdResolver.fromRequest(bidRequest)).partnerId();
         // Whole-flow latency: enrich hook entry (startNanos) -> here (bid release), recorded once
         // per auction regardless of whether an impression report is configured/sent.
         if (context != null) {

@@ -33,6 +33,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.KeyType;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
+import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
@@ -1212,6 +1213,38 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         // then
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(((IntentiqIdentityModuleContext) result.moduleContext()).partnerId()).isEqualTo("123");
+    }
+
+    @Test
+    public void callShouldUseThePartnerIdTheRawAuctionRequestHookKept() {
+        // given: the early hook already removed ext.intentiq and kept the id in the module context
+        givenCapturedResponse();
+        when(invocationContext.moduleContext()).thenReturn(new RequestPartnerContext("777"));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().build());
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(extractParam(urlCaptor.getValue(), "dpi")).isEqualTo("777");
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(((IntentiqIdentityModuleContext) result.moduleContext()).partnerId()).isEqualTo("777");
+    }
+
+    @Test
+    public void callShouldCheckThePartnerIdTheRawAuctionRequestHookKeptAgainstTheAllowlist() {
+        // given
+        givenCapturedResponse();
+        when(invocationContext.moduleContext()).thenReturn(new RequestPartnerContext("999"));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().build());
+
+        // when
+        targetWithAllowlist("123", List.of("777"), null).call(payload, invocationContext).result();
+
+        // then
+        assertThat(extractParam(urlCaptor.getValue(), "dpi")).isEqualTo("123");
+        assertThat(metricRegistry.counter(PREFIX + "partner.not_allowed").getCount()).isEqualTo(1);
     }
 
     private IntentiqIdentityProcessedAuctionRequestHook targetWithAllowlist(String partnerId,
