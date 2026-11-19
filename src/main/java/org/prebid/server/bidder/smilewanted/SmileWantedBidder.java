@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -112,25 +113,34 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            case null, default -> getBidTypeFromImp(bid.getImpid(), imps);
+            case null, default -> getBidTypeFromImp(bid, imps);
         };
     }
 
-    private static BidType getBidTypeFromImp(String impid, List<Imp> imps) {
+    private static BidType getBidTypeFromImp(Bid bid, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (!imp.getId().equals(impid)) {
-                continue;
+            if (imp.getId().equals(bid.getImpid())) {
+                return getBidTypeFromMarkup(bid.getAdm(), imp);
             }
-            if (imp.getVideo() != null) {
-                return BidType.video;
-            }
-            if (imp.getAudio() != null) {
-                return BidType.audio;
-            }
-            if (imp.getXNative() != null) {
-                return BidType.xNative;
-            }
-            return BidType.banner;
+        }
+        return BidType.banner;
+    }
+
+    // Among the media types the imp offers, the markup decides: VAST is video or audio,
+    // a JSON object is native, anything else is banner. An imp without banner keeps its own media type.
+    private static BidType getBidTypeFromMarkup(String adm, Imp imp) {
+        final boolean isVast = StringUtils.contains(adm, "<VAST");
+        final boolean isJson = StringUtils.startsWith(StringUtils.trim(adm), "{");
+        final boolean hasBanner = imp.getBanner() != null;
+
+        if (imp.getVideo() != null && (isVast || !hasBanner)) {
+            return BidType.video;
+        }
+        if (imp.getAudio() != null && (isVast || !hasBanner)) {
+            return BidType.audio;
+        }
+        if (imp.getXNative() != null && (isJson || !hasBanner)) {
+            return BidType.xNative;
         }
         return BidType.banner;
     }

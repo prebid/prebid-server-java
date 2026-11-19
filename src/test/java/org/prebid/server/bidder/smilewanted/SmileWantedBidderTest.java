@@ -42,6 +42,9 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 public class SmileWantedBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://prebid-server.smilewanted.com/java/{ZoneId}";
+    private static final String HTML_ADM = "<html><body><div>ad</div></body></html>";
+    private static final String VAST_ADM = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><VAST version=\"4.1\"></VAST>";
+    private static final String NATIVE_ADM = "{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"title\":{\"text\":\"Title\"}}]}";
 
     private final SmileWantedBidder target = new SmileWantedBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -271,13 +274,14 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfMtypeIsAbsentOnMultiFormatImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMtypeIsAbsentAndAdmIsHtmlOnBannerVideoImp()
+            throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(givenMultiFormatImp()))
                         .build(),
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm(HTML_ADM)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -285,7 +289,102 @@ public class SmileWantedBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm(HTML_ADM).build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfMtypeIsAbsentAndAdmIsVastOnBannerVideoImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenMultiFormatImp()))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm(VAST_ADM)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm(VAST_ADM).build(), video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfMtypeIsAbsentAndAdmIsHtmlOnBannerAudioImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenBannerImp(impBuilder -> impBuilder.audio(Audio.builder().build()))))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm(HTML_ADM)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm(HTML_ADM).build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidIfMtypeIsAbsentAndAdmIsVastOnBannerAudioImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenBannerImp(impBuilder -> impBuilder.audio(Audio.builder().build()))))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm(VAST_ADM)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm(VAST_ADM).build(), audio, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfMtypeIsAbsentAndAdmIsHtmlOnBannerNativeImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenBannerImp(impBuilder -> impBuilder.xNative(Native.builder().build()))))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm(HTML_ADM)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm(HTML_ADM).build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfMtypeIsAbsentAndAdmIsJsonOnBannerNativeImp()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenBannerImp(impBuilder -> impBuilder.xNative(Native.builder().build()))))
+                        .build(),
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm(NATIVE_ADM)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm(NATIVE_ADM).build(), xNative, null));
     }
 
     @Test
@@ -485,10 +584,10 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     private static Imp givenMultiFormatImp() {
-        return Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .video(Video.builder().build())
-                .build();
+        return givenBannerImp(impBuilder -> impBuilder.video(Video.builder().build()));
+    }
+
+    private static Imp givenBannerImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder().id("123").banner(Banner.builder().build())).build();
     }
 }
