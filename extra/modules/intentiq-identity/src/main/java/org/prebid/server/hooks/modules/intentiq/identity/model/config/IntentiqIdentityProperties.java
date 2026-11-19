@@ -35,4 +35,7 @@ public final class IntentiqIdentityProperties {
     // Module metrics are recorded by default; can opt out by setting this to false.
     @JsonProperty("metrics-enabled")
     boolean metricsEnabled = true;
+
+    @JsonProperty("metrics-push")
+    MetricsPushProperties metricsPush = new MetricsPushProperties();
 }

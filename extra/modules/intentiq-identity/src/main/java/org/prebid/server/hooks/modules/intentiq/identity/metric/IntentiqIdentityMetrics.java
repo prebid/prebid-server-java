@@ -184,6 +184,21 @@ public class IntentiqIdentityMetrics {
         gauge("l2.eviction", evictions);
     }
 
+    /** A metrics push to IntentIQ was accepted. Global (no dpi). */
+    public void pushSuccess() {
+        inc("push.success", null);
+    }
+
+    /** A metrics push to IntentIQ failed, timed out or was refused; that batch is dropped. Global. */
+    public void pushError() {
+        inc("push.error", null);
+    }
+
+    /** A push tick was skipped because the previous push was still running. Global. */
+    public void pushSkipped() {
+        inc("push.skipped", null);
+    }
+
     protected void inc(String name, String dpi) {
         metricRegistry.counter(withDpi(name, dpi)).inc();
     }

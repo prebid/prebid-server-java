@@ -287,6 +287,36 @@ JVM / system health (free memory, GC) is provided by **prebid-server core**, not
 > near-zero on every scrape. The server logs a warning when Prometheus is enabled with
 > `flushingCounter`.
 
+### Sending the metrics to IntentIQ
+
+Optional. With a URL and token from IntentIQ, the module also posts its metrics to IntentIQ every minute, in
+the Prometheus text format. Only `modules.module.intentiq-identity.*` metrics are sent, nothing else from the
+server. It never touches the server's own reporters: a counter that resets on read (`flushingCounter`) is
+skipped. A failed or slow push is dropped, never queued or retried, and the auction never waits for it.
+
+```yaml
+hooks:
+  modules:
+    intentiq-identity:
+      metrics-push:
+        url: <given by IntentIQ>
+        token: ${IIQ_METRICS_TOKEN}   # keep the token in an environment variable
+        instance: <optional, defaults to the host name>
+        interval-seconds: 60
+        timeout-ms: 5000
+```
+
+| Parameter        | Scope | Required | Type    | Default   | Description                              |
+|------------------|-------|----------|---------|-----------|------------------------------------------|
+| url              | host  | no       | string  | none      | Push URL; off unless url and token set   |
+| token            | host  | no       | string  | none      | Bearer token                             |
+| instance         | host  | no       | string  | host name | `instance` label of this server          |
+| interval-seconds | host  | no       | integer | 60        | Push interval                            |
+| timeout-ms       | host  | no       | long    | 5000      | Timeout of one push                      |
+
+Its own health: `custom.push.success`, `custom.push.error`, `custom.push.skipped` (a push still running when
+the next one was due).
+
 ## Running the demo
 
 1. Build the bundle: `mvn clean package --file extra/pom.xml`

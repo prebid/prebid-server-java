@@ -22,10 +22,12 @@ import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityStore;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisIdentityStore;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisStatsReporter;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
+import org.prebid.server.hooks.modules.intentiq.identity.metric.MetricsPusher;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.NoopIntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.AerospikeProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.CacheProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
+import org.prebid.server.hooks.modules.intentiq.identity.model.config.MetricsPushProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.RedisProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityAuctionResponseHook;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityModule;
@@ -128,6 +130,33 @@ public class IntentiqIdentityConfig {
             name = "metrics-enabled", havingValue = "true", matchIfMissing = true)
     IntentiqIdentityMetrics intentiqIdentityMetrics(MetricRegistry metricRegistry) {
         return new IntentiqIdentityMetrics(metricRegistry);
+    }
+
+    /**
+     * Pushes the module's metrics to IntentIQ when {@code metrics-push.url} and {@code metrics-push.token} are
+     * set and metrics are recorded. Returns {@code null} otherwise, so Spring registers no bean.
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "hooks.modules." + IntentiqIdentityModule.CODE,
+            name = "metrics-enabled", havingValue = "true", matchIfMissing = true)
+    MetricsPusher intentiqIdentityMetricsPusher(IntentiqIdentityProperties properties,
+                                                MetricRegistry metricRegistry,
+                                                IntentiqIdentityMetrics metrics,
+                                                Vertx vertx,
+                                                HttpClient httpClient) {
+
+        final MetricsPushProperties push = properties.getMetricsPush();
+        if (push == null || StringUtils.isAnyBlank(push.getUrl(), push.getToken())) {
+            return null;
+        }
+        if (push.getIntervalSeconds() <= 0 || push.getTimeoutMs() <= 0) {
+            throw new IllegalArgumentException("hooks.modules." + IntentiqIdentityModule.CODE
+                    + ".metrics-push.interval-seconds and timeout-ms must be positive");
+        }
+
+        return new MetricsPusher(metricRegistry, metrics, vertx, httpClient, push.getUrl(), push.getToken(),
+                MetricsPusher.resolveInstance(push.getInstance()),
+                push.getIntervalSeconds() * 1000L, push.getTimeoutMs()).start();
     }
 
     @Bean
