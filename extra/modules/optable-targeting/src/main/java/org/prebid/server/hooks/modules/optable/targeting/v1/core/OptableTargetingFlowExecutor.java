@@ -1,0 +1,156 @@
+package org.prebid.server.hooks.modules.optable.targeting.v1.core;
+
+import com.iab.openrtb.request.BidRequest;
+import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
+import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.v1.InvocationAction;
+import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
+
+import java.util.Objects;
+import java.util.Set;
+
+public class OptableTargetingFlowExecutor {
+
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
+            LoggerFactory.getLogger(OptableTargetingFlowExecutor.class));
+
+    private static final String AUCTION_NOT_PROPERLY_CONFIGURED =
+            "Account not properly configured: tenant and/or origin is missing.";
+
+    private final BidderEnrichmentSampler bidderEnrichmentSampler;
+    private final TargetingRequestExecutor targetingRequestExecutor;
+    private final TimeoutFactory timeoutFactory;
+    private final double logSamplingRate;
+
+    public OptableTargetingFlowExecutor(BidderEnrichmentSampler bidderEnrichmentSampler,
+                                        TargetingRequestExecutor targetingRequestExecutor,
+                                        TimeoutFactory timeoutFactory,
+                                        double logSamplingRate) {
+
+        this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
+        this.targetingRequestExecutor = Objects.requireNonNull(targetingRequestExecutor);
+        this.timeoutFactory = timeoutFactory;
+        this.logSamplingRate = logSamplingRate;
+    }
+
+    public Future<InvocationResult<AuctionRequestPayload>> executeAsyncOptableTargetingFlow(
+            ModuleContext moduleContext,
+            AuctionRequestPayload payload,
+            AuctionInvocationContext invocationContext,
+            OptableTargetingProperties properties) {
+
+        final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
+        final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
+        if (CollectionUtils.isEmpty(biddersToEnrich)) {
+            return update(AuctionRequestCleaner.instance(), moduleContext);
+        }
+        moduleContext.setBiddersToEnrich(biddersToEnrich);
+
+        final long apiCallTimeout = properties.getApiCallTimeout();
+        final Timeout timeout = timeoutFactory.create(apiCallTimeout);
+        final Future<TargetingResult> optableTargetingCall = targetingRequestExecutor.makeRequest(
+                payload,
+                invocationContext,
+                properties,
+                timeout);
+
+        moduleContext.setOptableTargetingCall(optableTargetingCall);
+
+        return update(AuctionRequestCleaner.instance(), moduleContext);
+    }
+
+    /**
+     * @deprecated This call is deprecated and will be removed in a future release.
+     */
+    @Deprecated
+    public Future<InvocationResult<AuctionRequestPayload>> executeSyncOptableTargetingFlow(
+            AuctionRequestPayload auctionRequestPayload,
+            AuctionInvocationContext invocationContext,
+            ModuleContext moduleContext,
+            OptableTargetingProperties properties) {
+
+        return makeTargetingRequest(auctionRequestPayload, invocationContext, moduleContext, properties)
+                .compose(targetingResult -> {
+                    moduleContext.recordTargetingExecutionTime();
+                    return enrichPayload(targetingResult, moduleContext, properties);
+                })
+                .recover(throwable -> {
+                    moduleContext.failAndRecordExecutionTime();
+                    return updateWithAnalytics(AuctionRequestCleaner.instance(), moduleContext);
+                });
+    }
+
+    private Future<TargetingResult> makeTargetingRequest(
+            AuctionRequestPayload payload,
+            AuctionInvocationContext invocationContext,
+            ModuleContext moduleContext,
+            OptableTargetingProperties properties) {
+
+        moduleContext.setOptableTargetingStartTimestamp(System.currentTimeMillis());
+        if (!PropertiesValidator.isValid(properties)) {
+            conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
+            return Future.failedFuture(AUCTION_NOT_PROPERLY_CONFIGURED);
+        }
+
+        return targetingRequestExecutor.makeRequest(
+                payload,
+                invocationContext,
+                properties,
+                invocationContext.timeout());
+    }
+
+    private Future<InvocationResult<AuctionRequestPayload>> enrichPayload(
+            TargetingResult targetingResult,
+            ModuleContext moduleContext,
+            OptableTargetingProperties properties) {
+
+        moduleContext.setTargeting(targetingResult.getAudience());
+        moduleContext.setId5Signature(Id5Resolver.resolveId5Signature(targetingResult));
+        moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
+
+        final PayloadUpdate<AuctionRequestPayload> payloadUpdate =
+                AuctionRequestCleaner.instance().andThen(AuctionRequestEnricher.of(targetingResult, properties))::apply;
+
+        return updateWithAnalytics(payloadUpdate, moduleContext);
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> update(
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+            ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(payloadUpdate)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> updateWithAnalytics(
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+            ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
+                        .payloadUpdate(payloadUpdate)
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+}

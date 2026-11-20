@@ -21,7 +21,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class BidRequestEnricherTest extends BaseOptableTest {
+public class AuctionRequestEnricherTest extends BaseOptableTest {
 
     private final OptableTargetingProperties targetingProperties = new OptableTargetingProperties();
 
@@ -31,7 +31,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(givenBidRequest());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(null, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(null, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -49,7 +49,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResult();
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -63,7 +63,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResult();
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -86,7 +86,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -108,7 +108,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -130,7 +130,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -160,7 +160,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         properties.setOptableInserterEidsMerge(Set.of("source2"));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, properties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -190,7 +190,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         properties.setOptableInserterEidsIgnore(Set.of("source2"));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, properties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -213,7 +213,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         properties.setOptableInserterEidsIgnore(Set.of("source2"));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, properties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -237,7 +237,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         properties.setOptableInserterEidsReplace(Set.of("source2"));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, properties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -268,7 +268,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         properties.setOptableInserterEidsMerge(Set.of("source2"));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, properties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -296,7 +296,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -316,7 +316,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -337,7 +337,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -355,7 +355,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithEids(Collections.emptyList());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -374,7 +374,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id", List.of(givenSegment("id3", "value3")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -399,7 +399,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id", List.of(givenSegment("id4", "value4")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -425,7 +425,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id1", List.of(givenSegment("id3", "value3")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -449,7 +449,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithData(Collections.emptyList());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -470,7 +470,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id", List.of(givenSegment("id1", "value1")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -487,7 +487,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithData(Collections.emptyList());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -502,7 +502,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenEmptyTargetingResult();
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+        final AuctionRequestPayload result = AuctionRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
