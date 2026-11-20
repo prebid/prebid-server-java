@@ -14,10 +14,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.matterfull.MatterfullrtbBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -40,7 +37,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 
-@ExtendWith(MockitoExtension.class)
 public class MatterfullrtbBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test.endpont.com?pid={PublisherID}";
@@ -93,12 +89,12 @@ public class MatterfullrtbBidderTest extends VertxTest {
     public void makeHttpRequestShouldModifyAppAndSite() {
         // given
         final Site site = Site.builder()
+                .domain("origDomain")
                 .publisher(Publisher.builder()
                         .id("origPub")
                         .build())
                 .build();
         final App app = App.builder()
-                .domain("origDomain")
                 .publisher(Publisher.builder()
                         .id("origPub")
                         .build())
@@ -116,8 +112,8 @@ public class MatterfullrtbBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp, BidRequest::getSite)
                 .containsOnly(tuple(
-                        App.builder().domain("").publisher(null).build(),
-                        Site.builder().publisher(null).build()));
+                        App.builder().publisher(null).build(),
+                        Site.builder().domain("").publisher(null).build()));
     }
 
     @Test
@@ -231,8 +227,8 @@ public class MatterfullrtbBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
         // given
-        final Bid videoBid = givenBid(1);
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(videoBid));
+        final Bid bannerBid = givenBid(1);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bannerBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest(identity()));
@@ -240,7 +236,7 @@ public class MatterfullrtbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(videoBid, BidType.banner, "USD"));
+                .containsOnly(BidderBid.of(bannerBid, BidType.banner, "USD"));
     }
 
     @Test
@@ -261,7 +257,7 @@ public class MatterfullrtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidShouldReturnMediaTypeFromImpWhenBidMTypeEqualsZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnMediaTypeFromImpWhenBidMTypeEqualsZero() throws JsonProcessingException {
         // given
         final Bid bid = givenBid(0, "imp-2");
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
@@ -279,7 +275,7 @@ public class MatterfullrtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidShouldReturnErrorWhenBidMTypeEqualsZeroAndImpInvalid() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidMTypeEqualsZeroAndImpInvalid() throws JsonProcessingException {
         // given
         final Bid bid = givenBid(0, "imp-2");
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
@@ -297,7 +293,7 @@ public class MatterfullrtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidShouldReturnErrorWhenImpIsMultiformatAndMTypeEqualsZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenImpIsMultiformatAndMTypeEqualsZero() throws JsonProcessingException {
         // given
         final Bid bid = givenBid(0, "imp-2");
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
@@ -318,7 +314,7 @@ public class MatterfullrtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidShouldReturnErrorWhenBidMTypeEqualsZeroAndImpNotFound() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidMTypeEqualsZeroAndImpNotFound() throws JsonProcessingException {
         // given
         final Bid bid = givenBid(0, "imp-1");
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));

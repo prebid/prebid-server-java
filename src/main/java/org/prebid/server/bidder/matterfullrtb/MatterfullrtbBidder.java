@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.matterfull;
+package org.prebid.server.bidder.matterfullrtb;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
@@ -70,8 +70,7 @@ public class MatterfullrtbBidder implements Bidder<BidRequest> {
             httpRequests.add(BidderUtil.defaultRequest(
                     modifiedBidRequest,
                     getResolvedUrl(publisherIdImps.getKey()),
-                    mapper
-            ));
+                    mapper));
         }
 
         return Result.of(httpRequests, errors);
@@ -98,11 +97,11 @@ public class MatterfullrtbBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site) {
-        return site.toBuilder().publisher(null).build();
+        return site.toBuilder().publisher(null).domain("").build();
     }
 
     private static App modifyApp(App app) {
-        return app.toBuilder().publisher(null).domain("").build();
+        return app.toBuilder().publisher(null).build();
     }
 
     private String getResolvedUrl(String publisherId) {
