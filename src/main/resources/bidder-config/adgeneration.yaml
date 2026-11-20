@@ -1,11 +1,13 @@
 adapters:
   adgeneration:
-    endpoint: https://d.socdm.com/adsv/v1
+    endpoint: https://d.socdm.com/adgen/prebid
     meta-info:
       maintainer-email: ssp-ope@supership.jp
       app-media-types:
         - banner
+        - native
       site-media-types:
         - banner
+        - native
       supported-vendors:
       vendor-id: 0
