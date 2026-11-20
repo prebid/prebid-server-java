@@ -11,7 +11,7 @@ See the [S2S integration docs](https://s2s.documents.intentiq.com/) for the full
 
 ### Execution Plan
 
-This module runs at `processed-auction-request` (enrich `user.eids`) and, optionally, at
+This module runs at `processed-auction-request` (enrich `user.eids`) and, optionally, at `entrypoint` and
 `raw-auction-request` (take the partner id out of the request, see
 [Partner id in the bid request](#partner-id-in-the-bid-request)) and `auction-response` (report the winning
 bid of each impression to `reports-endpoint`). Enable the module and add the hooks to the execution plan:
@@ -25,6 +25,12 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
+            "entrypoint": {
+              "groups": [
+                { "timeout": 20, "hook-sequence": [
+                  { "module-code": "intentiq-identity",
+                    "hook-impl-code": "intentiq-identity-entrypoint-hook" } ] } ]
+            },
             "raw-auction-request": {
               "groups": [
                 { "timeout": 20, "hook-sequence": [
@@ -92,13 +98,21 @@ with `cache.enabled: false`, but caching on an account needs it enabled on the h
 
 ### Partner id in the bid request
 
-A host that serves several IntentIQ partners can send the partner id in each bid request:
+A host that serves several IntentIQ partners can send the partner id in each bid request, in
+`ext.prebid.intentiq.partnerId` or `ext.intentiq.partnerId`:
 
 ```json
-{ "ext": { "intentiq": { "partnerId": "1234567890" } } }
+{ "ext": { "prebid": { "intentiq": { "partnerId": "1234567890" } } } }
 ```
 
-The value is a string or an integer. It is used only when it is listed in `allowed-partner-ids`, so a
+With Prebid.js, set it in the S2S config. `extPrebid` goes only into the request sent to Prebid Server, so no
+client-side bidder sees it:
+
+```javascript
+pbjs.setConfig({ s2sConfig: [{ /* ... */ extPrebid: { intentiq: { partnerId: '1234567890' } } }] });
+```
+
+The value is a string or an integer. When both fields are set, `ext.prebid.intentiq` wins. It is used only when it is listed in `allowed-partner-ids`, so a
 caller cannot act as a partner the host did not list:
 
 ```yaml
@@ -115,10 +129,12 @@ hooks:
 - An id that is not listed is ignored: `partner-id` is used instead, and `partner.not_allowed` is counted.
   With no `partner-id` either, the auction runs without the module.
 - With `allowed-partner-ids` empty (the default) the request field is ignored.
+- `ext.prebid.intentiq` is read only by the `entrypoint` hook, on the raw body: PBS drops `ext.prebid` fields
+  it does not know while it parses the request. The hook also removes it from the body.
 - The `raw-auction-request` hook removes `ext.intentiq` at the first stage, before anything else reads the
-  request, so no bidder, analytics adapter or debug output sees it. It does no I/O, so it cannot time out.
-  Without that hook in the execution plan the enrich hook removes it, but only when it finishes within its
-  timeout: PBS drops every change of a hook that timed out.
+  request, so no bidder, analytics adapter or debug output sees it. Neither hook does I/O, so neither can
+  time out. Without the `raw-auction-request` hook the enrich hook removes `ext.intentiq`, but only when it
+  finishes within its timeout: PBS drops every change of a hook that timed out.
 
 ## Module Configuration Parameters
 
@@ -127,7 +143,7 @@ hooks:
 | api-endpoint      | host    | yes      | string  | none     | Bid Enhancement `ProfilesEngineServlet` URL (region-specific)        |
 | reports-endpoint  | host    | no       | string  | none     | Impression-reporting `ProfilesEngineServlet` URL; blank disables it  |
 | partner-id        | account | yes      | string  | none     | Partner token from IntentIQ, sent as the `dpi` query parameter       |
-| allowed-partner-ids | account | no     | list    | empty    | Partner ids a request may pick with `ext.intentiq.partnerId` (see above) |
+| allowed-partner-ids | account | no     | list    | empty    | Partner ids a request may pick with `ext.prebid.intentiq.partnerId` (see above) |
 | timeout           | account | no       | long    | 1000     | HTTP timeout (ms) for the identity-resolution call                   |
 | reports-timeout   | account | no       | long    | 1000     | HTTP timeout (ms) for the fire-and-forget impression report          |
 | cache.enabled     | both    | no       | boolean | false    | Use the Caffeine + Redis cache (must be on at host level, with `redis.*`); an account can turn it off |
@@ -293,7 +309,7 @@ modules.module.intentiq-identity.custom.enriched_<dpi>                     # eid
 modules.module.intentiq-identity.custom.eids.none_<dpi>                    # resolution produced no eids (pairs with enriched for match rate)
 modules.module.intentiq-identity.custom.skip.no_endpoint_<dpi>             # no api-endpoint configured; resolution skipped before any API call
 modules.module.intentiq-identity.custom.skip.no_partner                    # no partner-id configured; resolution skipped
-modules.module.intentiq-identity.custom.partner.not_allowed                # ext.intentiq.partnerId not in allowed-partner-ids; partner-id used
+modules.module.intentiq-identity.custom.partner.not_allowed                # requested partner id not in allowed-partner-ids; partner-id used
 modules.module.intentiq-identity.custom.skip.no_consent_<dpi>              # regs.gdpr=1 without a consent string; resolution skipped
 modules.module.intentiq-identity.custom.skip.coppa_<dpi>                   # regs.coppa=1; resolution and reporting skipped
 modules.module.intentiq-identity.custom.tc.<id>_<dpi>                      # one counter per enumerated termination-cause id

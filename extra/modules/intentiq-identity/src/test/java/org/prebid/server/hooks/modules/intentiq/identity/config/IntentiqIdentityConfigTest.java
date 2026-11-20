@@ -17,6 +17,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.model.config.AerospikeP
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.RedisProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityAuctionResponseHook;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityEntrypointHook;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityModule;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityRawAuctionRequestHook;
@@ -73,6 +74,7 @@ public class IntentiqIdentityConfigTest {
         // then
         assertThat(module.code()).isEqualTo(IntentiqIdentityModule.CODE);
         assertThat(module.hooks()).hasExactlyElementsOfTypes(
+                IntentiqIdentityEntrypointHook.class,
                 IntentiqIdentityRawAuctionRequestHook.class,
                 IntentiqIdentityProcessedAuctionRequestHook.class,
                 IntentiqIdentityAuctionResponseHook.class);

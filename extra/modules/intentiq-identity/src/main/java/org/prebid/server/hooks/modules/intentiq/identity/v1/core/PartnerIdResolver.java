@@ -11,8 +11,9 @@ import java.util.List;
 /**
  * Picks the IntentIQ partner id (dpi) of one auction.
  *
- * <p>A host can send the partner id in the bid request as {@code ext.intentiq.partnerId} (a string or a
- * number). It is used only when it is listed in {@code allowed-partner-ids}, so a caller can never act as a
+ * <p>A host can send the partner id in the bid request as {@code ext.prebid.intentiq.partnerId} (read by the
+ * entrypoint hook, since PBS drops unknown {@code ext.prebid} fields) or {@code ext.intentiq.partnerId}, as a
+ * string or a number. It is used only when it is listed in {@code allowed-partner-ids}, so a caller can never act as a
  * partner the host did not list. Otherwise, or when the request carries none, the configured
  * {@code partner-id} (account level over host level) is used.
  *
@@ -55,7 +56,11 @@ public final class PartnerIdResolver {
 
     /** The trimmed {@code ext.intentiq.partnerId} of the request, or null when it is missing or blank. */
     public static String fromRequest(BidRequest bidRequest) {
-        final JsonNode intentiq = requestField(bidRequest);
+        return fromNode(requestField(bidRequest));
+    }
+
+    /** The trimmed {@code partnerId} of an {@code intentiq} object, or null when it is missing or blank. */
+    public static String fromNode(JsonNode intentiq) {
         final JsonNode partnerId = intentiq != null ? intentiq.get(PARTNER_ID_FIELD) : null;
         if (partnerId == null || !(partnerId.isTextual() || partnerId.isIntegralNumber())) {
             return null;

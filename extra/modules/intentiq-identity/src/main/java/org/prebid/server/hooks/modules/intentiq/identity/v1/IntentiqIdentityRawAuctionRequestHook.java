@@ -35,12 +35,17 @@ public class IntentiqIdentityRawAuctionRequestHook implements RawAuctionRequestH
                     .build());
         }
 
+        // A partner id the entrypoint hook read from ext.prebid.intentiq wins over ext.intentiq
+        final String partnerId = invocationContext.moduleContext() instanceof RequestPartnerContext early
+                && early.partnerId() != null
+                ? early.partnerId()
+                : PartnerIdResolver.fromRequest(bidRequest);
         return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(payload ->
                         AuctionRequestPayloadImpl.of(PartnerIdResolver.withoutRequestField(payload.bidRequest())))
-                .moduleContext(new RequestPartnerContext(PartnerIdResolver.fromRequest(bidRequest)))
+                .moduleContext(new RequestPartnerContext(partnerId))
                 .build());
     }
 

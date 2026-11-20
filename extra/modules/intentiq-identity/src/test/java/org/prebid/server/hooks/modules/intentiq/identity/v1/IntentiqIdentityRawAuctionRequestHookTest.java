@@ -16,6 +16,7 @@ import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 public class IntentiqIdentityRawAuctionRequestHookTest {
@@ -64,6 +65,37 @@ public class IntentiqIdentityRawAuctionRequestHookTest {
         assertThat(result.moduleContext()).isEqualTo(new RequestPartnerContext(null));
         assertThat(result.payloadUpdate().apply(payload).bidRequest().getExt().containsProperty("intentiq"))
                 .isFalse();
+    }
+
+    @Test
+    public void callShouldKeepThePartnerIdTheEntrypointHookReadFromExtPrebid() {
+        // given
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("intentiq", ObjectMapperProvider.mapper().createObjectNode().put("partnerId", "778"));
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().ext(ext).build());
+        given(invocationContext.moduleContext()).willReturn(new RequestPartnerContext("777"));
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, invocationContext).result();
+
+        // then
+        assertThat(result.moduleContext()).isEqualTo(new RequestPartnerContext("777"));
+        assertThat(result.payloadUpdate().apply(payload).bidRequest().getExt().containsProperty("intentiq"))
+                .isFalse();
+    }
+
+    @Test
+    public void callShouldPassTheEntrypointContextOnWhenTheRequestHasNoExtIntentiq() {
+        // given
+        given(invocationContext.moduleContext()).willReturn(new RequestPartnerContext("777"));
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(
+                AuctionRequestPayloadImpl.of(BidRequest.builder().build()), invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result.moduleContext()).isEqualTo(new RequestPartnerContext("777"));
     }
 
     @Test

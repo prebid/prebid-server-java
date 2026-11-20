@@ -30,6 +30,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqId
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.MetricsPushProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.RedisProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityAuctionResponseHook;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityEntrypointHook;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityModule;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityRawAuctionRequestHook;
@@ -177,6 +178,7 @@ public class IntentiqIdentityConfig {
                 new FirstPartyKeyExtractor(properties.getCache().getMaxKeys());
 
         return new IntentiqIdentityModule(List.of(
+                new IntentiqIdentityEntrypointHook(mapper),
                 new IntentiqIdentityRawAuctionRequestHook(),
                 new IntentiqIdentityProcessedAuctionRequestHook(
                         configResolver, httpClient, mapper, identityCache, keyExtractor, metrics),

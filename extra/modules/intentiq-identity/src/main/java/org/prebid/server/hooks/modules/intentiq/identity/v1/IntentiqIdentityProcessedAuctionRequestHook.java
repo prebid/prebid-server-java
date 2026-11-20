@@ -129,7 +129,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
         final PartnerIdResolver.Resolved partner = PartnerIdResolver.resolve(properties, requested);
         final String dpi = partner.partnerId();
         final String partnerNote = partner.requestRejected()
-                ? "; ext.intentiq.partnerId is not in allowed-partner-ids, ignored"
+                ? "; the requested partner id is not in allowed-partner-ids, ignored"
                 : "";
         if (partner.requestRejected()) {
             metrics.partnerNotAllowed();
