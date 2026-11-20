@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adgeneration.model.request.AdgenerationRequest;
@@ -32,11 +33,13 @@ import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgenerati
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
+import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
@@ -50,10 +53,12 @@ public class AdgenerationBidderTest extends VertxTest {
     private static final String PBS_VERSION = "0.0.0";
     private static final String DEFAULT_CURRENCY = "JPY";
     private static final String VAST_XML = """
-            <VAST>
+            <VAST
+            version="4.0">
             <Ad>ad-test</Ad>
             </VAST>""";
-    private static final String ENCODED_VAST_XML = "%3CVAST%3E%3CAd%3Ead-test%3C%2FAd%3E%3C%2FVAST%3E";
+    private static final String ENCODED_VAST_XML =
+            "%3CVAST%0Aversion%3D%224.0%22%3E%0A%3CAd%3Ead-test%3C%2FAd%3E%0A%3C%2FVAST%3E";
     private static final String UPPER_BILLBOARD_ADM = """
             <script type="text/javascript" src="https://i.socdm.com/sdk/js/adg-browser-m.js"></script>
             <script type="text/javascript">
@@ -559,7 +564,7 @@ public class AdgenerationBidderTest extends VertxTest {
         final ObjectNode nativeAd = givenNativeAd();
         nativeAd.putArray("imptrackers").add(TRACKER_URL);
         final AdgenerationResponse adgenerationResponse = givenBidResponse(
-                givenBidResult(null, null, TRACKER_URL, null, givenNativeAd()));
+                givenBidResult(null, null, TRACKER_URL, null, nativeAd));
         final BidderCall<AdgenerationRequest> httpCall = givenHttpCall(
                 bidRequest, mapper.writeValueAsString(adgenerationResponse));
 
@@ -616,6 +621,28 @@ public class AdgenerationBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldPreferNativeOverBannerWhenBothAreAvailable() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.xNative(Native.builder().build()));
+        final ObjectNode nativeAd = givenNativeAd();
+        final AdgenerationResponse adgenerationResponse = givenBidResponse(
+                givenBidResult("banner-ad", null, null, null, nativeAd));
+        final BidderCall<AdgenerationRequest> httpCall = givenHttpCall(
+                bidRequest, mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(
+                        BidderBid::getType,
+                        bid -> jacksonMapper.decodeValue(bid.getBid().getAdm(), JsonNode.class).path("native"))
+                .containsExactly(tuple(BidType.xNative, nativeAd));
+    }
+
+    @Test
     public void makeBidsShouldReturnCorrectAdmIfBodyTagOfAdIsAbsent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -667,6 +694,44 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getType, bid -> bid.getBid().getAdm())
                 .containsExactly(tuple(BidType.banner, "script"));
+    }
+
+    @Test
+    public void makeBidsShouldRemoveBodyTagsIgnoringCase() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final AdgenerationResponse adgenerationResponse = givenBidResponse(
+                givenBidResult("<BODY>ad</BODY>", "beacon", null, null, null));
+        final BidderCall<AdgenerationRequest> httpCall = givenHttpCall(
+                bidRequest, mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType, bid -> bid.getBid().getAdm())
+                .containsExactly(tuple(BidType.banner, "adbeacon"));
+    }
+
+    @Test
+    public void makeBidsShouldPreserveMarkupWhenBodyIsEmpty() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final AdgenerationResponse adgenerationResponse = givenBidResponse(
+                givenBidResult("<body> </body>", null, null, null, null));
+        final BidderCall<AdgenerationRequest> httpCall = givenHttpCall(
+                bidRequest, mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType, bid -> bid.getBid().getAdm())
+                .containsExactly(tuple(BidType.banner, "<body> </body>"));
     }
 
     @Test
@@ -748,7 +813,10 @@ public class AdgenerationBidderTest extends VertxTest {
                 .singleElement()
                 .asString()
                 .contains(ENCODED_VAST_XML)
-                .doesNotContain("%253C");
+                .doesNotContain("%253C")
+                .satisfies(adm -> assertThat(URLDecoder.decode(
+                        StringUtils.substringBetween(adm, "decodeURIComponent('", "')"), UTF_8))
+                        .isEqualTo(VAST_XML));
     }
 
     @Test

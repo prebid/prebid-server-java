@@ -24,7 +24,6 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -55,9 +54,10 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
     private static final String SDK_NAME = "prebidserver";
     private static final String POSALL_DEFAULT = "SSPLOC";
 
-    private static final Pattern NEWLINE_PATTERN = Pattern.compile("\\r?\\n");
     private static final Pattern APPEND_CHILD_TO_BODY_PATTERN = Pattern.compile("</\\s?body>",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern BODY_PATTERN = Pattern.compile("<body>(.*)</\\s?body>",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdgeneration>> ADGENERATION_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -80,10 +80,19 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
     public Result<List<HttpRequest<AdgenerationRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<AdgenerationRequest>> requests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        final String currency = getCurrency(request);
+        final String currency = getCurrency(request.getCur());
+        final String sdkType = detectSdkType(request);
+        final MultiMap headers = resolveHeaders(request.getDevice());
+
         for (Imp imp : request.getImp()) {
             try {
-                requests.add(makeHttpRequest(request, imp, currency));
+                final ExtImpAdgeneration ext = parseImpExt(imp);
+                validateImpExt(ext);
+
+                final String uri = getUri(ext.getId(), sdkType);
+                final AdgenerationRequest payload = makePayload(request, imp, currency);
+
+                requests.add(createSingleRequest(uri, payload, headers));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -92,58 +101,11 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
         return Result.of(requests, errors);
     }
 
-    private static String getCurrency(BidRequest request) {
-        final List<String> currencies = request.getCur();
-
+    private static String getCurrency(List<String> currencies) {
         return CollectionUtils.isNotEmpty(currencies)
                 && currencies.stream().anyMatch("USD"::equalsIgnoreCase)
                 ? "USD"
                 : DEFAULT_CURRENCY;
-    }
-
-    private HttpRequest<AdgenerationRequest> makeHttpRequest(BidRequest request,
-                                                             Imp imp,
-                                                             String currency) {
-
-        final ExtImpAdgeneration ext = parseAndValidateImpExt(imp);
-        final String uri = getUri(ext.getId(), request);
-        final BidRequest modifiedRequest = request.toBuilder()
-                .imp(Collections.singletonList(imp))
-                .build();
-
-        final AdgenerationRequest payload = AdgenerationRequest.builder()
-                .currency(currency)
-                .pbVersion(pbsVersion)
-                .sdkName(SDK_NAME)
-                .adapterVersion(ADAPTER_VERSION)
-                .ortb(modifiedRequest)
-                .iMark(imp.getXNative() == null ? 1 : null)
-                .build();
-
-        return createSingleRequest(uri, payload, imp.getId());
-    }
-
-    private ExtImpAdgeneration parseAndValidateImpExt(Imp imp) {
-        final ExtImpAdgeneration extImpAdgeneration;
-        try {
-            extImpAdgeneration = mapper.mapper().convertValue(imp.getExt(), ADGENERATION_EXT_TYPE_REFERENCE)
-                    .getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-
-        if (StringUtils.isBlank(extImpAdgeneration.getId())) {
-            throw new PreBidException("No Location ID in ExtImpAdgeneration.");
-        }
-        return extImpAdgeneration;
-    }
-
-    private String getUri(String id, BidRequest request) {
-        return endpoint
-                .addQueryParam("id", id)
-                .addQueryParam("posall", POSALL_DEFAULT)
-                .addQueryParam("sdktype", detectSdkType(request))
-                .expand();
     }
 
     private static String detectSdkType(BidRequest request) {
@@ -154,7 +116,8 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
 
         if (Strings.CI.equals(os, "android")) {
             return "1";
-        } else if (Strings.CI.equals(os, "ios")) {
+        }
+        if (Strings.CI.equals(os, "ios")) {
             return "2";
         }
         return "0";
@@ -172,20 +135,6 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
                 : request.getApp() != null;
     }
 
-    private HttpRequest<AdgenerationRequest> createSingleRequest(String uri,
-                                                                 AdgenerationRequest request,
-                                                                 String impId) {
-
-        return HttpRequest.<AdgenerationRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(uri)
-                .headers(resolveHeaders(request.getOrtb().getDevice()))
-                .impIds(Set.of(impId))
-                .body(mapper.encodeToBytes(request))
-                .payload(request)
-                .build();
-    }
-
     private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
 
@@ -197,54 +146,112 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
         return headers;
     }
 
+    private ExtImpAdgeneration parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ADGENERATION_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static void validateImpExt(ExtImpAdgeneration ext) {
+        if (StringUtils.isBlank(ext.getId())) {
+            throw new PreBidException("No Location ID in ExtImpAdgeneration.");
+        }
+    }
+
+    private String getUri(String id, String sdkType) {
+        return endpoint
+                .addQueryParam("id", id)
+                .addQueryParam("posall", POSALL_DEFAULT)
+                .addQueryParam("sdktype", sdkType)
+                .expand();
+    }
+
+    private AdgenerationRequest makePayload(BidRequest request,
+                                            Imp imp,
+                                            String currency) {
+
+        final BidRequest modifiedRequest = request.toBuilder()
+                .imp(Collections.singletonList(imp))
+                .build();
+
+        return AdgenerationRequest.builder()
+                .currency(currency)
+                .pbVersion(pbsVersion)
+                .sdkName(SDK_NAME)
+                .adapterVersion(ADAPTER_VERSION)
+                .ortb(modifiedRequest)
+                .iMark(imp.getXNative() == null ? 1 : null)
+                .build();
+    }
+
+    private HttpRequest<AdgenerationRequest> createSingleRequest(String uri,
+                                                                 AdgenerationRequest payload,
+                                                                 MultiMap headers) {
+
+        return HttpRequest.<AdgenerationRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(uri)
+                .headers(MultiMap.caseInsensitiveMultiMap().addAll(headers))
+                .impIds(Set.of(payload.getOrtb().getImp().getFirst().getId()))
+                .body(mapper.encodeToBytes(payload))
+                .payload(payload)
+                .build();
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<AdgenerationRequest> httpCall, BidRequest bidRequest) {
         try {
-            final AdgenerationResponse response = decodeBodyToBidResponse(httpCall.getResponse());
-            if (response == null || CollectionUtils.isEmpty(response.getResults())) {
-                return Result.empty();
-            }
+            final AdgenerationResponse response = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), AdgenerationResponse.class);
+            return extractBid(response, httpCall.getRequest().getPayload(), bidRequest);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
 
-            final Imp imp = findMatchingImp(httpCall.getRequest().getPayload(), bidRequest);
-            if (imp == null) {
-                return Result.empty();
-            }
+    private Result<List<BidderBid>> extractBid(AdgenerationResponse response,
+                                               AdgenerationRequest requestPayload,
+                                               BidRequest bidRequest) {
 
-            return Result.withValue(makeBidderBid(response, bidRequest, imp));
+        if (response == null || CollectionUtils.isEmpty(response.getResults())) {
+            return Result.empty();
+        }
+
+        final Imp requestedImp = requestPayload.getOrtb().getImp().getFirst();
+        final Imp imp = findMatchingImp(requestedImp.getId(), bidRequest.getImp());
+        if (imp == null) {
+            return Result.empty();
+        }
+
+        try {
+            return Result.withValue(makeBidderBid(response, imp, bidRequest.getId(), getCurrency(bidRequest.getCur())));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private AdgenerationResponse decodeBodyToBidResponse(HttpResponse httpResponse) {
-        try {
-            return mapper.decodeValue(httpResponse.getBody(), AdgenerationResponse.class);
-        } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private static Imp findMatchingImp(AdgenerationRequest adgenerationRequest, BidRequest request) {
-        final String impId = adgenerationRequest
-                .getOrtb()
-                .getImp()
-                .getFirst()
-                .getId();
-
-        return request.getImp().stream()
+    private static Imp findMatchingImp(String impId, List<Imp> imps) {
+        return imps.stream()
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .findFirst()
                 .orElse(null);
     }
 
-    private BidderBid makeBidderBid(AdgenerationResponse response, BidRequest request, Imp imp) {
+    private BidderBid makeBidderBid(AdgenerationResponse response, Imp imp, String requestId, String currency) {
         final AdgenerationResult result = response.getResults().getFirst();
-        final Pair<BidType, String> markup = buildAdMarkup(result, response.getLocationParams(), imp);
+        final Pair<BidType, String> markup = resolveAdMarkup(result, response.getLocationParams(), imp);
+        final Bid bid = makeBid(result, requestId, imp.getId(), markup.getRight());
 
-        final Bid bid = Bid.builder()
-                .id("%s-%s".formatted(request.getId(), imp.getId()))
-                .impid(imp.getId())
-                .adm(markup.getRight())
+        return BidderBid.of(bid, markup.getLeft(), currency);
+    }
+
+    private static Bid makeBid(AdgenerationResult result, String requestId, String impId, String adm) {
+        return Bid.builder()
+                .id("%s-%s".formatted(requestId, impId))
+                .impid(impId)
+                .adm(adm)
                 .price(result.getCpm())
                 .w(result.getW())
                 .h(result.getH())
@@ -252,42 +259,41 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
                 .dealid(result.getDealId())
                 .adomain(CollectionUtils.isEmpty(result.getAdomain()) ? null : result.getAdomain())
                 .build();
-
-        return BidderBid.of(bid, markup.getLeft(), getCurrency(request));
     }
 
-    private Pair<BidType, String> buildAdMarkup(
-            AdgenerationResult result,
-            AdgenerationLocationParams params,
-            Imp imp) {
+    private Pair<BidType, String> resolveAdMarkup(AdgenerationResult result,
+                                                  AdgenerationLocationParams params,
+                                                  Imp imp) {
 
-        if (imp.getXNative() != null && hasNativeAssets(result.getXNative())) {
-            return Pair.of(BidType.xNative, wrapNativeAdm(result.getXNative(), result.getBeaconUrl()));
+        final ObjectNode nativeAd = imp.getXNative() != null ? resolveNativeAd(result.getXNative()) : null;
+        if (nativeAd != null) {
+            return Pair.of(BidType.xNative, makeNativeAdm(nativeAd, result.getBeaconUrl()));
         }
 
-        if (imp.getBanner() == null) {
-            throw new PreBidException(
-                    "no usable native assets in the response for imp %s and the imp has no banner"
-                            .formatted(imp.getId()));
+        if (imp.getBanner() != null) {
+            return Pair.of(BidType.banner, makeBannerAdm(result, params, imp));
         }
 
-        return Pair.of(BidType.banner, getAdm(result, params, imp));
+        throw new PreBidException(
+                "no usable native assets in the response for imp %s and the imp has no banner"
+                        .formatted(imp.getId()));
     }
 
-    private static boolean hasNativeAssets(JsonNode rawNative) {
-        if (rawNative == null || !rawNative.isObject()) {
-            return false;
+    private static ObjectNode resolveNativeAd(JsonNode rawNative) {
+        if (!(rawNative instanceof ObjectNode)) {
+            return null;
         }
 
-        final JsonNode nativeNode = rawNative.get("native");
-        final JsonNode targetNode = nativeNode != null ? nativeNode : rawNative;
-        final JsonNode assets = targetNode.path("assets");
+        final JsonNode nativeNode = rawNative.has("native") ? rawNative.get("native") : rawNative;
+        if (!(nativeNode instanceof ObjectNode nativeAd)) {
+            return null;
+        }
 
-        return assets.isArray() && !assets.isEmpty();
+        final JsonNode assets = nativeAd.path("assets");
+        return assets.isArray() && !assets.isEmpty() ? nativeAd : null;
     }
 
-    private String wrapNativeAdm(JsonNode raw, String beaconUrl) {
-        final JsonNode nativeNode = raw.has("native") ? raw.get("native") : raw;
+    private String makeNativeAdm(ObjectNode nativeNode, String beaconUrl) {
         final ObjectNode nativeAd = nativeNode.deepCopy();
 
         if (StringUtils.isNotBlank(beaconUrl)) {
@@ -300,49 +306,61 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
         return mapper.encodeToString(wrapped);
     }
 
-    private void appendBeaconIfAbsent(ObjectNode nativeAd, String beaconUrl) {
-        final JsonNode impTrackers = nativeAd.get("imptrackers");
-        if (impTrackers != null && !impTrackers.isNull() && !impTrackers.isArray()) {
-            throw new PreBidException("Invalid native imp trackers");
+    private static void appendBeaconIfAbsent(ObjectNode nativeAd, String beaconUrl) {
+        final ArrayNode trackers = resolveImpTrackers(nativeAd);
+        if (!containsBeacon(trackers, beaconUrl)) {
+            trackers.add(beaconUrl);
+        }
+    }
+
+    private static ArrayNode resolveImpTrackers(ObjectNode nativeAd) {
+        final JsonNode trackers = nativeAd.get("imptrackers");
+
+        if (trackers == null || trackers.isNull()) {
+            return nativeAd.putArray("imptrackers");
+        }
+        if (trackers instanceof ArrayNode array) {
+            return array;
         }
 
-        final ArrayNode trackers = impTrackers != null && impTrackers.isArray()
-                ? (ArrayNode) impTrackers
-                : mapper.mapper().createArrayNode();
+        throw new PreBidException("Invalid native imp trackers");
+    }
 
-        boolean contains = false;
+    private static boolean containsBeacon(ArrayNode trackers, String beaconUrl) {
+        boolean beaconPresent = false;
         for (JsonNode tracker : trackers) {
             if (!tracker.isTextual()) {
                 throw new PreBidException("Invalid native.imptrackers");
             }
             if (beaconUrl.equals(tracker.asText())) {
-                contains = true;
+                beaconPresent = true;
             }
         }
 
-        if (!contains) {
-            trackers.add(beaconUrl);
-            nativeAd.set("imptrackers", trackers);
-        }
+        return beaconPresent;
     }
 
-    private String getAdm(AdgenerationResult result, AdgenerationLocationParams params, Imp imp) {
-        String ad = StringUtils.defaultString(result.getAd());
+    private String makeBannerAdm(AdgenerationResult result, AdgenerationLocationParams params, Imp imp) {
         final String vastXml = result.getVastxml();
+        final String ad = StringUtils.isNotBlank(vastXml)
+                ? makeVastAdm(vastXml, params, imp)
+                : StringUtils.defaultString(result.getAd());
+        final String adWithBeacon = appendChildToBody(ad, result.getBeacon());
 
-        if (StringUtils.isNotBlank(vastXml)) {
-            final String encodedVastXml = HttpUtil.encodeUrl(
-                    NEWLINE_PATTERN.matcher(vastXml).replaceAll(""));
+        return removeWrapper(adWithBeacon);
+    }
 
-            ad = isUpperBillboard(params)
-                    ? wrapWithADGBrowserM(encodedVastXml, parseAndValidateImpExt(imp).getMarginTop())
-                    : wrapWithAPV(imp.getId(), encodedVastXml);
+    private String makeVastAdm(String vastXml, AdgenerationLocationParams params, Imp imp) {
+        final String encodedVastXml = HttpUtil.encodeUrl(vastXml);
+
+        if (isUpperBillboard(params)) {
+            final ExtImpAdgeneration ext = parseImpExt(imp);
+            validateImpExt(ext);
+
+            return wrapWithADGBrowserM(encodedVastXml, ext.getMarginTop());
         }
 
-        ad = appendChildToBody(ad, result.getBeacon());
-
-        final String unwrappedAd = removeWrapper(ad);
-        return StringUtils.isNotEmpty(unwrappedAd) ? unwrappedAd : ad;
+        return wrapWithAPV(imp.getId(), encodedVastXml);
     }
 
     private static boolean isUpperBillboard(AdgenerationLocationParams params) {
@@ -360,8 +378,7 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
                 </script>
                 </body>""".formatted(
                 encodedVastXml,
-                StringEscapeUtils.escapeEcmaScript(StringUtils.defaultIfEmpty(marginTop, "0"))
-                        .replace("<", "\\u003C"));
+                escapeJavaScript(StringUtils.defaultIfEmpty(marginTop, "0")));
     }
 
     private static String wrapWithAPV(String impId, String encodedVastXml) {
@@ -376,8 +393,12 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
                 </script>
                 </body>""".formatted(
                 StringEscapeUtils.escapeHtml4(impId),
-                StringEscapeUtils.escapeEcmaScript(impId).replace("<", "\\u003C"),
+                escapeJavaScript(impId),
                 encodedVastXml);
+    }
+
+    private static String escapeJavaScript(String value) {
+        return StringEscapeUtils.escapeEcmaScript(value).replace("<", "\\u003C");
     }
 
     private static String appendChildToBody(String ad, String beacon) {
@@ -388,10 +409,7 @@ public class AdgenerationBidder implements Bidder<AdgenerationRequest> {
     }
 
     private static String removeWrapper(String ad) {
-        final int start = ad.indexOf("<body>");
-        final int end = ad.lastIndexOf("</body>");
-        return start == -1 || end == -1 || start >= end
-                ? ""
-                : ad.substring(start + "<body>".length(), end).trim();
+        final Matcher matcher = BODY_PATTERN.matcher(ad);
+        return matcher.find() ? StringUtils.defaultIfEmpty(matcher.group(1).trim(), ad) : ad;
     }
 }
