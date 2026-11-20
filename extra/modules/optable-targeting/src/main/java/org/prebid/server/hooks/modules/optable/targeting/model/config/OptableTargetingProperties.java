@@ -14,6 +14,9 @@ public final class OptableTargetingProperties {
     @JsonProperty("api-endpoint")
     String apiEndpoint;
 
+    @JsonProperty("api-call-timeout")
+    Long apiCallTimeout = 400L;
+
     @JsonProperty("api-key")
     String apiKey;
 

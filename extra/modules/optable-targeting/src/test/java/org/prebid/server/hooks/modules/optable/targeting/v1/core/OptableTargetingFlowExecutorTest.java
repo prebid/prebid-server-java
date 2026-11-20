@@ -10,9 +10,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
-import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -27,6 +27,9 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +60,6 @@ public class OptableTargetingFlowExecutorTest extends BaseOptableTest {
         target = new OptableTargetingFlowExecutor(
                 bidderEnrichmentSampler,
                 targetingRequestExecutor,
-                CompositeHookExecutionPlan.of(ExecutionPlan.empty(), null),
                 timeoutFactory,
                 0.01);
     }
@@ -70,9 +72,8 @@ public class OptableTargetingFlowExecutorTest extends BaseOptableTest {
         givenInvocationContext(bidRequest);
         final Future<TargetingResult> targetingResultFuture = Future.succeededFuture(givenTargetingResult());
         when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+        when(timeoutFactory.create(anyLong())).thenReturn(timeout);
         when(targetingRequestExecutor.makeRequest(any(), any(), any(), any())).thenReturn(targetingResultFuture);
-        when(invocationContext.timeout()).thenReturn(timeout);
-        when(timeout.remaining()).thenReturn(1000L);
         final ModuleContext moduleContext = new ModuleContext();
 
         // when
@@ -91,6 +92,29 @@ public class OptableTargetingFlowExecutorTest extends BaseOptableTest {
         assertThat(moduleContext.getBiddersToEnrich()).containsExactly("bidder");
         assertThat(moduleContext.getOptableTargetingCall()).isSameAs(targetingResultFuture);
         assertThat(moduleContext.isEarlyCallInitializationCompleted()).isFalse();
+
+        verify(timeoutFactory).create(400L);
+        verify(targetingRequestExecutor).makeRequest(any(), any(), any(), same(timeout));
+    }
+
+    @Test
+    public void executeAsyncOptableTargetingFlowShouldCreateTimeoutFromConfiguredApiCallTimeout() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(List.of(
+                givenImp(imp -> imp.ext(givenPrebidBidderExt("bidderA"))))));
+        givenInvocationContext(bidRequest);
+        when(bidderEnrichmentSampler.sample(any(), any())).thenReturn(Set.of("bidder"));
+        when(timeoutFactory.create(anyLong())).thenReturn(timeout);
+        final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
+        properties.setApiCallTimeout(700L);
+
+        // when
+        target.executeAsyncOptableTargetingFlow(
+                new ModuleContext(), auctionRequestPayload, invocationContext, properties);
+
+        // then
+        verify(timeoutFactory).create(700L);
+        verify(targetingRequestExecutor).makeRequest(any(), any(), any(), same(timeout));
     }
 
     @Test

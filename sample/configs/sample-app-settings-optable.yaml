@@ -18,6 +18,7 @@ accounts:
     hooks:
       modules:
         optable-targeting:
+          api-call-timeout: 500
           api-key: key
           tenant: prebidtest
           origin: js-sdk

@@ -18,7 +18,6 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
-import org.prebid.server.settings.model.Account;
 
 import java.util.Objects;
 import java.util.Set;
@@ -33,19 +32,16 @@ public class OptableTargetingFlowExecutor {
 
     private final BidderEnrichmentSampler bidderEnrichmentSampler;
     private final TargetingRequestExecutor targetingRequestExecutor;
-    private final CompositeHookExecutionPlan hooksExecutionPlan;
     private final TimeoutFactory timeoutFactory;
     private final double logSamplingRate;
 
     public OptableTargetingFlowExecutor(BidderEnrichmentSampler bidderEnrichmentSampler,
                                         TargetingRequestExecutor targetingRequestExecutor,
-                                        CompositeHookExecutionPlan hooksExecutionPlan,
                                         TimeoutFactory timeoutFactory,
                                         double logSamplingRate) {
 
         this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
         this.targetingRequestExecutor = Objects.requireNonNull(targetingRequestExecutor);
-        this.hooksExecutionPlan = hooksExecutionPlan;
         this.timeoutFactory = timeoutFactory;
         this.logSamplingRate = logSamplingRate;
     }
@@ -62,11 +58,9 @@ public class OptableTargetingFlowExecutor {
             return update(AuctionRequestCleaner.instance(), moduleContext);
         }
         moduleContext.setBiddersToEnrich(biddersToEnrich);
-        final Account account = invocationContext.auctionContext().getAccount();
-        final long crossHookFutureTimeout =
-                hooksExecutionPlan.getOptableTargetingBidderRequestTimeout(account);
 
-        final Timeout timeout = timeoutFactory.create(invocationContext.timeout().remaining() + crossHookFutureTimeout);
+        final long apiCallTimeout = properties.getApiCallTimeout();
+        final Timeout timeout = timeoutFactory.create(apiCallTimeout);
         final Future<TargetingResult> optableTargetingCall = targetingRequestExecutor.makeRequest(
                 payload,
                 invocationContext,

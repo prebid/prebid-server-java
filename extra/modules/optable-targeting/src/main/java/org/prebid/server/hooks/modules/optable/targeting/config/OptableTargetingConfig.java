@@ -1,23 +1,20 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.execution.timeout.TimeoutFactory;
-import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingBidderRequestHook;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAsyncProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingBidderRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
@@ -139,23 +136,10 @@ public class OptableTargetingConfig {
     OptableTargetingFlowExecutor optableTargetingFlowExecutor(
             BidderEnrichmentSampler bidderEnrichmentSampler,
             TargetingRequestExecutor targetingRequestExecutor,
-            @Value("${hooks.host-execution-plan:}")
-            String hostExecutionPlan,
-            @Value("${hooks.default-account-execution-plan:}")
-            String defaultAccountExecutionPlan,
-            JacksonMapper mapper,
             TimeoutFactory timeoutFactory,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
-        final CompositeHookExecutionPlan hooksExecutionPlan = CompositeHookExecutionPlan.of(
-                StringUtils.isNoneEmpty(hostExecutionPlan)
-                        ? mapper.decodeValue(hostExecutionPlan, ExecutionPlan.class)
-                        : null,
-                StringUtils.isNoneEmpty(defaultAccountExecutionPlan)
-                        ? mapper.decodeValue(defaultAccountExecutionPlan, ExecutionPlan.class)
-                        : null);
-
         return new OptableTargetingFlowExecutor(
-                bidderEnrichmentSampler, targetingRequestExecutor, hooksExecutionPlan, timeoutFactory, logSamplingRate);
+                bidderEnrichmentSampler, targetingRequestExecutor, timeoutFactory, logSamplingRate);
     }
 }

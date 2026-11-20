@@ -118,6 +118,7 @@ Sample module enablement configuration in JSON and YAML formats:
     "optable-targeting":
     {
       "api-endpoint": "endpoint",
+      "api-call-timeout": 400,
       "api-key": "key",
       "timeout": 50,
       "enrichment-percentage": 100,
@@ -142,6 +143,7 @@ Sample module enablement configuration in JSON and YAML formats:
   modules:
     optable-targeting:
       api-endpoint: endpoint
+      api-call-timeout: 400
       api-key: key
       timeout: 50
       enrichment-percentage: 100
@@ -170,14 +172,17 @@ above. Without the async processed hook, requests that rely on stored requests a
 
 ### Timeout considerations
 
-The `bidder-request` hook timeout is the budget for the API call started in the `raw-auction-request` or
-`async-processed-auction-request` stage. The call runs in parallel with the rest of the auction, so the actual wait
-at the `bidder-request` stage is usually much shorter than the full roundtrip. The `raw-auction-request` and
-`async-processed-auction-request` hook timeouts only cover validation and sampling and can be kept short.
+The Targeting API call started by the async flow at the `raw-auction-request` or `async-processed-auction-request`
+stage is bounded by the module-level `api-call-timeout` parameter (400 ms by default) - once this budget is exceeded
+the call is abandoned and the affected bidder requests are not enriched. The call runs in parallel with the rest of the
+auction, so the actual wait at the `bidder-request` stage is usually much shorter than the full roundtrip. The
+`raw-auction-request` and `async-processed-auction-request` hook timeouts only cover validation and sampling and can
+be kept short.
 
-**Note:** Do not confuse hook timeout value with the module timeout parameter which is optional. The hook timeout value
-would depend on the cloud/region where the PBS instance is hosted and the latency to reach the Optable's servers. This
-will need to be verified experimentally upon deployment.
+**Note:** Do not confuse the `api-call-timeout` parameter with the module `timeout` parameter which is optional - the
+latter is only a soft timeout hint sent to the Targeting API endpoint. The `api-call-timeout` value would depend on the
+cloud/region where the PBS instance is hosted and the latency to reach the Optable's servers. This will need to be
+verified experimentally upon deployment.
 
 The timeout value for the `auction-response` can be set to 10 ms - usually it will be sub-millisecond time as there are
 no HTTP calls made in this hook - Optable-specific keywords are cached on earlier stages and retrieved from the module
@@ -201,6 +206,7 @@ would result in this nesting in the JSON configuration:
 | Param Name                     | Required | Type    | Default value | Description                                                                                                                                                                                                                                                                                                                                                                                                                |
 |:-------------------------------|:---------|:--------|:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | api-endpoint                   | yes      | string  | none          | Optable Targeting Edge API endpoint URL, required                                                                                                                                                                                                                                                                                                                                                                          |
+| api-call-timeout               | no       | integer | 400           | Timeout (in ms) for the Targeting API call made by the async flow hooks. Once the budget is exceeded the call is abandoned and the affected bidder requests are not enriched.                                                                                                                                                                                                                                               |
 | api-key                        | no       | string  | none          | If the API is protected with a key - this param needs to be specified to be sent in the auth header                                                                                                                                                                                                                                                                                                                        |
 | ppid-mapping                   | no       | map     | none          | This specifies PPID source (`user.ext.eids[].source`) to a custom identifier prefix mapping, f.e. `{"example.com" : "c"}`. See the section on ID Mapping below for more detail.                                                                                                                                                                                                                                            |
 | adserver-targeting             | no       | boolean | false         | If set to true - will add the Optable-specific adserver targeting keywords into the PBS response for every `seatbid[].bid[].ext.prebid.targeting`                                                                                                                                                                                                                                                                          |
