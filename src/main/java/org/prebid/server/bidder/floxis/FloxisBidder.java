@@ -193,7 +193,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
             return bid;
         }
 
-        final ExtBidPrebid prebid = parseExtBidPrebid(bid);
+        final ExtBidPrebid prebid = parseExtBidPrebid(bid.getExt());
         final ExtBidPrebidMeta meta = Optional.ofNullable(prebid)
                 .map(ExtBidPrebid::getMeta)
                 .map(ExtBidPrebidMeta::toBuilder)
@@ -211,11 +211,11 @@ public class FloxisBidder implements Bidder<BidRequest> {
         return bid.toBuilder().ext(ext).build();
     }
 
-    private ExtBidPrebid parseExtBidPrebid(Bid bid) {
+    private ExtBidPrebid parseExtBidPrebid(ObjectNode ext) {
         try {
-            return Optional.ofNullable(mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE))
-                    .map(ExtPrebid::getPrebid)
-                    .orElse(null);
+            return ext != null
+                    ? mapper.mapper().convertValue(ext, EXT_PREBID_TYPE_REFERENCE).getPrebid()
+                    : null;
         } catch (IllegalArgumentException e) {
             return null;
         }

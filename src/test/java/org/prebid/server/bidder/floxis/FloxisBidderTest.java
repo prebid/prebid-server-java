@@ -652,7 +652,8 @@ public class FloxisBidderTest extends VertxTest {
                 .adomain(singletonList("advertiser.com"))
                 .ext(mapper.createObjectNode().put("dsa", "value"))
                 .build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
                 mapper.writeValueAsString(bidResponse));
 
         // when
