@@ -1,0 +1,18 @@
+adapters:
+  optout:
+    endpoint: https://prebid.optinadserving.com/prebid/display
+    modifying-vast-xml-allowed: true
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: info@optoutadvertising.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 1471
+      usersync:
+        cookie-family-name: optout
+        iframe:
+          url: https://um.optinadserving.com/matching/iframe?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&redirect={{.RedirectURL}}
+          uid-macro: '${viewer_id}'
