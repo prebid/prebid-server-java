@@ -150,7 +150,8 @@ public class MatterfullrtbBidder implements Bidder<BidRequest> {
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             case 0 -> getMediaTypeForImpId(bid.getImpid(), imps);
-            case null, default -> throw new PreBidException(
+            case null -> getMediaTypeForImpId(bid.getImpid(), imps);
+            default -> throw new PreBidException(
                     String.format("Unsupported mtype %d for impression with ID: %s", mType, bid.getImpid()));
         };
     }
