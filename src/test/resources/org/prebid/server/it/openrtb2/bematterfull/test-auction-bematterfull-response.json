@@ -9,7 +9,16 @@
           "exp": 300,
           "price": 4.7,
           "adm": "adm6",
-          "crid": "crid6"
+          "crid": "crid6",
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "bematterfull"
+              }
+            },
+            "origbidcpm": 4.7
+          }
         }
       ],
       "seat": "bematterfull",
