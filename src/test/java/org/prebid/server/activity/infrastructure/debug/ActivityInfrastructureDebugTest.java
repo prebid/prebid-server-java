@@ -118,7 +118,7 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
         final ActivityInfrastructureDebug debug = debug(null);
 
         // when
-        debug.emitProcessedRule(TestRule.allowIfMatches(payload -> true), Rule.Result.ALLOW);
+        debug.emitProcessedRule(TestRule.matchAndAllow(), Rule.Result.ALLOW);
 
         // then
         assertThat(debug.trace()).isEmpty();
@@ -132,7 +132,7 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
         final ActivityInfrastructureDebug debug = debug(TraceLevel.basic);
 
         // when
-        debug.emitProcessedRule(TestRule.allowIfMatches(payload -> true), Rule.Result.ALLOW);
+        debug.emitProcessedRule(TestRule.matchAndAllow(), Rule.Result.ALLOW);
 
         // then
         assertThat(debug.trace()).containsExactly(ExtTraceActivityRule.of(
@@ -149,7 +149,7 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
         final ActivityInfrastructureDebug debug = debug(TraceLevel.verbose);
 
         // when
-        debug.emitProcessedRule(TestRule.allowIfMatches(payload -> true), Rule.Result.ALLOW);
+        debug.emitProcessedRule(TestRule.matchAndAllow(), Rule.Result.ALLOW);
 
         // then
         assertThat(debug.trace()).containsExactly(ExtTraceActivityRule.of(
