@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -32,7 +31,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -131,31 +129,34 @@ public class AmxBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
+
             return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidResponse bidResponse,
+                                        List<BidderError> errors) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidResponse, errors);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse,
+                                             List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
-                .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> createBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> createBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid createBidderBid(Bid bid, String cur, List<BidderError> errors) {
+    private BidderBid createBidderBid(Bid bid, String cur, List<BidderError> errors, String originalSeat) {
         final AmxBidExt amxBidExt;
         try {
             amxBidExt = parseBidderExt(bid.getExt());
@@ -164,6 +165,7 @@ public class AmxBidder implements Bidder<BidRequest> {
             return null;
         }
         return BidderBid.of(
+                    originalSeat,
                 resolveBid(bid, amxBidExt.getDemandSource()),
                 getBidType(amxBidExt),
                 amxBidExt.getBidderCode(),

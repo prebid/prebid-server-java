@@ -324,6 +324,7 @@ public class VisxBidderTest extends VertxTest {
 
         // then
         final BidderBid expected = BidderBid.of(
+                "seat",
                 Bid.builder()
                         .id("id")
                         .impid("123")

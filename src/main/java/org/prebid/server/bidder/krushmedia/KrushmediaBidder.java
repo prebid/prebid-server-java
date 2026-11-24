@@ -129,10 +129,14 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
+        if (firstSeatBid == null) {
+            return Collections.emptyList();
+        }
 
-        return firstSeatBid.getBid().stream()
+        return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(firstSeatBid.getSeat(), bid,
+                        getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .toList();
     }
 

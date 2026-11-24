@@ -28,7 +28,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "startio"
+                "adaptercode": "startio",
+                "seat": "start.io"
               }
             }
           }

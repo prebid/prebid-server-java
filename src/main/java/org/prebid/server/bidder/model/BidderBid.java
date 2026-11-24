@@ -7,6 +7,8 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
+import java.util.Objects;
+
 /**
  * Bid returned by a {@link Bidder}.
  */
@@ -20,6 +22,11 @@ public class BidderBid {
     Bid bid;
 
     String seat;
+
+    /**
+     * Original seat from the bidder's OpenRTB response, when it can be associated with this bid.
+     */
+    String originalSeat;
 
     /**
      * Will become response.seatbid[i].bid.ext.prebid.type in the final OpenRTB response.
@@ -47,20 +54,36 @@ public class BidderBid {
      */
     PriceFloorInfo priceFloorInfo;
 
+    public static BidderBid of(String originalSeat, BidderBid bidderBid) {
+        return bidderBid == null || Objects.equals(originalSeat, bidderBid.getOriginalSeat())
+                ? bidderBid
+                : bidderBid.toBuilder().originalSeat(originalSeat).build();
+    }
+
     public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+        return of(null, bid, bidType, bidCurrency);
+    }
+
+    public static BidderBid of(String originalSeat, Bid bid, BidType bidType, String bidCurrency) {
         return BidderBid.builder()
                 .bid(bid)
+                .originalSeat(originalSeat)
                 .type(bidType)
                 .bidCurrency(bidCurrency)
                 .build();
     }
 
     public static BidderBid of(Bid bid, BidType bidType, String seat, String bidCurrency) {
+        return of(null, bid, bidType, seat, bidCurrency);
+    }
+
+    public static BidderBid of(String originalSeat, Bid bid, BidType bidType, String seat, String bidCurrency) {
         return BidderBid.builder()
                 .bid(bid)
                 .type(bidType)
                 .bidCurrency(bidCurrency)
                 .seat(seat)
+                .originalSeat(originalSeat)
                 .build();
     }
 }

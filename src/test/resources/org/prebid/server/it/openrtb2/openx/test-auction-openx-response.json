@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "openx"
+                "adaptercode": "openx",
+                "seat": "seatId00"
               }
             },
             "origbidcpm": 5.78,

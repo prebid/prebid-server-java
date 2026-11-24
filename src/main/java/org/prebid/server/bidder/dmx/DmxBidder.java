@@ -284,7 +284,8 @@ public class DmxBidder implements Bidder<BidRequest> {
                     final Bid updatedBid = bidType == BidType.video
                             ? bid.toBuilder().adm(getAdm(bid)).build()
                             : bid;
-                    final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, bidResponse.getCur());
+                    final BidderBid bidderBid = BidderBid.of(seatBid.getSeat(), updatedBid, bidType,
+                            bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 } catch (PreBidException e) {
                     errors.add(BidderError.badInput(e.getMessage()));

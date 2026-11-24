@@ -16,7 +16,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "generic"
+                "adaptercode": "generic",
+                "seat": "seatId1"
               },
               "targeting": {
                 "hb_size_generic": "300x250",
@@ -76,7 +77,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "generic"
+                "adaptercode": "generic",
+                "seat": "seatId1"
               },
               "targeting": {
                 "hb_pb_rubN2": "8.40",
@@ -139,7 +141,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "genericAlias"
+                "adaptercode": "genericAlias",
+                "seat": "958"
               },
               "targeting": {
                 "hb_pb_genericAlias": "5.50",
@@ -193,7 +196,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "genericAlias"
+                "adaptercode": "genericAlias",
+                "seat": "958"
               },
               "cache": {
                 "bids": {

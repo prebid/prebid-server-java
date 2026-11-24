@@ -9,7 +9,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -30,7 +29,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -139,23 +137,22 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> createBidderBid(bid, impMap, bidResponse.getCur()))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> createBidderBid(bid, impMap, bidResponse.getCur(), seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid createBidderBid(Bid bid, Map<String, Imp> impMap, String cur) {
+    private BidderBid createBidderBid(Bid bid, Map<String, Imp> impMap, String cur, String originalSeat) {
         final Imp imp = impMap.get(bid.getImpid());
         if (imp == null) {
             throw new PreBidException(
                     "Failed to find impression for ID: \"%s\"".formatted(bid.getImpid()));
         }
         final Bid resolvedBid = resolveBid(bid, imp);
-        return BidderBid.of(resolvedBid, getBidType(resolvedBid), cur);
+        return BidderBid.of(originalSeat, resolvedBid, getBidType(resolvedBid), cur);
     }
 
     private Bid resolveBid(Bid bid, Imp imp) {

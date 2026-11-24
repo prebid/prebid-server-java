@@ -13,7 +13,6 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -463,6 +462,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+
             return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -476,16 +476,15 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         final AppnexusBidExtAppnexus appnexus;
         final BidType bidType;
         try {
@@ -498,6 +497,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return BidderBid.builder()
                 .bid(bid.toBuilder().cat(bidCategories(bid, appnexus)).build())
+                .originalSeat(originalSeat)
                 .type(bidType)
                 .bidCurrency(currency)
                 .dealPriority(appnexus != null ? appnexus.getDealPriority() : 0)

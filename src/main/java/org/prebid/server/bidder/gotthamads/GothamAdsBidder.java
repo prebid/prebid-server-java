@@ -126,8 +126,11 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid()
                 .stream()
-                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(
+                                seatBid.getSeat(), bid, getBidMediaType(bid), bidResponse.getCur())))
                 .toList();
     }
 

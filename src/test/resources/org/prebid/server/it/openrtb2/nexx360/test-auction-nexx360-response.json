@@ -18,7 +18,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "nexx360"
+                "adaptercode": "nexx360",
+                "seat": "seatId00"
               }
             },
             "bidType": "banner"

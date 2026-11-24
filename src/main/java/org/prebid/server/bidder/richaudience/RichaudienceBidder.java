@@ -226,10 +226,11 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .flatMap(seatBid -> seatBid.getBid().stream())
-                .filter(Objects::nonNull)
-                .filter(bid -> impMap.containsKey(bid.getImpid()))
-                .map(bid -> makeBid(bidResponse, impMap, bid))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .filter(bid -> impMap.containsKey(bid.getImpid()))
+                        .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                makeBid(bidResponse, impMap, bid))))
                 .toList();
     }
 

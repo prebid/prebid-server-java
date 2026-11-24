@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -90,14 +91,18 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid bidsFromResponse(BidResponse bidResponse) {
-        final List<Bid> bids = bidResponse.getSeatbid().getFirst().getBid();
+        final SeatBid seatBid = bidResponse.getSeatbid().getFirst();
+        if (seatBid == null) {
+            throw new PreBidException("Empty SeatBid");
+        }
+        final List<Bid> bids = seatBid.getBid();
 
         if (CollectionUtils.isEmpty(bids)) {
             throw new PreBidException("Empty SeatBid.Bids");
         }
 
         final Bid bid = bids.getFirst();
-        return BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur());
+        return BidderBid.of(seatBid.getSeat(), bid, getBidType(bid.getExt()), bidResponse.getCur());
     }
 
     private static BidType getBidType(JsonNode ext) {

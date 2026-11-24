@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,7 +26,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -238,17 +236,18 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
-                .map(SeatBid::getBid)
-                .flatMap(Collection::stream)
-                .map(bid -> makeBidderBid(bid, bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> makeBidderBid(bid, bidResponse.getCur(), seatBid.getSeat())))
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, String currency) {
+    private static BidderBid makeBidderBid(Bid bid, String currency, String originalSeat) {
         final Optional<String> mfSuffix = getMfSuffix(bid.getImpid());
         final Bid updatedBid = mfSuffix.map(suffix -> removeMfSuffixFromImpId(bid, suffix)).orElse(bid);
 
-        return BidderBid.of(updatedBid, getBidType(bid), currency);
+        return BidderBid.of(originalSeat, updatedBid, getBidType(bid), currency);
     }
 
     private static Optional<String> getMfSuffix(String impId) {

@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "epsilon"
+                "adaptercode": "epsilon",
+                "seat": "seat_id"
               }
             },
             "origbidcpm": 6.0

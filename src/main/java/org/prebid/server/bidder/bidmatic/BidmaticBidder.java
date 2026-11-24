@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.bidder.Bidder;
@@ -24,7 +23,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -134,20 +132,20 @@ public class BidmaticBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, impMap, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, impMap, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBid(Bid bid, Map<String, Imp> impMap, String currency, List<BidderError> errors) {
+    private static BidderBid makeBid(Bid bid, Map<String, Imp> impMap, String currency, List<BidderError> errors,
+            String originalSeat) {
         try {
             final Pair<BidType, Integer> bidType = getBidType(bid, impMap);
             final Bid modifiedBid = bid.toBuilder().mtype(bidType.getRight()).build();
-            return BidderBid.of(modifiedBid, bidType.getLeft(), currency);
+            return BidderBid.of(originalSeat, modifiedBid, bidType.getLeft(), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -173,4 +171,5 @@ public class BidmaticBidder implements Bidder<BidRequest> {
             return Pair.of(BidType.banner, 1);
         }
     }
+
 }

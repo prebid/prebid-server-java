@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,7 +35,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -212,7 +210,8 @@ public class GumgumBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, bidRequest), Collections.emptyList());
+            return Result.of(extractBids(bidResponse, bidRequest),
+                    Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -227,19 +226,20 @@ public class GumgumBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .flatMap(Collection::stream)
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> toBidderBid(bid, bidRequest, bidResponse.getCur(), seatBid.getSeat())))
                 .filter(Objects::nonNull)
-                .map(bid -> toBidderBid(bid, bidRequest, bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
+    private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency, String originalSeat) {
         final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
         final Bid updatedBid = bidType == BidType.video
                 ? bid.toBuilder().adm(resolveAdm(bid.getAdm(), bid.getPrice())).build()
                 : bid;
-        return BidderBid.of(updatedBid, bidType, currency);
+        return BidderBid.of(originalSeat, updatedBid, bidType, currency);
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

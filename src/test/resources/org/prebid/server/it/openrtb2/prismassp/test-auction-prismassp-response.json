@@ -18,7 +18,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "prismassp"
+                "adaptercode": "prismassp",
+                "seat": "seatId00"
               }
             },
             "bidType": "banner"

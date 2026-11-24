@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +34,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -185,11 +183,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> toBidderBid(bid, impIdToBidType, bidCurrency))
+                .filter(seatBid -> CollectionUtils.isNotEmpty(seatBid.getBid()))
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                    .filter(Objects::nonNull)
+                    .map(bid -> toBidderBid(bid, impIdToBidType, bidCurrency, seatBid.getSeat())))
                 .toList();
     }
 
@@ -211,13 +208,16 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return BidType.banner;
     }
 
-    private BidderBid toBidderBid(Bid bid, Map<String, BidType> impIdToBidType, String bidCurrency) {
+    private BidderBid toBidderBid(
+            Bid bid, Map<String, BidType> impIdToBidType, String bidCurrency, String originalSeat) {
+
         final BidType bidType = getBidType(bid, impIdToBidType);
         final ExtBidPrebidVideo videoInfo = bidType == BidType.video ? getVideoInfo(bid) : null;
 
         return BidderBid.builder()
                 .bid(bid.toBuilder().ext(getBidExt(bid)).build())
                 .type(bidType)
+                .originalSeat(originalSeat)
                 .bidCurrency(bidCurrency)
                 .videoInfo(videoInfo)
                 .build();

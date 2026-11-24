@@ -151,8 +151,11 @@ public class SovrnXspBidder implements Bidder<BidRequest> {
         }
         return bidResponse.getSeatbid()
                 .stream()
-                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
-                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(java.util.Objects::nonNull)
+                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream()
+                        .filter(java.util.Objects::nonNull)
+                        .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                makeBid(bid, bidResponse.getCur(), errors))))
                 .filter(Objects::nonNull)
                 .toList();
     }

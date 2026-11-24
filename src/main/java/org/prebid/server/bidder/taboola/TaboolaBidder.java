@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -34,7 +33,6 @@ import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -258,11 +256,10 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> resolveBidderBid(bidResponse.getCur(), bidRequest.getImp(), bid, errors))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(seatBid.getSeat(),
+                                resolveBidderBid(bidResponse.getCur(), bidRequest.getImp(), bid, errors))))
                 .filter(Objects::nonNull)
                 .toList();
     }

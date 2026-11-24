@@ -251,8 +251,8 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         }
         return bids.stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(updateBidWithId(bid), getType(bid.getImpid(),
-                        bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(firstSeatBid.getSeat(),
+                        updateBidWithId(bid), getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .toList();
     }
 

@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
@@ -27,7 +26,6 @@ import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -143,15 +141,16 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     private static List<BidderBid> createBiddersBid(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(bid, imps, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> createBidderBid(bid, imps, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid createBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private static BidderBid createBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors,
+            String originalSeat) {
         final BidType bidType;
         try {
             bidType = getBidType(bid.getImpid(), bid.getId(), imps);
@@ -159,7 +158,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        return BidderBid.of(bid, bidType, currency);
+        return BidderBid.of(originalSeat, bid, bidType, currency);
     }
 
     private static BidType getBidType(String bidImpId, String bidId, List<Imp> imps) {
@@ -171,4 +170,5 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         throw new PreBidException(
                 "ignoring bid id=%s, request doesn't contain any impression with id=%s".formatted(bidId, bidImpId));
     }
+
 }

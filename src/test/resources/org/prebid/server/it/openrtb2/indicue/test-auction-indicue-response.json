@@ -16,7 +16,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "indicue"
+                "adaptercode": "indicue",
+                "seat": "adtelligent"
               }
             },
             "origbidcpm": 8.43

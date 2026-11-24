@@ -578,6 +578,7 @@ public class InsticatorBidderTest extends VertxTest {
         expectedExt.set("prebid", expectedPrebid);
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(
+                        "dsp_seat",
                         Bid.builder().mtype(1).impid("1").ext(expectedExt).build(),
                         banner,
                         "USD"));

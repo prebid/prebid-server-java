@@ -128,4 +128,5 @@ public class BidderUtil {
             return BidType.banner;
         }
     }
+
 }

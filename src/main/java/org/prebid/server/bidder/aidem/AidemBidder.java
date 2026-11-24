@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -23,7 +22,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -85,21 +83,20 @@ public class AidemBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, String currency, List<BidderError> errors) {
+    private static BidderBid makeBidderBid(Bid bid, String currency, List<BidderError> errors,
+                                           String originalSeat) {
         try {
-            return BidderBid.of(bid, resolveBidType(bid), currency);
+            return BidderBid.of(originalSeat, bid, resolveBidType(bid), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;

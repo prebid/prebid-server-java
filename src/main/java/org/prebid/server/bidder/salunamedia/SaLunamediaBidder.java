@@ -66,7 +66,8 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("Missing BidExt");
         }
 
-        return Collections.singletonList(BidderBid.of(firstBid, getBidType(firstBidExt), bidResponse.getCur()));
+        return Collections.singletonList(BidderBid.of(firstSeatBid.getSeat(), firstBid, getBidType(firstBidExt),
+                bidResponse.getCur()));
     }
 
     private BidType getBidType(ObjectNode bidExt) {

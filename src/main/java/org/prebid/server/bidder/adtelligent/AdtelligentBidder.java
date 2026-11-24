@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -32,7 +31,6 @@ import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -206,10 +204,11 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
 
         bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .forEach(bid -> addBidOrError(bid, idToImps, bidderBids, errors, bidResponse.getCur()));
+                .filter(seatBid -> CollectionUtils.isNotEmpty(seatBid.getBid()))
+                .forEach(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .forEach(bid -> addBidOrError(
+                                bid, idToImps, bidderBids, errors, bidResponse.getCur(), seatBid.getSeat())));
 
         return Result.of(bidderBids, errors);
     }
@@ -218,12 +217,12 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
      * Creates {@link BidderBid} from {@link Bid} if it has matching {@link Imp}, otherwise adds error to error list.
      */
     private static void addBidOrError(Bid bid, Map<String, Imp> idToImps, List<BidderBid> bidderBids,
-                                      List<BidderError> errors, String currency) {
+                                      List<BidderError> errors, String currency, String originalSeat) {
         final String bidImpId = bid.getImpid();
 
         if (idToImps.containsKey(bidImpId)) {
             final Video video = idToImps.get(bidImpId).getVideo();
-            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, currency));
+            bidderBids.add(BidderBid.of(originalSeat, bid, video != null ? BidType.video : BidType.banner, currency));
         } else {
             errors.add(BidderError.badServerResponse(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s"

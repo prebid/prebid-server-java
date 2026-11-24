@@ -35,7 +35,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -278,21 +277,25 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private static BidderBid makeBidderBid(Bid bid,
+                                           List<Imp> imps,
+                                           String currency,
+                                           List<BidderError> errors,
+                                           String originalSeat) {
+
         final Imp imp = findImp(bid, imps);
         try {
             final BidType bidType = resolveBidType(bid, imp);
             return bidType != null
-                    ? BidderBid.of(bid, bidType, currency)
+                    ? BidderBid.of(originalSeat, bid, bidType, currency)
                     : null;
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));

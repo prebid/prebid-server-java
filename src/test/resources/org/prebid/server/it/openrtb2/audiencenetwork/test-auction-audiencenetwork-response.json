@@ -17,7 +17,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "audienceNetwork"
+                "adaptercode": "audienceNetwork",
+                "seat": "seatId5"
               }
             },
             "origbidcpm": 9.0

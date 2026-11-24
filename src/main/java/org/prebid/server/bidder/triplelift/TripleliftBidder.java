@@ -120,7 +120,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                             TripleliftResponseExt.class);
                     final BidType bidType = getBidType(tripleliftResponseExt);
 
-                    bidderBids.add(BidderBid.of(bid, bidType, bidResponse.getCur()));
+                    bidderBids.add(BidderBid.of(seatBid.getSeat(), bid, bidType, bidResponse.getCur()));
                 } catch (JsonProcessingException e) {
                     errors.add(BidderError.badServerResponse(e.getMessage()));
                 }

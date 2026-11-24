@@ -18,7 +18,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "ybidder"
+                "adaptercode": "ybidder",
+                "seat": "seatId00"
               }
             },
             "bidType": "banner"

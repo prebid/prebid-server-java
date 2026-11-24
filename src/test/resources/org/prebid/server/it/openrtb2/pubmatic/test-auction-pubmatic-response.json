@@ -18,6 +18,7 @@
               "type": "video",
               "meta": {
                 "adaptercode": "pubmatic",
+                "seat": "seatId9",
                 "mediaType": "video"
               }
             },

@@ -17,7 +17,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "emx_digital"
+                "adaptercode": "emx_digital",
+                "seat":"12356"
               }
             },
             "origbidcpm": 2.942808,

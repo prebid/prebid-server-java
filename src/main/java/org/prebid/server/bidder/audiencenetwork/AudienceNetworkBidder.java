@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.codec.binary.Hex;
@@ -41,7 +40,6 @@ import org.prebid.server.util.Uri;
 import javax.crypto.Mac;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -280,17 +278,19 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
-                .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bid, imps, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> toBidderBid(bid, imps, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
 
         return Result.of(bidderBids, errors);
     }
 
-    private BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors,
+            String originalSeat) {
         final String bidId;
         try {
             if (StringUtils.isBlank(bid.getAdm())) {
@@ -308,7 +308,7 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
                     .crid(bidId)
                     .build();
 
-            return BidderBid.of(modifiedBid, getBidType(modifiedBid.getImpid(), imps), currency);
+            return BidderBid.of(originalSeat, modifiedBid, getBidType(modifiedBid.getImpid(), imps), currency);
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;

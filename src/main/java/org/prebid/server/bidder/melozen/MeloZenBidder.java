@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +34,6 @@ import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -175,11 +173,10 @@ public class MeloZenBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(
+                                seatBid.getSeat(), toBidderBid(bid, bidResponse.getCur(), errors))))
                 .filter(Objects::nonNull)
                 .toList();
     }

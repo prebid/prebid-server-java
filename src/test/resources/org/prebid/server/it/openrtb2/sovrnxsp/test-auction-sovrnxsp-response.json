@@ -18,7 +18,8 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "sovrnXsp"
+                "adaptercode": "sovrnXsp",
+                "seat": "seatId13"
               }
             },
             "origbidcpm": 5.78

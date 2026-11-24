@@ -100,6 +100,7 @@ import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
+import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -436,6 +437,7 @@ public class BidResponseCreator {
                             bidderBid.getBid(),
                             bidderBid.getType(),
                             seat,
+                            bidderBid.getOriginalSeat(),
                             imps,
                             bidder,
                             categoryMappingResult,
@@ -464,6 +466,7 @@ public class BidResponseCreator {
     private BidInfo toBidInfo(Bid bid,
                               BidType type,
                               String seat,
+                              String originalSeat,
                               List<Imp> imps,
                               String bidder,
                               CategoryMappingResult categoryMappingResult,
@@ -476,6 +479,7 @@ public class BidResponseCreator {
                 .bidType(type)
                 .bidder(bidder)
                 .seat(seat)
+                .originalSeat(originalSeat)
                 .correspondingImp(correspondingImp)
                 .ttl(resolveTtl(bid, type, correspondingImp, cacheInfo, account))
                 .vastTtl(type == BidType.video ? resolveVastTtl(bid, correspondingImp, cacheInfo, account) : null)
@@ -1384,10 +1388,12 @@ public class BidResponseCreator {
 
         final boolean bidRankingEnabled = isBidRankingEnabled(account);
 
+        final ExtBidPrebid originalExtBidPrebid = getExtPrebid(originalBidExt, ExtBidPrebid.class).orElse(null);
+        final ExtBidPrebidMeta updatedMeta = enrichMetaByOriginalSeat(bidInfo, originalExtBidPrebid);
+
         final ExtBidPrebid updatedExtBidPrebid =
-                getExtPrebid(originalBidExt, ExtBidPrebid.class)
-                        .map(ExtBidPrebid::toBuilder)
-                        .orElseGet(ExtBidPrebid::builder)
+                (originalExtBidPrebid != null ? originalExtBidPrebid.toBuilder() : ExtBidPrebid.builder())
+                        .meta(updatedMeta)
                         .targeting(MapUtils.isNotEmpty(targetingKeywords) ? targetingKeywords : null)
                         .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? targetingInfo.getBidderCode() : null)
                         .dealTierSatisfied(dealsTierSatisfied)
@@ -1406,6 +1412,21 @@ public class BidResponseCreator {
                 .ext(updatedBidExt)
                 .exp(ttl)
                 .build();
+    }
+
+    private static @Nullable ExtBidPrebidMeta enrichMetaByOriginalSeat(
+            BidInfo bidInfo,
+            ExtBidPrebid originalExtBidPrebid) {
+
+        final ExtBidPrebidMeta originalMeta = originalExtBidPrebid != null ? originalExtBidPrebid.getMeta() : null;
+        final String originalSeat = bidInfo.getOriginalSeat();
+        return StringUtils.isNotBlank(originalSeat)
+                && !originalSeat.equals(bidInfo.getSeat())
+                && (originalMeta == null || originalMeta.getSeat() == null)
+                ? (originalMeta != null ? originalMeta.toBuilder() : ExtBidPrebidMeta.builder())
+                        .seat(originalSeat)
+                        .build()
+                : originalMeta;
     }
 
     private boolean shouldIncludeTargetingInResponse(ExtRequestTargeting targeting, TargetingInfo targetingInfo) {

@@ -151,7 +151,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         return firstSeatBid != null
                 ? firstSeatBid.getBid().stream()
                   .filter(Objects::nonNull)
-                  .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
+                  .map(bid -> BidderBid.of(firstSeatBid.getSeat(), bid, getBidType(bid.getImpid(), imps), currency))
                   .toList()
                 : Collections.emptyList();
     }

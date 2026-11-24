@@ -18,7 +18,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -259,16 +258,16 @@ public class IxBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                    .filter(Objects::nonNull)
+                    .map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+    private BidderBid toBidderBid(
+            Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors, String originalSeat) {
         final BidType bidType;
         try {
             bidType = getBidType(bid, bidRequest.getImp());
@@ -289,6 +288,7 @@ public class IxBidder implements Bidder<BidRequest> {
 
         return BidderBid.builder()
                 .bid(updatedBid)
+                .originalSeat(originalSeat)
                 .type(bidType)
                 .bidCurrency(bidResponse.getCur())
                 .videoInfo(bidType == BidType.video ? videoInfo(extBidPrebidVideo) : null)

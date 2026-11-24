@@ -24,7 +24,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "minutemedia"
+                "adaptercode": "minutemedia",
+                "seat": "123"
               }
             }
           }

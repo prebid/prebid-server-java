@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -138,9 +136,11 @@ public class LogicadBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
-                .map(SeatBid::getBid)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> BidderBid.of(
+                                seatBid.getSeat(), BidderBid.of(bid,
+                                                BidType.banner, bidResponse.getCur()))))
                 .toList();
     }
 }

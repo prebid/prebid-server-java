@@ -22,7 +22,8 @@
             "prebid": {
               "type": "native",
               "meta": {
-                "adaptercode": "triplelift_native"
+                "adaptercode": "triplelift_native",
+                "seat": "958"
               }
             },
             "origbidcpm": 0.5,

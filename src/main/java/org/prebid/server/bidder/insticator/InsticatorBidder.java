@@ -262,7 +262,7 @@ public class InsticatorBidder implements Bidder<BidRequest> {
         final String seat = seatBid.getSeat();
         return bids.stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(modifyBidExt(bid, seat), getBidType(bid), currency));
+                .map(bid -> BidderBid.of(seatBid.getSeat(), modifyBidExt(bid, seat), getBidType(bid), currency));
     }
 
     private Bid modifyBidExt(Bid bid, String seat) {

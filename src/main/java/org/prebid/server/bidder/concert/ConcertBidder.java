@@ -7,7 +7,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -27,7 +26,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -121,16 +119,15 @@ public class ConcertBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors, String originalSeat) {
         final BidType bidType;
         try {
             bidType = resolveBidType(bid.getMtype(), bid.getImpid());
@@ -139,7 +136,7 @@ public class ConcertBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        return BidderBid.of(bid, bidType, currency);
+        return BidderBid.of(originalSeat, bid, bidType, currency);
     }
 
     private static BidType resolveBidType(Integer mType, String impId) {
@@ -152,4 +149,5 @@ public class ConcertBidder implements Bidder<BidRequest> {
                     throw new PreBidException("Failed to parse media type for bid: \"%s\"".formatted(impId));
         };
     }
+
 }

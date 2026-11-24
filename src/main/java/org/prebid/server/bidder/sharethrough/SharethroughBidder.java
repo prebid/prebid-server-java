@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -38,7 +37,6 @@ import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -222,19 +220,17 @@ public class SharethroughBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> constructBidderBid(bid, errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> constructBidderBid(bid, errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid constructBidderBid(Bid bid, List<BidderError> errors) {
+    private BidderBid constructBidderBid(Bid bid, List<BidderError> errors, String originalSeat) {
         final JsonNode extNode = bid.getExt();
         final JsonNode bidTypeNode = extNode != null ? extNode.at(BID_TYPE_POINTER) : null;
 
@@ -246,7 +242,7 @@ public class SharethroughBidder implements Bidder<BidRequest> {
 
         final BidType bidType = parseBidType(bidTypeNode, errors);
         return bidType != null
-                ? BidderBid.of(bid, bidType, BID_CURRENCY)
+                ? BidderBid.of(originalSeat, bid, bidType, BID_CURRENCY)
                 : null;
     }
 

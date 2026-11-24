@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -28,7 +27,6 @@ import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -133,16 +131,16 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> resolveBidderBid(bidResponse.getCur(), imps, bid, errors))
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                .map(bid -> resolveBidderBid(bidResponse.getCur(), imps, bid, errors, seatBid.getSeat())))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors) {
+    private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors,
+            String originalSeat) {
         final BidType bidType;
         try {
             bidType = getBidType(bid.getImpid(), imps);
@@ -150,7 +148,7 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        return BidderBid.of(bid, bidType, currency);
+        return BidderBid.of(originalSeat, bid, bidType, currency);
     }
 
     private BidType getBidType(String impId, List<Imp> imps) {
