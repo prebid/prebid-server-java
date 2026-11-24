@@ -1306,7 +1306,7 @@ public class MagniteBidder implements Bidder<BidRequest> {
 
     private static Integer resolveAtts(ExtDevice extDevice) {
         final Integer atts = ObjectUtil.getIfNotNull(extDevice, ExtDevice::getAtts);
-        return (atts != null && atts >= 0 && atts <= 3) ? atts : null;
+        return atts != null && atts >= 0 && atts <= 3 ? atts : null;
     }
 
     private Site makeSite(Site site, String impLanguage, ExtImpMagnite magniteImpExt) {
