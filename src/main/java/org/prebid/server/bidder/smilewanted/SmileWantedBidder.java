@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -126,11 +127,9 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
         return BidType.banner;
     }
 
-    // Among the media types the imp offers, the markup decides: VAST is video or audio,
-    // a JSON object is native, anything else is banner. An imp without banner keeps its own media type.
     private static BidType getBidTypeFromMarkup(String adm, Imp imp) {
-        final boolean isVast = StringUtils.contains(adm, "<VAST");
-        final boolean isJson = StringUtils.startsWith(StringUtils.trim(adm), "{");
+        final boolean isVast = Strings.CS.contains(adm, "<VAST");
+        final boolean isJson = Strings.CS.startsWith(StringUtils.trim(adm), "{");
         final boolean hasBanner = imp.getBanner() != null;
 
         if (imp.getVideo() != null && (isVast || !hasBanner)) {
