@@ -1,0 +1,28 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "hypelab": {
+          "property_slug": "test-property",
+          "placement_slug": "test-placement"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

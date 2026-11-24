@@ -55,7 +55,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final Map<HostId, List<Imp>> impsByHost = new LinkedHashMap<>();
+        final Map<String, List<Imp>> impsByUrl = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
             final ExtImpFloxis impExt;
@@ -66,15 +66,13 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 continue;
             }
 
-            impsByHost.computeIfAbsent(
-                            new HostId(impExt.getSeat(), resolveBidHost(impExt)), key -> new ArrayList<>())
-                    .add(imp);
+            impsByUrl.computeIfAbsent(resolveUrl(impExt), key -> new ArrayList<>()).add(imp);
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = impsByHost.entrySet().stream()
+        final List<HttpRequest<BidRequest>> httpRequests = impsByUrl.entrySet().stream()
                 .map(entry -> BidderUtil.defaultRequest(
                         request.toBuilder().imp(entry.getValue()).build(),
-                        resolveUrl(entry.getKey()),
+                        entry.getKey(),
                         mapper))
                 .toList();
 
@@ -99,10 +97,10 @@ public class FloxisBidder implements Bidder<BidRequest> {
         return ExtImpFloxis.of(impExt.getSeat(), region, partner);
     }
 
-    private String resolveUrl(HostId hostId) {
+    private String resolveUrl(ExtImpFloxis impExt) {
         return endpointUrl
-                .replaceMacro(HOST_MACRO, hostId.host())
-                .replaceMacro(SEAT_MACRO, hostId.seat())
+                .replaceMacro(HOST_MACRO, resolveBidHost(impExt))
+                .replaceMacro(SEAT_MACRO, impExt.getSeat())
                 .expand();
     }
 
@@ -117,7 +115,8 @@ public class FloxisBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-            final List<BidderBid> bidderBids = extractBids(bidResponse, bidRequest.getImp(), errors);
+            final List<Imp> imps = httpCall.getRequest().getPayload().getImp();
+            final List<BidderBid> bidderBids = extractBids(bidResponse, imps, errors);
             return Result.of(bidderBids, errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -150,6 +149,12 @@ public class FloxisBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getMediaTypeForBid(List<Imp> imps, Bid bid) {
+        final Imp imp = imps.stream()
+                .filter(currentImp -> Objects.equals(currentImp.getId(), bid.getImpid()))
+                .findFirst()
+                .orElseThrow(() -> new PreBidException(
+                        "unable to find impression %s for bid".formatted(bid.getImpid())));
+
         final Integer mtype = bid.getMtype();
         if (mtype != null && mtype != 0) {
             return switch (mtype) {
@@ -161,12 +166,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
                         "unsupported bid.mtype %d for impression %s".formatted(mtype, bid.getImpid()));
             };
         }
-
-        final Imp imp = imps.stream()
-                .filter(currentImp -> Objects.equals(currentImp.getId(), bid.getImpid()))
-                .findFirst()
-                .orElseThrow(() -> new PreBidException(
-                        "unable to find impression %s for bid".formatted(bid.getImpid())));
 
         if (countFormats(imp) != 1) {
             throw new PreBidException(
@@ -200,8 +199,5 @@ public class FloxisBidder implements Bidder<BidRequest> {
             formats++;
         }
         return formats;
-    }
-
-    private record HostId(String seat, String host) {
     }
 }

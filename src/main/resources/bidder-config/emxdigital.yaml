@@ -1,6 +1,6 @@
 adapters:
   emxdigital:
-    endpoint: https://hb.emxdgt.com
+    endpoint: https://hb-pub.ssp.cadent.com
     aliases:
       cadent_aperture_mx:
         enabled: false
@@ -27,5 +27,5 @@ adapters:
     usersync:
       cookie-family-name: emx_digital
       iframe:
-        url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
+        url: https://pcs.ssp.cadent.com/um?ssp=pbs&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

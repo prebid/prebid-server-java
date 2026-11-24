@@ -2,6 +2,7 @@ adapters:
   aps:
     # {Region} comes from the aps.region imp param (default na).
     endpoint: https://s2s.prebid.bid-{Region}.ads.aps.amazon-adsystem.com/e/pb/bid
+    endpoint-compression: gzip
     geoscope:
       - USA
     meta-info:

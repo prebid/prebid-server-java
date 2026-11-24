@@ -32,7 +32,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpMobilefuse>> MOBILEFUSE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String SKADN_PROPERTY_NAME = "skadn";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -84,20 +83,10 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpMobilefuse extImp) {
-        final ObjectNode skadn = parseSkadn(imp.getExt());
+    private static Imp modifyImp(Imp imp, ExtImpMobilefuse extImp) {
         return imp.toBuilder()
                 .tagid(Objects.toString(extImp.getPlacementId(), "0"))
-                .ext(skadn != null ? mapper.mapper().createObjectNode().set(SKADN_PROPERTY_NAME, skadn) : null)
                 .build();
-    }
-
-    private ObjectNode parseSkadn(ObjectNode impExt) {
-        try {
-            return mapper.mapper().convertValue(impExt.get(SKADN_PROPERTY_NAME), ObjectNode.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
     }
 
     @Override
