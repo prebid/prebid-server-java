@@ -1,0 +1,37 @@
+package org.prebid.server.spring.config.bidder;
+
+import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.riptide.RiptideBidder;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+
+@Configuration
+@PropertySource(value = "classpath:/bidder-config/riptide.yaml", factory = YamlPropertySourceFactory.class)
+public class RiptideConfiguration {
+
+    private static final String BIDDER_NAME = "riptide";
+
+    @Bean("riptideConfigurationProperties")
+    @ConfigurationProperties("adapters.riptide")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
+
+    @Bean
+    BidderDeps riptideBidderDeps(BidderConfigurationProperties riptideConfigurationProperties,
+                                 CurrencyConversionService currencyConversionService,
+                                 JacksonMapper mapper) {
+
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(riptideConfigurationProperties)
+                .bidderCreator(config -> new RiptideBidder(config.getEndpoint(), currencyConversionService, mapper))
+                .assemble();
+    }
+}
