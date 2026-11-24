@@ -7,12 +7,6 @@
       "banner": {
         "w": 300,
         "h": 250
-      },
-      "ext": {
-        "tid": "${json-unit.any-string}",
-        "bidder": {
-          "pid": "LUN2gcJFHRwysZVTm8p3"
-        }
       }
     }
   ],

@@ -14,7 +14,16 @@
           "crid": "crid001",
           "w": 300,
           "h": 250,
-          "mtype": 1
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "matterfullrtb"
+              }
+            },
+            "origbidcpm": 3.33
+          }
         }
       ],
       "seat": "matterfullrtb",
