@@ -26,6 +26,7 @@ public class MatterfullrtbConfiguration {
     @Bean
     BidderDeps matterfullrtbBidderDeps(BidderConfigurationProperties matterfullrtbConfigurationProperties,
                                        JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(matterfullrtbConfigurationProperties)
                 .bidderCreator(config -> new MatterfullrtbBidder(config.getEndpoint(), mapper))

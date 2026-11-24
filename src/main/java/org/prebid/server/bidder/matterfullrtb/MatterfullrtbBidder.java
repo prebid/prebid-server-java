@@ -2,12 +2,13 @@ package org.prebid.server.bidder.matterfullrtb;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -54,8 +55,9 @@ public class MatterfullrtbBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpMatterfullrtb extImp = parseImpExt(imp);
+                final Imp modifiedImp = modifyImp(imp);
                 publisherIdToImps.computeIfAbsent(extImp.getPublisherId(), _ -> new ArrayList<>())
-                        .add(imp);
+                        .add(modifiedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -83,6 +85,40 @@ public class MatterfullrtbBidder implements Bidder<BidRequest> {
             throw new PreBidException(
                     String.format("invalid imp.ext for impression %s. %s", imp.getId(), e.getMessage()));
         }
+    }
+
+    private Imp modifyImp(Imp imp) {
+        return imp.toBuilder()
+                .ext(null)
+                .banner(modifyBannerImp(imp.getBanner()))
+                .build();
+    }
+
+    private Banner modifyBannerImp(Banner banner) {
+        if (banner == null) {
+            return null;
+        }
+
+        if (banner.getW() == null || banner.getH() == null) {
+            final List<Format> formats = banner.getFormat();
+            if (formats == null || formats.isEmpty()) {
+                throw new PreBidException("Expected at least one banner.format entry or explicit w/h");
+            }
+            final Format format = banner.getFormat().getFirst();
+            return banner.toBuilder()
+                    .w(format.getW())
+                    .h(format.getH())
+                    .format(modifyFormat(banner.getFormat()))
+                    .build();
+        }
+        return banner;
+    }
+
+    private List<Format> modifyFormat(List<Format> formats) {
+        if (formats.size() > 1) {
+            return new ArrayList<>(formats.subList(1, formats.size()));
+        }
+        return null;
     }
 
     private BidRequest modifyRequest(List<Imp> imps, BidRequest request) {
@@ -124,22 +160,26 @@ public class MatterfullrtbBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse,
                                                BidRequest bidRequest,
                                                List<BidderError> errors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
-        final List<BidderBid> bidderBids = new ArrayList<>();
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            for (Bid bid : seatBid.getBid()) {
-                try {
-                    final BidType bidType = getBidMediaType(bid, bidRequest.getImp());
-                    bidderBids.add(BidderBid.of(bid, bidType, bidResponse.getCur()));
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badServerResponse(e.getMessage()));
-                }
-            }
+        return bidResponse.getSeatbid().stream()
+                .flatMap(seatBid -> seatBid.getBid().stream())
+                .map(bid -> toBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private static BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+        try {
+            final BidType bidType = getBidMediaType(bid, imps);
+            return BidderBid.of(bid, bidType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
         }
-        return bidderBids;
     }
 
     private static BidType getBidMediaType(Bid bid, List<Imp> imps) {

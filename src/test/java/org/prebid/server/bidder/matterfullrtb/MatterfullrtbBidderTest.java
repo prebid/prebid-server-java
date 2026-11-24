@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -83,6 +84,129 @@ public class MatterfullrtbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestShouldModifyImp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().h(100).w(200).build()))
+                                .build())
+                        .ext(givenImpExt(ExtImpMatterfullrtb.of("pub"))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getExt).isNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getH, Banner::getW, Banner::getFormat)
+                .containsOnly(100, 200, null);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnErrorWhenFormatIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .banner(Banner.builder()
+                                .h(null)
+                                .w(null)
+                                .format(null)
+                                .build())
+                        .ext(givenImpExt(ExtImpMatterfullrtb.of("pub"))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getErrors()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestShouldModifyOnlyImpExtWithBannerIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .banner(null)
+                        .video(Video.builder().w(100).h(100).build())
+                        .ext(givenImpExt(ExtImpMatterfullrtb.of("pub"))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getExt).isNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getBanner).isNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getVideo).isEqualTo(Video.builder().w(100).h(100).build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldModifyOnlyImpExtWhenBannerHaveWidthAndHeigh() {
+        // given
+        final List<Format> formats = singletonList(Format.builder().h(300).w(400).build());
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .banner(Banner.builder().w(100).h(200).format(formats).build())
+                        .ext(givenImpExt(ExtImpMatterfullrtb.of("pub"))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getExt).isNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getH, Banner::getW, Banner::getFormat)
+                .containsOnly(100, 200, formats);
+    }
+
+    @Test
+    public void makeHttpRequestShouldSetFirstFormatForBannerWhenFormatSizeMoreThanOne() {
+        // given
+        final List<Format> formats = List.of(Format.builder().h(300).w(400).build(),
+                Format.builder().h(500).w(600).build());
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp
+                        .banner(Banner.builder().format(formats).build())
+                        .ext(givenImpExt(ExtImpMatterfullrtb.of("pub"))));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getExt).isNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp).singleElement()
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getH, Banner::getW, Banner::getFormat)
+                .containsOnly(300, 400, singletonList(Format.builder().h(500).w(600).build()));
     }
 
     @Test
