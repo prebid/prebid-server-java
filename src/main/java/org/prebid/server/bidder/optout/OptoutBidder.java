@@ -65,7 +65,6 @@ public class OptoutBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<OptoutSlot> slots = new ArrayList<>();
-        final List<String> impIDs = new ArrayList<>();
         String publisherId = "";
         boolean includeOrtb2 = false;
 
@@ -90,7 +89,6 @@ public class OptoutBidder implements Bidder<BidRequest> {
                         .sizes(getAllowedSizes(imp))
                         .customs(normalizeCustoms(extImp.getCustoms()))
                         .build());
-                impIDs.add(imp.getId());
                 includeOrtb2 = includeOrtb2 || extImp.getIncludeOrtb2();
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
