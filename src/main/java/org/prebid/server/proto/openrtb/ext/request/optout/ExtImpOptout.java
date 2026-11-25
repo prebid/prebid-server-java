@@ -1,8 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request.optout;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
-
-import java.util.Map;
 
 @Value(staticConstructor = "of")
 public class ExtImpOptout {
@@ -11,7 +10,7 @@ public class ExtImpOptout {
 
     String adSlot;
 
-    Map<String, String> customs;
+    ObjectNode customs;
 
     Boolean includeOrtb2;
 }
