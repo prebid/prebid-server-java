@@ -1,0 +1,32 @@
+{
+  "id": "request_id",
+  "cur": "USD",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id_1",
+          "impid": "imp_id_1",
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250
+        },
+        {
+          "id": "bid_id_2",
+          "impid": "imp_id_2",
+          "price": 1.25,
+          "adm": "adm002",
+          "adid": "adid002",
+          "cid": "cid002",
+          "crid": "crid002",
+          "w": 728,
+          "h": 90
+        }
+      ]
+    }
+  ]
+}

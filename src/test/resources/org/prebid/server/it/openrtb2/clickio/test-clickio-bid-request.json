@@ -1,0 +1,79 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id_1",
+      "secure": 1,
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "said": "said-1",
+          "psid": "psid-1",
+          "template": "template-1"
+        },
+        "params": {
+          "said": "said-1",
+          "psid": "psid-1",
+          "template": "template-1"
+        }
+      }
+    },
+    {
+      "id": "imp_id_2",
+      "secure": 1,
+      "banner": {
+        "w": 728,
+        "h": 90
+      },
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "said": "said-2"
+        },
+        "params": {
+          "said": "said-2"
+        }
+      }
+    }
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "gdpr": 0
+  },
+  "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "http_method": "POST",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
+}
