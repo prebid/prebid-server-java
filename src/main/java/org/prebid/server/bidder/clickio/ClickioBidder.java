@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.clickio;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -49,16 +48,9 @@ public class ClickioBidder implements Bidder<BidRequest> {
         return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
 
-    // Clickio backend reads bidder params from imp.ext.params, so imp.ext.bidder is copied there as is
     private static Imp modifyImp(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        final JsonNode bidderParams = impExt != null ? impExt.get(BIDDER_PROPERTY) : null;
-        if (bidderParams == null || bidderParams.isNull()) {
-            return imp;
-        }
-
-        final ObjectNode modifiedImpExt = impExt.deepCopy();
-        modifiedImpExt.set(PARAMS_PROPERTY, bidderParams.deepCopy());
+        final ObjectNode modifiedImpExt = imp.getExt().deepCopy();
+        modifiedImpExt.set(PARAMS_PROPERTY, modifiedImpExt.get(BIDDER_PROPERTY).deepCopy());
         return imp.toBuilder().ext(modifiedImpExt).build();
     }
 
@@ -94,7 +86,7 @@ public class ClickioBidder implements Bidder<BidRequest> {
         try {
             return BidderBid.of(bid, getMediaType(bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+            errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }

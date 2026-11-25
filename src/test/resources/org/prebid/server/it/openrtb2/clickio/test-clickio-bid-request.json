@@ -2,7 +2,7 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id_1",
+      "id": "imp_id",
       "secure": 1,
       "banner": {
         "w": 300,
@@ -19,23 +19,6 @@
           "said": "said-1",
           "psid": "psid-1",
           "template": "template-1"
-        }
-      }
-    },
-    {
-      "id": "imp_id_2",
-      "secure": 1,
-      "banner": {
-        "w": 728,
-        "h": 90
-      },
-      "ext": {
-        "tid": "${json-unit.any-string}",
-        "bidder": {
-          "said": "said-2"
-        },
-        "params": {
-          "said": "said-2"
         }
       }
     }
