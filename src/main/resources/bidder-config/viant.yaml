@@ -1,0 +1,21 @@
+adapters:
+  viant:
+    endpoint: https://bidders-us.adelphic.net/rtb/v25/viant-prebid-server/bidder
+    modifying-vast-xml-allowed: true
+    geoscope:
+      - global
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: dist-vps@viantinc.com
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 1542

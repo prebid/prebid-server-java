@@ -26,7 +26,7 @@ public class ActivityControllerTest {
     @Test
     public void isAllowedShouldReturnDefaultResultIfAllRulesReturnsAbstain() {
         // given
-        final Rule rule = TestRule.disallowIfMatches(payload -> false);
+        final Rule rule = TestRule.noMatchAndDisallow();
         final ActivityController activityController = ActivityController.of(true, singletonList(rule), debug);
 
         // when
@@ -44,9 +44,10 @@ public class ActivityControllerTest {
         final ActivityController activityController = ActivityController.of(
                 true,
                 asList(
-                        TestRule.allowIfMatches(payload -> false),
-                        TestRule.disallowIfMatches(payload -> true),
-                        TestRule.disallowIfMatches(payload -> false)),
+                        TestRule.noMatchAndAllow(),
+                        TestRule.noMatchAndDisallow(),
+                        TestRule.matchAndDisallow(),
+                        TestRule.matchAndAllow()),
                 debug);
 
         // when
@@ -55,7 +56,7 @@ public class ActivityControllerTest {
         // then
         assertThat(result).isFalse();
         verify(debug).emitActivityInvocationDefaultResult(true);
-        verify(debug, times(2)).emitProcessedRule(any(), any());
+        verify(debug, times(3)).emitProcessedRule(any(), any());
     }
 
     @Test
@@ -64,9 +65,10 @@ public class ActivityControllerTest {
         final ActivityController activityController = ActivityController.of(
                 false,
                 asList(
-                        TestRule.allowIfMatches(payload -> false),
-                        TestRule.allowIfMatches(payload -> true),
-                        TestRule.disallowIfMatches(payload -> false)),
+                        TestRule.noMatchAndAllow(),
+                        TestRule.noMatchAndDisallow(),
+                        TestRule.matchAndAllow(),
+                        TestRule.matchAndDisallow()),
                 debug);
 
         // when
@@ -75,6 +77,6 @@ public class ActivityControllerTest {
         // then
         assertThat(result).isTrue();
         verify(debug).emitActivityInvocationDefaultResult(false);
-        verify(debug, times(2)).emitProcessedRule(any(), any());
+        verify(debug, times(3)).emitProcessedRule(any(), any());
     }
 }

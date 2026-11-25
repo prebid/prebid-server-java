@@ -82,9 +82,7 @@ public class AndRuleTest extends VertxTest {
     @Test
     public void asLogEntryShouldReturnExpectedObjectNode() {
         // given
-        final AndRule rule = new AndRule(asList(
-                TestRule.allowIfMatches(payload -> true),
-                TestRule.disallowIfMatches(payload -> false)));
+        final AndRule rule = new AndRule(asList(TestRule.matchAndAllow(), TestRule.noMatchAndAllow()));
 
         // when
         final JsonNode result = rule.asLogEntry(mapper);
