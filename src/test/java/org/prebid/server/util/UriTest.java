@@ -49,10 +49,22 @@ public class UriTest {
     @Test
     public void expandShouldThrowNoSuchElementExceptionWhenMacroIsNotReplaced() {
         // given
-        final Uri uri = Uri.of("https://{host}.prebid.org");
+        final Uri.ParameterizedUri uri = Uri.of("https://{host}.prebid.org{/path}")
+                .replaceMacro("host", "some-host");
 
         // when and then
         assertThatExceptionOfType(NoSuchElementException.class).isThrownBy(uri::expand);
+    }
+
+    @Test
+    public void expandShouldAllowVariableMissIfConfigured() {
+        // given
+        final Uri.ParameterizedUri uri = Uri.of("https://{host}.prebid.org{/path}")
+                .replaceMacro("host", "some-host")
+                .allowVariableMiss();
+
+        // when and then
+        assertThat(uri.expand()).isEqualTo("https://some-host.prebid.org");
     }
 
     @Test

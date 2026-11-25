@@ -76,12 +76,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String PRIMARY_AD_SERVER_MACRO = "PrimaryAdServer";
+    private static final String PUBLISHER_MACRO = "Publisher";
 
     private final boolean isRfc3986Compatible;
     private final Uri endpoint;
     private final Uri ampEndpoint;
     private final Uri videoEndpoint;
-    private final String categoryEndpoint;
+    private final Uri categoryEndpoint;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
 
@@ -97,7 +99,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
         this.endpoint = Uri.of(endpoint);
         this.ampEndpoint = Uri.of(ampEndpoint);
         this.videoEndpoint = Uri.of(videoEndpoint);
-        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
+        this.categoryEndpoint = Uri.of(
+                categoryEndpoint + "/{%s}{/%s}.json".formatted(PRIMARY_AD_SERVER_MACRO, PUBLISHER_MACRO));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -339,9 +342,11 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
-        final String url = StringUtils.isNotEmpty(publisher)
-                ? "%s/%s/%s.json".formatted(categoryEndpoint, primaryAdServer, publisher)
-                : "%s/%s.json".formatted(categoryEndpoint, primaryAdServer);
+        final String url = categoryEndpoint
+                .replaceMacro(PRIMARY_AD_SERVER_MACRO, primaryAdServer)
+                .replaceMacro(PUBLISHER_MACRO, StringUtils.isNotEmpty(publisher) ? publisher : null)
+                .allowVariableMiss()
+                .expand();
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {

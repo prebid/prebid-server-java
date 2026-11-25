@@ -16,8 +16,6 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode
 public class Uri {
 
-    private static final ExpandOptions REQUIRE_ALL_PARAMS = new ExpandOptions().setAllowVariableMiss(false);
-
     private static final String DYNAMIC_QUERY_PARAM = "DYNAMIC_QUERY_PARAM";
     private static final String DYNAMIC_QUERY_START_MACRO = "{?" + DYNAMIC_QUERY_PARAM + "*}";
     private static final String DYNAMIC_QUERY_CONTINUATION_MACRO = "{&" + DYNAMIC_QUERY_PARAM + "*}";
@@ -89,10 +87,13 @@ public class Uri {
 
         private final UriTemplate template;
         private final Variables variables;
+        private final ExpandOptions expandOptions;
 
         private ParameterizedUri(UriTemplate template) {
             this.template = template;
             this.variables = Variables.variables();
+            this.expandOptions = new ExpandOptions().setAllowVariableMiss(false);
+
             variables.set(DYNAMIC_QUERY_PARAM, new LinkedHashMap<>());
         }
 
@@ -131,8 +132,13 @@ public class Uri {
             return this;
         }
 
+        public ParameterizedUri allowVariableMiss() {
+            expandOptions.setAllowVariableMiss(true);
+            return this;
+        }
+
         public String expand() throws NoSuchElementException {
-            return template.expandToString(variables, REQUIRE_ALL_PARAMS);
+            return template.expandToString(variables, expandOptions);
         }
 
         @Override
