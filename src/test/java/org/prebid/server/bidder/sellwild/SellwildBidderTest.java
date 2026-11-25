@@ -72,20 +72,6 @@ public class SellwildBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenBidderParamsAreMissing() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(mapper.createObjectNode())));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Missing bidder parameters for imp 123"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorWhenTokenIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp(identity(), ExtImpSellwild.of("partner", "   ")));

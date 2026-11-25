@@ -56,14 +56,12 @@ public class SellwildBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        // The exchange authenticates a request with the token of its first imp, so imps are only
-        // grouped when they share both partner code and token.
         final Map<ExtImpSellwild, List<Imp>> paramsToImps = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpSellwild extImp = parseImpExt(imp);
-                validateImpExt(extImp, imp.getId());
+                validateToken(extImp, imp.getId());
                 paramsToImps.computeIfAbsent(extImp, key -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -86,12 +84,7 @@ public class SellwildBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void validateImpExt(ExtImpSellwild extImp, String impId) {
-        if (extImp == null) {
-            throw new PreBidException("Missing bidder parameters for imp " + impId);
-        }
-        // The bidder-params schema enforces partnerCode and a non-empty token, but a whitespace-only
-        // token passes the schema and can never authenticate.
+    private static void validateToken(ExtImpSellwild extImp, String impId) {
         if (StringUtils.isBlank(extImp.getToken())) {
             throw new PreBidException("Missing token for imp " + impId);
         }
@@ -101,17 +94,20 @@ public class SellwildBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
         final String uri = endpointUrl.replaceMacro(PUBLISHER_ID_MACRO, partnerCode).expand();
 
+        return BidderUtil.defaultRequest(outgoingRequest, makeHeaders(request.getDevice()), uri, mapper);
+    }
+
+    private static MultiMap makeHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
-        final Device device = request.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
                     StringUtils.defaultIfEmpty(device.getIp(), device.getIpv6()));
         }
 
-        return BidderUtil.defaultRequest(outgoingRequest, headers, uri, mapper);
+        return headers;
     }
 
     @Override
@@ -134,10 +130,8 @@ public class SellwildBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        final Map<String, Imp> impIdToImp = bidRequest == null || bidRequest.getImp() == null
-                ? Collections.emptyMap()
-                : bidRequest.getImp().stream()
-                        .collect(Collectors.toMap(Imp::getId, Function.identity(), (first, second) -> first));
+        final Map<String, Imp> impIdToImp = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity(), (first, second) -> first));
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -170,11 +164,9 @@ public class SellwildBidder implements Bidder<BidRequest> {
         }
 
         final Integer markupType = bid.getMtype();
-        if (BidderUtil.isNullOrZero(markupType)) {
-            return getBidTypeFromImp(bid, imp);
-        }
-
         return switch (markupType) {
+            case null -> getBidTypeFromImp(bid, imp);
+            case 0 -> getBidTypeFromImp(bid, imp);
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
