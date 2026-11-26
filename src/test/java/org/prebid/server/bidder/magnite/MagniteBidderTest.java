@@ -2273,11 +2273,59 @@ public class MagniteBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldDiscardNegativeAtts() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.device(Device.builder()
+                        .ext(ExtDevice.of(-1, null))
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .singleElement()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getExt)
+                .extracting(ExtDevice::getAtts)
+                .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldDiscardInvalidAtts() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.device(Device.builder()
+                        .ext(ExtDevice.of(4, null))
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .singleElement()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getExt)
+                .extracting(ExtDevice::getAtts)
+                .isNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldPreserveOnlyDeviceExtAtts() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.device(Device.builder()
-                        .ext(ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
+                        .ext(ExtDevice.of(0, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -2292,7 +2340,7 @@ public class MagniteBidderTest extends VertxTest {
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getExt)
                 .extracting(ExtDevice::getAtts, ExtDevice::getPrebid)
-                .containsExactly(tuple(1, null));
+                .containsExactly(tuple(0, null));
     }
 
     @Test
