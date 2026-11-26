@@ -1263,7 +1263,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     }
 
     private static Device givenDevice() {
-        final ExtDevice extDevice = ExtDevice.of(null, null);
+        final ExtDevice extDevice = ExtDevice.of(null, null, null);
         extDevice.addProperty("field", TextNode.valueOf("fieldValue"));
 
         return Device.builder()
