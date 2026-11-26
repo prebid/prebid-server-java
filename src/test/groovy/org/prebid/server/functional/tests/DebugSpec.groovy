@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
+import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountMetricsConfig
@@ -14,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -29,9 +31,6 @@ class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString
     private static final String ACCOUNT_METRICS_PREFIX_NAME = "account"
-    private static final String DEBUG_REQUESTS_METRIC = "debug_requests"
-    private static final String ACCOUNT_DEBUG_REQUESTS_METRIC = "account.%s.debug_requests"
-    private static final String REQUEST_OK_WEB_METRICS = "requests.ok.openrtb2-web"
 
     def "PBS should return debug information and emit metrics when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
@@ -50,7 +49,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests()] == 1
 
         and: "Account debug metrics shouldn't be incremented"
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
@@ -79,11 +78,11 @@ class DebugSpec extends BaseSpec {
 
         and: "Debug metrics shouldn't be populated"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metricsRequest[DEBUG_REQUESTS_METRIC]
+        assert !metricsRequest[MetricsUtil.General.debugRequests()]
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
 
         and: "General metrics should be present"
-        assert metricsRequest[REQUEST_OK_WEB_METRICS] == 1
+        assert metricsRequest[MetricsUtil.General.requestOk(ChannelType.WEB)] == 1
 
         where:
         debug    | test
@@ -405,8 +404,8 @@ class DebugSpec extends BaseSpec {
 
         and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(bidRequest.accountId)] == 1
-        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests().formatted(bidRequest.accountId)] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests()] == 1
     }
 
     def "PBS shouldn't return debug information and emit metrics when account debug enabled and verbosity #verbosityLevel"() {
@@ -431,10 +430,10 @@ class DebugSpec extends BaseSpec {
 
         and: "Account debug metrics shouldn't be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(bidRequest.accountId)]
+        assert !metricsRequest[MetricsUtil.Account.debugRequests(bidRequest.accountId)]
 
         and: "Request debug metrics should be incremented"
-        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests()] == 1
 
         where:
         verbosityLevel << [NONE, BASIC]
@@ -469,8 +468,8 @@ class DebugSpec extends BaseSpec {
 
         and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(ampRequest.account)] == 1
-        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests().formatted(ampRequest.account)] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests()] == 1
     }
 
     def "PBS amp should return debug information and emit metrics when account debug enabled and verbosity #verbosityLevel"() {
@@ -502,10 +501,10 @@ class DebugSpec extends BaseSpec {
 
         and: "Account debug metrics shouldn't be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metricsRequest[ACCOUNT_DEBUG_REQUESTS_METRIC.formatted(ampRequest.account)]
+        assert !metricsRequest[MetricsUtil.Account.debugRequests(ampRequest.account)]
 
         and: "Debug metrics should be incremented"
-        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+        assert metricsRequest[MetricsUtil.General.debugRequests()] == 1
 
         where:
         verbosityLevel << [NONE, BASIC]
@@ -529,10 +528,10 @@ class DebugSpec extends BaseSpec {
 
         and: "Debug metrics shouldn't be populated"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metricsRequest[DEBUG_REQUESTS_METRIC]
+        assert !metricsRequest[MetricsUtil.General.debugRequests()]
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
 
         and: "General metrics shouldn't be present"
-        assert !metricsRequest[REQUEST_OK_WEB_METRICS]
+        assert !metricsRequest[MetricsUtil.General.requestOk(ChannelType.WEB)]
     }
 }

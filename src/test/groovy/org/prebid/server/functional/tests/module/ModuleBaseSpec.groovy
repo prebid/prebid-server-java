@@ -34,22 +34,6 @@ class ModuleBaseSpec extends BaseSpec {
         repository.removeAllDatabaseData()
     }
 
-    protected final static Closure<String> CALL_METRIC = { ModuleName module, Stage stage ->
-        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.call"
-    }
-    protected final static Closure<String> UPDATE_METRIC = { ModuleName module, Stage stage ->
-        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.success.update"
-    }
-    protected final static Closure<String> NOOP_METRIC = { ModuleName module, Stage stage ->
-        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.success.noop"
-    }
-    protected final static Closure<String> NO_INVOCATION_METRIC = { ModuleName module, Stage stage ->
-        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.success.no-invocation"
-    }
-    protected final static Closure<String> EXECUTION_ERROR_METRIC = { ModuleName module, Stage stage ->
-        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.execution-error"
-    }
-
     protected static Map<String, String> getResponseCorrectionConfig(HookHttpEndpoint endpoint = AUCTION) {
         ["hooks.${PB_RESPONSE_CORRECTION.code}.enabled": true,
          "hooks.host-execution-plan"                   : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(ALL_PROCESSED_BID_RESPONSES): [PB_RESPONSE_CORRECTION]]))]

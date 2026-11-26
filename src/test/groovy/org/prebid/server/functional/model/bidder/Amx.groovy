@@ -1,8 +1,6 @@
-package org.prebid.server.functional.model.request.auction
+package org.prebid.server.functional.model.bidder
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.prebid.server.functional.model.bidder.BidderAdapter
-import org.prebid.server.functional.model.bidder.BidderName
 
 class Amx implements BidderAdapter {
 

@@ -2,12 +2,12 @@ package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.request.auction.Imp
 
-import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineModelRuleResult.createRuleEngineModelRuleWithExcludeResult
 import static org.prebid.server.functional.model.config.RuleEngineModelRuleResult.createRuleEngineModelRuleWithIncludeResult
