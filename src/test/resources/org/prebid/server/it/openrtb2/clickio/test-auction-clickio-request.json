@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "clickio": {
+          "said": "said-1",
+          "psid": "psid-1",
+          "template": "template-1"
+        }
+      }
+    }
+  ],
+  "regs": {
+    "gdpr": 0
+  }
+}

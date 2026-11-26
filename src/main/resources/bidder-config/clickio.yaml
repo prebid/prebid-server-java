@@ -1,0 +1,18 @@
+adapters:
+  clickio:
+    endpoint: https://o.clickiocdn.com/bids
+    geoscope:
+      - global
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: github@clickio.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 1500
+    usersync:
+      cookie-family-name: clickio
+      redirect:
+        url: https://o.clickiocdn.com/pbs_usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
+        uid-macro: '$UID'
