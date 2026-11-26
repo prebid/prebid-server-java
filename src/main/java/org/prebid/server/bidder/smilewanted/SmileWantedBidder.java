@@ -3,10 +3,13 @@ package org.prebid.server.bidder.smilewanted;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -101,15 +104,42 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impid, List<Imp> imps) {
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null, default -> getBidTypeFromImp(bid, imps);
+        };
+    }
+
+    private static BidType getBidTypeFromImp(Bid bid, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impid) && imp.getVideo() != null) {
-                return BidType.video;
+            if (imp.getId().equals(bid.getImpid())) {
+                return getBidTypeFromMarkup(bid.getAdm(), imp);
             }
+        }
+        return BidType.banner;
+    }
+
+    private static BidType getBidTypeFromMarkup(String adm, Imp imp) {
+        final boolean isVast = Strings.CS.contains(adm, "<VAST");
+        final boolean isJson = Strings.CS.startsWith(StringUtils.trim(adm), "{");
+        final boolean hasBanner = imp.getBanner() != null;
+
+        if (imp.getVideo() != null && (isVast || !hasBanner)) {
+            return BidType.video;
+        }
+        if (imp.getAudio() != null && (isVast || !hasBanner)) {
+            return BidType.audio;
+        }
+        if (imp.getXNative() != null && (isJson || !hasBanner)) {
+            return BidType.xNative;
         }
         return BidType.banner;
     }
