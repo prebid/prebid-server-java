@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
@@ -37,12 +38,12 @@ class CacheVtrackSpec extends BaseSpec {
     private static final String CACHE_HOST = "${PBSUtils.randomString}:${PBSUtils.getRandomNumber(0, 65535)}".toString()
     private static final String HTTP_SCHEME = 'http'
 
-    private static final Map<String, String> INVALID_PREBID_CACHE_CONFIG = ["cache.path"  : CACHE_PATH,
+    private static final PbsContainerConfig INVALID_PREBID_CACHE_CONFIG = new PbsContainerConfig(["cache.path"  : CACHE_PATH,
                                                                             "cache.scheme": HTTP_SCHEME,
-                                                                            "cache.host"  : CACHE_HOST]
-    private static final Map<String, String> VALID_INTERNAL_CACHE = ["cache.internal.scheme": HTTP_SCHEME,
+                                                                            "cache.host"  : CACHE_HOST])
+    private static final PbsContainerConfig VALID_INTERNAL_CACHE = new PbsContainerConfig(["cache.internal.scheme": HTTP_SCHEME,
                                                                      "cache.internal.host"  : "$networkServiceContainer.hostAndPort".toString(),
-                                                                     "cache.internal.path"  : CACHE_ENDPOINT]
+                                                                     "cache.internal.path"  : CACHE_ENDPOINT])
     private static PrebidServerService pbsServiceWithInternalCache
 
     def setupSpec() {

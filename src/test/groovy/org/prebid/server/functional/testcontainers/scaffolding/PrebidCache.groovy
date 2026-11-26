@@ -7,17 +7,16 @@ import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.PBSUtils
 
-import static java.lang.Integer.MAX_VALUE
-import static com.github.tomakehurst.wiremock.client.WireMock.post
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import static com.github.tomakehurst.wiremock.client.WireMock.get
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
+import static com.github.tomakehurst.wiremock.client.WireMock.post
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import static java.lang.Integer.MAX_VALUE
 import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -36,7 +35,6 @@ class PrebidCache extends NetworkScaffolding {
                    ]
                  }
             '''
-
 
     PrebidCache(NetworkServiceContainer wireMockContainer) {
         super(wireMockContainer, CACHE_ENDPOINT)
@@ -64,7 +62,6 @@ class PrebidCache extends NetworkScaffolding {
         postRequestedFor(urlEqualTo(CACHE_ENDPOINT))
                 .withRequestBody(matchingJsonPath("\$.puts[?(@.value.impid == '$impId')]"))
     }
-
 
     List<BidCacheRequest> getRecordedRequests(String impId) {
         wireMockClient.find(getRequest(impId)).bodyAsString

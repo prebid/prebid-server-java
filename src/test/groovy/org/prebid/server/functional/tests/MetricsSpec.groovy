@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
@@ -18,7 +19,11 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 
 class MetricsSpec extends BaseSpec {
 
-    private final PrebidServerService softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
+    private static PrebidServerService softPrebidService
+
+    def setupSpec() {
+        softPrebidService = pbsServiceFactory.getService(new PbsContainerConfig(['auction.strict-app-site-dooh': 'false']))
+    }
 
     def setup() {
         flushMetrics(defaultPbsService)

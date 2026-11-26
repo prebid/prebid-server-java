@@ -1,73 +1,80 @@
 package org.prebid.server.functional.testcontainers
 
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
-import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.images.builder.Transferable
 
+import static org.prebid.server.functional.testcontainers.PbsServiceFactory.ContainerPolicy.LRU
+import static org.prebid.server.functional.testcontainers.PbsServiceFactory.ContainerPolicy.PERSISTENT
+import static org.prebid.server.functional.util.SystemProperties.DEBUG_ENABLED
+import static org.prebid.server.functional.util.SystemProperties.MAX_CONTAINER
 import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
 
-// TODO make container instance into a POGO and add the ability for any given container to live through stopContainers()
 class PbsServiceFactory {
 
-    private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
-    private static final int MAX_CONTAINER_COUNT = maxContainerCount
+    private static final int MAX_CONTAINER_COUNT = USE_FIXED_CONTAINER_PORTS ? 1 : MAX_CONTAINER
 
-    private final NetworkServiceContainer networkServiceContainer
+    private static final Map<PbsContainerConfig, CachedContainer> containers =
+            new LinkedHashMap<>(16, 0.75f, true)
 
-    PbsServiceFactory(NetworkServiceContainer networkServiceContainer) {
-        this.networkServiceContainer = networkServiceContainer
+    // Will be removed in 5.0
+    @Deprecated(forRemoval = true)
+    static PrebidServerService getService(Map<String, String> config,
+                                          Map<String, Transferable> additionalFiles = [:],
+                                          ContainerPolicy policy = LRU) {
+        getService(new PbsContainerConfig(config, additionalFiles), policy)
     }
 
-    static PrebidServerService getService(Map<String, String> config, Map<String, Transferable> additionalFiles = [:]) {
-        if (containers.containsKey(config)) {
-            def container = containers.get(config)
-            container.refresh()
-            return new PrebidServerService(container)
+    static PrebidServerService getService(PbsContainerConfig config,
+                                          ContainerPolicy policy = LRU) {
+        def cached = containers.remove(config)
+        if (cached) {
+            cached.container.refresh()
+            cached.persistent |= policy == PERSISTENT
         } else {
-            if (containers.size() == 1 && MAX_CONTAINER_COUNT == 1) {
-                def container = containers.entrySet().first()
-                remove([(container.key): container.value])
-            } else if (containers.size() >= MAX_CONTAINER_COUNT) {
-                def container = containers.find { !it.key.isEmpty() }
-                remove([(container.key): container.value])
-            }
-            def pbsContainer = new PrebidServerContainer(config)
-            if (!additionalFiles.isEmpty()) {
-                additionalFiles.each { k, v -> pbsContainer.withCopyToContainer(v, k) }
-            }
-            pbsContainer.start()
-            containers.put(config, pbsContainer)
-            return new PrebidServerService(pbsContainer)
+            evictIfNeeded()
+            def container = new PrebidServerContainer(config, DEBUG_ENABLED)
+            container.start()
+            cached = new CachedContainer(
+                    container: container,
+                    persistent: policy == PERSISTENT)
         }
+        containers[config] = cached
+        new PrebidServerService(cached.container)
     }
 
-    private static PrebidServerContainer getContainer(Map<String, String> config) {
-        containers.get(config)
-    }
-
-    static void stopContainers() {
-        def containers = containers.findAll { it.key != [:] }
-        remove(containers)
-    }
-
-    static void removeContainer(Map<String, String> config) {
-        def container = containers.get(config)
-        container.stop()
-        containers.remove(config)
-    }
-
-    private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
-        map.each { key, value ->
-            value.stop()
-            containers.remove(key)
+    private static void evictIfNeeded() {
+        if (containers.size() < MAX_CONTAINER_COUNT) {
+            return
         }
+
+        def eldest = containers.find { !it.value.persistent }
+        if (!eldest) {
+            throw new IllegalStateException("All container slots are persistent")
+        }
+
+        eldest.value.container.stop()
+        containers.remove(eldest.key)
     }
 
-    private static int getMaxContainerCount() {
-        USE_FIXED_CONTAINER_PORTS
-                ? 1
-                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 5)
+    // Will be removed in 5.0
+    @Deprecated(forRemoval = true)
+    static void removeContainer(Map<?, ?> config) {
+        removeContainer(new PbsContainerConfig(config))
+    }
+
+    static void removeContainer(PbsContainerConfig config) {
+        containers.remove(config)?.container?.stop()
+    }
+
+    private static class CachedContainer {
+        PrebidServerContainer container
+        boolean persistent
+    }
+
+    enum ContainerPolicy {
+        PERSISTENT,
+        LRU
     }
 }

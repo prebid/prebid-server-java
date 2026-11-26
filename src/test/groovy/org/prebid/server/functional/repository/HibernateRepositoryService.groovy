@@ -3,9 +3,9 @@ package org.prebid.server.functional.repository
 import org.hibernate.SessionFactory
 import org.hibernate.cfg.Configuration
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredProfileImp
 import org.prebid.server.functional.model.db.StoredProfileRequest
-import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.repository.dao.AccountDao

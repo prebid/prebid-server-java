@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.privacy.TcfUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -25,18 +26,19 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 
 class TransmitEidsOrtbConverterActivitiesSpec extends TcfBaseSpec {
 
-    private final static Map<String, String> ORTB_2_5_TCF_CONFIG = TCF_BASE_CONFIG + ["adapters.generic.ortb-version": "2.5"]
+    private final static PbsContainerConfig ORTB_2_5_TCF_CONFIG = TCF_BASE_CONFIG + ["adapters.generic.ortb-version": "2.5"]
+    private final static PbsContainerConfig ORTB_2_5_FULL_TCF_CONFIG = TCF_BASE_CONFIG.withFiles(GVL_LISTS_FILES) + ["adapters.generic.ortb-version": "2.5"]
     private static PrebidServerService activityPbsServiceExcludeGvlWithElderOrtb
     private static PrebidServerService privacyPbsServiceWithMultipleGvlWithElderOrtb
 
     def setupSpec() {
         activityPbsServiceExcludeGvlWithElderOrtb = pbsServiceFactory.getService(ORTB_2_5_TCF_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
-        privacyPbsServiceWithMultipleGvlWithElderOrtb = pbsServiceFactory.getService(ORTB_2_5_TCF_CONFIG, GLV_LISTS_FILES)
+        privacyPbsServiceWithMultipleGvlWithElderOrtb = pbsServiceFactory.getService(ORTB_2_5_FULL_TCF_CONFIG)
     }
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(ORTB_2_5_TCF_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
-        pbsServiceFactory.removeContainer(ORTB_2_5_TCF_CONFIG)
+        pbsServiceFactory.removeContainer(ORTB_2_5_FULL_TCF_CONFIG)
     }
 
     def "PPBS should leave ext.eids for older ORTB versions when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {

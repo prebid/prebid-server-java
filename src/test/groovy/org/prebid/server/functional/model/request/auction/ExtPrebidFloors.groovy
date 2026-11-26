@@ -12,7 +12,7 @@ class ExtPrebidFloors {
 
     Boolean enabled
     Location location
-    FetchStatus fetchStatus
+    AnalyticTagStatus fetchStatus
     Boolean skipped
     Currency floorMinCur
     BigDecimal floorMin

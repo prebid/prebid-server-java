@@ -15,7 +15,7 @@ import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 
 import java.time.Instant
 
@@ -32,6 +32,7 @@ import static org.prebid.server.functional.model.config.Stage.RAW_BIDDER_RESPONS
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
 import static org.prebid.server.functional.model.response.auction.InvocationStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_ACTION
+import static org.prebid.server.functional.testcontainers.PbsServiceFactory.ContainerPolicy.PERSISTENT
 
 class GeneralModuleSpec extends ModuleBaseSpec {
 
@@ -43,13 +44,12 @@ class GeneralModuleSpec extends ModuleBaseSpec {
     private final static Map<Stage, List<ModuleName>> RESPONSE_STAGES = [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER]]
     private final static Map<Stage, List<ModuleName>> MODULES_STAGES = ORTB_STAGES + RESPONSE_STAGES
     private final static ExecutionPlan GLOBAL_EXECUTION_PLAN = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES)
-    private final static Map<String, String> MULTI_MODULE_CONFIG = getRichMediaFilterSettings(PBSUtils.randomString) +
-            getOrtb2BlockingSettings() +
-            ['settings.enforce-valid-account': 'true',
-             'hooks.host-execution-plan'     : encode(GLOBAL_EXECUTION_PLAN)]
+    private final static PbsContainerConfig MULTI_MODULE_CONFIG = getModuleBaseSettings(PB_RICHMEDIA_FILTER) +
+            getModuleBaseSettings(PB_ORTB2_BLOCKING) +
+            ['settings.enforce-valid-account': 'true', 'hooks.host-execution-plan': encode(GLOBAL_EXECUTION_PLAN)]
 
-    private static final PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
-    private static final PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)
+    private static final PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG, PERSISTENT)
+    private static final PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG, PERSISTENT)
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
@@ -182,9 +182,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         and: "RB-Richmedia-Filter module call metrics should be updated"
         assert metrics[CALL_METRIC(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
         assert metrics[NOOP_METRIC(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should call all modules and traces response when account includes modules config and require-config-to-invoke is enabled"() {
@@ -338,9 +335,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
         assert metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
         assert metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't call module when disabled in host config and no account config provided"() {
@@ -373,9 +367,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         assert !metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
         assert !metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
         assert !metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't call module and not override host config when default-account module-execution config enabled module"() {
@@ -412,9 +403,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         assert !metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
         assert !metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
         assert !metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should call module without account module config when default-account module-execution config enabling module"() {
@@ -454,9 +442,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
         assert metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
         assert metrics[NOOP_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't call any modules without account config when default-account module-execution config not enabling module"() {
@@ -496,9 +481,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
         assert !metrics[CALL_METRIC(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
         assert !metrics[NOOP_METRIC(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         moduleExecutionStatus << [false, null]
@@ -545,9 +527,6 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
         assert !metrics[CALL_METRIC(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
         assert !metrics[NOOP_METRIC(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should merge account level config without any errors when config contains proper request methods"() {

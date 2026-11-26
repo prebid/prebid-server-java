@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
@@ -14,7 +15,7 @@ class InfluxDBSpec extends BaseSpec {
 
     private static final String ACCOUNT_REJECTED_METRIC = "influx.metric.account.%s.requests.rejected.invalid-account"
 
-    private static final Map<String, String> PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT = [
+    private static final PbsContainerConfig PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT = new PbsContainerConfig([
             "metrics.influxdb.enabled"       : "true",
             "metrics.influxdb.prefix"        : "influx.metric.",
             "metrics.influxdb.host"          : influxdbContainer.getNetworkAliases().get(0),
@@ -25,7 +26,7 @@ class InfluxDBSpec extends BaseSpec {
             "metrics.influxdb.interval"      : "1",
             "metrics.influxdb.connectTimeout": "5000",
             "metrics.influxdb.readTimeout"   : "100",
-            "settings.enforce-valid-account": true as String]
+            "settings.enforce-valid-account": true as String])
 
     private static final PrebidServerService pbsServiceWithEnforceValidAccount
             = pbsServiceFactory.getService(PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT)

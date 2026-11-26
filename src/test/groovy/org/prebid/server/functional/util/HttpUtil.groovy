@@ -7,7 +7,6 @@ import static java.nio.charset.StandardCharsets.UTF_8
 
 class HttpUtil implements ObjectMapperWrapper {
 
-
     public static final String ACCEPT_HEADER = "Authorization"
     public static final String CONTENT_TYPE_HEADER = "Content-Type"
     public static final String COOKIE_HEADER = "cookie"

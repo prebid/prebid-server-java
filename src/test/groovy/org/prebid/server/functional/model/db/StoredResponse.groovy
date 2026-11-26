@@ -7,8 +7,8 @@ import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import org.prebid.server.functional.model.db.typeconverter.StoredAuctionResponseConfigTypeConverter
 import org.prebid.server.functional.model.db.typeconverter.BidResponseConfigTypeConverter
+import org.prebid.server.functional.model.db.typeconverter.StoredAuctionResponseConfigTypeConverter
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 

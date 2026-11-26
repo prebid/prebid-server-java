@@ -3,10 +3,9 @@ package org.prebid.server.functional.tests.module.pbruleengine
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountHooksConfiguration
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.PbRulesEngine
-import org.prebid.server.functional.model.config.PbsModulesConfig
+import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.Amx
@@ -16,10 +15,8 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpUnitCode
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Retry
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
@@ -35,22 +32,17 @@ import static org.prebid.server.functional.model.request.auction.ImpUnitCode.PB_
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.STORED_REQUEST
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.TAG_ID
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
 abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
-    protected static final Integer OPENX_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
-    protected static final Integer AMX_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
-    protected static final String APPLIED_FOR_ALL_IMPS = "*"
     protected static final String DEFAULT_CONDITIONS = "default"
+
     protected final static Closure<String> INVALID_CONFIGURATION_FOR_STRINGS_LOG_WARNING = { accountId, functionType ->
         "Failed to parse rule-engine config for account $accountId: " +
                 "Function '$functionType' configuration is invalid: " +
                 "Field '$functionType.fieldName' is required and has to be an array of strings"
     }
-
     protected final static Closure<String> INVALID_CONFIGURATION_FOR_SINGLE_STRING_LOG_WARNING = { accountId, functionType ->
         "Failed to parse rule-engine config for account $accountId: " +
                 "Function '$functionType' configuration is invalid: " +
@@ -68,25 +60,6 @@ abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
                 "Function '$functionType' configuration is invalid: " +
                 "Field '$functionType.fieldName' is required and has to be an array of integers"
     }
-
-    protected static final Map<String, String> ENABLED_DEBUG_LOG_MODE = ["logging.level.root": "debug"]
-    protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled"            : "true",
-                                                               "adapters.${OPENX}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString(),
-                                                               "adapters.${OPENX}.meta-info.vendor-id": OPENX_VENDOR_ID as String]
-    protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled"            : "true",
-                                                             "adapters.${AMX}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString(),
-                                                             "adapters.${AMX}.meta-info.vendor-id": AMX_VENDOR_ID as String]
-    protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled"            : "true",
-                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.meta-info.vendor-id": "0",
-                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
-    protected static final String CONFIG_DATA_CENTER = PBSUtils.randomString
-    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
-    protected static final PrebidServerService pbsServiceWithRulesEngineModule = pbsServiceFactory.getService(GENERIC_CONFIG +
-            getRulesEngineSettings() + AMX_CONFIG + OPENX_CONFIG + OPENX_ALIAS_CONFIG + ['datacenter-region': CONFIG_DATA_CENTER] +
-            ENABLED_DEBUG_LOG_MODE)
 
     protected static BidRequest getDefaultBidRequestWithMultiplyBidders(DistributionChannel distributionChannel = SITE) {
         BidRequest.getDefaultBidRequest(distributionChannel).tap {
@@ -114,8 +87,10 @@ abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
     }
 
     protected static Account getAccountWithRulesEngine(String accountId, PbRulesEngine ruleEngine) {
-        def accountHooksConfiguration = new AccountHooksConfiguration(modules: new PbsModulesConfig(pbRuleEngine: ruleEngine))
-        new Account(uuid: accountId, config: new AccountConfig(hooks: accountHooksConfiguration))
+
+        getAccountWithModuleConfig(accountId, [(Stage.PROCESSED_AUCTION_REQUEST) : [ModuleName.PB_RULE_ENGINE]]).tap {
+            it.config.hooks.modules.pbRuleEngine = ruleEngine
+        }
     }
 
     protected static BidRequest createBidRequestWithDomains(DistributionChannel type, String domain, boolean usePublisher = true) {
@@ -178,15 +153,15 @@ abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static waitUntilSuccessfullyParsedAndCacheAccount(bidRequest) {
         PBSUtils.waitUntil({
-            pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-            pbsServiceWithRulesEngineModule.isContainLogsByValue("Successfully parsed rule-engine config for account $bidRequest.accountId")
+            pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
+            pbsServiceWithMultipleModules.isContainLogsByValue("Successfully parsed rule-engine config for account $bidRequest.accountId")
         })
     }
 
     protected static waitUntilFailedParsedAndCacheAccount(bidRequest) {
         PBSUtils.waitUntil({
-            pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-            pbsServiceWithRulesEngineModule.isContainLogsByValue("Failed to parse rule-engine config for account $bidRequest.accountId")
+            pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
+            pbsServiceWithMultipleModules.isContainLogsByValue("Failed to parse rule-engine config for account $bidRequest.accountId")
         })
     }
 }

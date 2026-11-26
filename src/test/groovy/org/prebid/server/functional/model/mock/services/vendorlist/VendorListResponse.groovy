@@ -1,6 +1,7 @@
 package org.prebid.server.functional.model.mock.services.vendorlist
 
 import org.prebid.server.functional.util.PBSUtils
+
 import java.time.Clock
 import java.time.ZonedDateTime
 

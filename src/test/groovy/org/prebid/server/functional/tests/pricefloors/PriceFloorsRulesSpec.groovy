@@ -56,10 +56,10 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.MED
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PUB_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIZE
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer

@@ -8,6 +8,7 @@ import org.prebid.server.functional.repository.dao.StoredResponseDao
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.tests.BaseSpec
 import org.testcontainers.lifecycle.Startables
 
@@ -29,7 +30,7 @@ class PostgresBaseSpec extends BaseSpec {
         storedImpDao = repository.storedImpDao
         storedRequestDao = repository.storedRequestDao
         storedResponseDao = repository.storedResponseDao
-        pbsServiceWithPostgres = pbsServiceFactory.getService(PbsConfig.postgreSqlConfig)
+        pbsServiceWithPostgres = pbsServiceFactory.getService(new PbsContainerConfig(PbsConfig.postgreSqlConfig))
     }
 
     void cleanup() {

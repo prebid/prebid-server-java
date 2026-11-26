@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -16,12 +17,15 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
 class AccountSpec extends BaseSpec {
 
+    private static final PbsContainerConfig ENFORCED_ACCOUNT_CONFIG = new PbsContainerConfig(['settings.enforce-valid-account': 'true'])
+    private static final PbsContainerConfig UNENFORCED_ACCOUNT_CONFIG = new PbsContainerConfig(['settings.enforce-valid-account': 'false'])
+    private static final PbsContainerConfig DISABLED_LOGGING_CONFIG = new PbsContainerConfig(['logging.sampling-rate': '0'])
+
     def "PBS should reject request with inactive account"() {
-        given: "Start up time"
+        given: "Start time"
         def start = Instant.now()
 
-        and: "Pbs config with enforce-valid-account"
-        def pbsConfig = ["settings.enforce-valid-account": enforceValidAccount as String]
+        and: "PBS config with enforce-valid-account"
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Inactive account id"
@@ -43,24 +47,20 @@ class AccountSpec extends BaseSpec {
         assert exception.statusCode == UNAUTHORIZED.code()
         assert exception.responseBody == warningMessage
 
-        and: "PBs should emit warning logs"
+        and: "PBS should emit warning logs"
         def logsByTime = pbsService.getLogsByTime(start)
         assert getLogsByText(logsByTime, warningMessage).size() == 1
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-
         where:
-        enforceValidAccount << [true, false]
+        pbsConfig << [ENFORCED_ACCOUNT_CONFIG, UNENFORCED_ACCOUNT_CONFIG]
     }
 
-    def "PBS shouldn't emit warning in logs when reject request with inactive account amd sampling-rate is disabled"() {
-        given: "Start up time"
+    def "PBS shouldn't emit warning in logs when reject request with inactive account and sampling-rate is disabled"() {
+        given: "Start time"
         def start = Instant.now()
 
-        and: "Pbs config with logging.sampling-rate"
-        def pbsConfig = ["logging.sampling-rate": "0"]
-        def pbsService = pbsServiceFactory.getService(pbsConfig)
+        and: "PBS config with logging.sampling-rate"
+        def pbsService = pbsServiceFactory.getService(DISABLED_LOGGING_CONFIG)
 
         and: "Inactive account id"
         def accountId = PBSUtils.randomNumber
@@ -81,19 +81,18 @@ class AccountSpec extends BaseSpec {
         assert exception.statusCode == UNAUTHORIZED.code()
         assert exception.responseBody == warningMessage
 
-        and: "PBs shouldn't emit warning logs"
+        and: "PBS shouldn't emit warning logs"
         def logsByTime = pbsService.getLogsByTime(start)
         assert !getLogsByText(logsByTime, warningMessage)
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
+        cleanup:
+        pbsServiceFactory.removeContainer(DISABLED_LOGGING_CONFIG)
     }
 
     def "PBS should reject request with unknown account when settings.enforce-valid-account = true"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = ENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Non-existing account id"
         def accountId = PBSUtils.randomNumber
@@ -116,10 +115,9 @@ class AccountSpec extends BaseSpec {
     }
 
     def "PBS should reject request without account when settings.enforce-valid-account = true"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = ENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default basic BidRequest without account"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -139,10 +137,9 @@ class AccountSpec extends BaseSpec {
     }
 
     def "PBS should not reject request with unknown account when settings.enforce-valid-account = false"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = UNENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default basic BidRequest with non-existing account id"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -164,10 +161,9 @@ class AccountSpec extends BaseSpec {
     }
 
     def "PBS AMP should reject request with unknown account when settings.enforce-valid-account = true"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = ENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default AMP request with non-existing account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -189,23 +185,21 @@ class AccountSpec extends BaseSpec {
 
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
-        def resolvedAccount = requestAccount ?: storedRequestAccount
         assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: $resolvedAccount"
+        assert exception.responseBody == "Unauthorized account id: $accountId"
 
         where:
-        defaultAccountConfig               || requestAccount        || storedRequestAccount
-        null                               || PBSUtils.randomNumber || null
-        null                               || null                  || PBSUtils.randomNumber
-        AccountConfig.defaultAccountConfig || PBSUtils.randomNumber || null
-        AccountConfig.defaultAccountConfig || null                  || PBSUtils.randomNumber
+        defaultAccountConfig               | accountId             || requestAccount | storedRequestAccount
+        null                               | PBSUtils.randomNumber || accountId      | null
+        null                               | PBSUtils.randomNumber || null           | accountId
+        AccountConfig.defaultAccountConfig | PBSUtils.randomNumber || accountId      | null
+        AccountConfig.defaultAccountConfig | PBSUtils.randomNumber || null           | accountId
     }
 
     def "PBS AMP should reject request without account when settings.enforce-valid-account = true"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = ENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default AMP request without account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -235,10 +229,9 @@ class AccountSpec extends BaseSpec {
     }
 
     def "PBS AMP should not reject request with unknown account when settings.enforce-valid-account = false"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = UNENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default AMP request with non-existing account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -271,10 +264,9 @@ class AccountSpec extends BaseSpec {
     }
 
     def "PBS AMP should not reject request without account when settings.enforce-valid-account = false"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "false",
-                 "settings.default-account-config": encode(defaultAccountConfig)])
+        given: "PBS config with enforce-valid-account and default-account-config"
+        def config = UNENFORCED_ACCOUNT_CONFIG + ['settings.default-account-config': encode(defaultAccountConfig)]
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default AMP request without account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {

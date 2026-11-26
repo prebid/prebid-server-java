@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests
+package org.prebid.server.functional.tests.bidder
 
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredResponse
@@ -16,12 +16,12 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.auction.Uid
 import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.model.request.auction.UserExt
-import org.prebid.server.functional.model.request.auction.UserExtPrebid
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
+import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -262,10 +262,10 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
     }
 
     def "PBS should respond errors with same bidder name which bidder name came in request with another case strategy"() {
-        given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapter-defaults.enabled": "false",
-                 "adapters.generic.enabled": "false"])
+        given: "PBS service with adapter configuration"
+        def pbsConfig = new PbsContainerConfig(["adapter-defaults.enabled": "false",
+                                                "adapters.generic.enabled": "false"])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -283,10 +283,10 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
     }
 
     def "PBS should respond warnings with same bidder name which bidder name came in request with another case strategy"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"     : "true",
-                 "adapters.generic.meta-info.app-media-types": ""])
+        given: "Pbs service with media type config"
+        def pbsConfig = new PbsContainerConfig(["auction.filter-imp-media-type.enabled"     : "true",
+                                                "adapters.generic.meta-info.app-media-types": ""])
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp[0].ext.prebid.bidder.tap {

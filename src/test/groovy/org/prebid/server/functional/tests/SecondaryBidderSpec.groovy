@@ -9,13 +9,13 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
-import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_TIMED_OUT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -31,17 +31,18 @@ class SecondaryBidderSpec extends BaseSpec {
             "adapters.${GENERIC.value}.aliases.${ALIAS}.enabled"            : "true",
             "adapters.${GENERIC.value}.aliases.${ALIAS}.meta-info.vendor-id": "0",
             "adapters.${GENERIC.value}.aliases.${ALIAS}.endpoint"           : "$networkServiceContainer.rootUri$GENERIC_ALIAS_AUCTION_ENDPOINT".toString()]
+    private static final PbsContainerConfig PBS_CONFIG = new PbsContainerConfig(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
     private static final Integer RESPONSE_DELAY_MILLISECONDS = 5_000
     private static final Bidder openXBidder = new Bidder(networkServiceContainer, OPENX_AUCTION_ENDPOINT)
     private static final Bidder genericAliasBidder = new Bidder(networkServiceContainer, GENERIC_ALIAS_AUCTION_ENDPOINT)
 
     private static final String WARNING_TIME_OUT_MESSAGE = "secondary bidder timed out, auction proceeded"
 
-    private static final PrebidServerService pbsServiceWithOpenXBidder = pbsServiceFactory.getService(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
+    private static final PrebidServerService pbsServiceWithOpenXBidder = pbsServiceFactory.getService(PBS_CONFIG)
 
     @Override
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
     }
 
     def setup() {

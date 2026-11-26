@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.ExtData
 import org.prebid.server.functional.model.request.auction.Segment
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 
@@ -15,8 +16,11 @@ class TopicsHeaderSpec extends BaseSpec {
     private static final DEFAULT_SEGTAX_VALUE = 599
     private static final PRIVACY_SENDBOX_DOMAIN = "privacy-sandbox-domain"
 
-    private final PrebidServerService prebidServerServiceWithTopicsDomain
-            = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": PRIVACY_SENDBOX_DOMAIN])
+    private static PrebidServerService prebidServerServiceWithTopicsDomain
+
+    def setupSpec() {
+        prebidServerServiceWithTopicsDomain = pbsServiceFactory.getService(new PbsContainerConfig(["auction.privacysandbox.topicsdomain": PRIVACY_SENDBOX_DOMAIN]))
+    }
 
     def "PBS should populate user.data when Sec-Browsing-Topics header present in request"() {
         given: "Default basic BidRequest with generic bidder"
@@ -260,8 +264,8 @@ class TopicsHeaderSpec extends BaseSpec {
 
     def "PBS should populate user.data with empty name when privacy sand box present with empty name"() {
         given: "PBS with empty auction privacy sand box"
-        def prebidServerServiceWithTopicsDomain
-                = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": topicsdomain])
+        def config = new PbsContainerConfig(["auction.privacysandbox.topicsdomain": topicsdomain])
+        def prebidServerServiceWithTopicsDomain = pbsServiceFactory.getService(config)
 
         and: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {

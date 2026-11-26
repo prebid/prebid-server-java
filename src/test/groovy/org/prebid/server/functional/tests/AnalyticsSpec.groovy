@@ -11,31 +11,47 @@ import org.prebid.server.functional.model.request.auction.PrebidAnalytics
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
-import spock.lang.Shared
 
 class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()
-    private static final Map<String, String> ENABLED_DEBUG_LOG_MODE = ["logging.level.root": "debug"]
+
+    private static final PbsContainerConfig PUBSTACK_CONFIG = new PbsContainerConfig(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID))
+    private static final PbsContainerConfig DEBUG_LOG_CONFIG = new PbsContainerConfig(['logging.level.root': 'debug'])
+    private static final PbsContainerConfig LOG_ANALYTICS_ENABLED_CONFIG = DEBUG_LOG_CONFIG +
+            ['analytics.log.enabled'    : 'true',
+             'analytics.global.adapters': 'logAnalytics']
+    private static final PbsContainerConfig LOG_ANALYTICS_DISABLED_CONFIG = DEBUG_LOG_CONFIG +
+            ['analytics.log.enabled'    : 'false',
+             'analytics.global.adapters': '']
 
     private static final PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer).tap {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
     }
 
-    private static final PrebidServerService pbsService = pbsServiceFactory.getService(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID))
-    private static final PrebidServerService pbsServiceWithLogAnalytics = pbsServiceFactory.getService(
-            ENABLED_DEBUG_LOG_MODE + ['analytics.log.enabled'    : 'true',
-                                      'analytics.global.adapters': 'logAnalytics'])
-    private static final PrebidServerService pbsServiceWithoutLogAnalytics = pbsServiceFactory.getService(
-            ENABLED_DEBUG_LOG_MODE + ['analytics.log.enabled'    : 'true',
-                                      'analytics.global.adapters': ''])
+    private static PrebidServerService pbsServiceWithLogAnalytics
+    private static PrebidServerService pbsServiceWithoutLogAnalytics
+
+    def setupSpec() {
+        pbsServiceWithLogAnalytics = pbsServiceFactory.getService(LOG_ANALYTICS_ENABLED_CONFIG)
+        pbsServiceWithoutLogAnalytics = pbsServiceFactory.getService(LOG_ANALYTICS_DISABLED_CONFIG)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(LOG_ANALYTICS_ENABLED_CONFIG)
+        pbsServiceFactory.removeContainer(LOG_ANALYTICS_DISABLED_CONFIG)
+    }
 
     @Ignore("Currently impossible to make this test pass 100% of the time")
     def "PBS should send PubStack analytics when analytics.pubstack.enabled=true"() {
-        given: "Basic bid request"
+        given: "PBS with PubStack analytics"
+        def pbsService = pbsServiceFactory.getService(PUBSTACK_CONFIG)
+
+        and: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Initial request count"
@@ -91,7 +107,7 @@ class AnalyticsSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.analytics
 
         then: "PBS shouldn't call log analytics"
-        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        def logsByValue = pbsServiceWithoutLogAnalytics.getLogsByValue(bidRequest.id)
         assert !logsByValue
 
         where:
@@ -163,7 +179,7 @@ class AnalyticsSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.analytics
 
         and: "PBS shouldn't call log analytics"
-        def logsByValue = pbsServiceWithLogAnalytics.getLogsByValue(bidRequest.id)
+        def logsByValue = pbsServiceWithoutLogAnalytics.getLogsByValue(bidRequest.id)
         assert !logsByValue
     }
 

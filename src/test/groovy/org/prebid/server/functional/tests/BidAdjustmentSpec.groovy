@@ -21,6 +21,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
@@ -66,16 +67,17 @@ class BidAdjustmentSpec extends BaseSpec {
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
     private static final Map AMX_CONFIG = ["adapters.amx.enabled" : "true",
                                            "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final PbsContainerConfig CURRENCY_CONFIG = new PbsContainerConfig(PbsConfig.currencyConverterConfig + AMX_CONFIG)
     private static PrebidServerService pbsService
 
     def setupSpec() {
         currencyConversion.setCurrencyConversionRatesResponse()
-        pbsService = pbsServiceFactory.getService(PbsConfig.currencyConverterConfig + AMX_CONFIG)
+        pbsService = pbsServiceFactory.getService(CURRENCY_CONFIG)
     }
 
     @Override
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(PbsConfig.currencyConverterConfig + AMX_CONFIG)
+        pbsServiceFactory.removeContainer(CURRENCY_CONFIG)
     }
 
     def "PBS should adjust bid price for matching bidder when request has per-bidder bid adjustment factors"() {

@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.TcfUtils
@@ -20,22 +21,25 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 
 class TcfGeneralSpec extends TcfBaseSpec {
 
-    private final static ZonedDateTime TCF_2_3_ENFORCEMENT_DATE = ZonedDateTime.parse("2026-03-01T00:00:00Z")
-    private final static Map<String, String> STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = TCF_BASE_CONFIG + ["gdpr.strict-disclosed-vendors-treatment": 'true']
+    private static final ZonedDateTime TCF_2_3_ENFORCEMENT_DATE = ZonedDateTime.parse("2026-03-01T00:00:00Z")
     private final static TCF_NO_DISCLOSED_VENDORS_METRIC = 'privacy.tcf.no-disclosed-vendors'
     private final static DISCLOSED_VENDORS_MESSAGE = 'Invalid TCF string: `disclosedVendors` list is empty.'
+
+    private static final PbsContainerConfig STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = TCF_BASE_CONFIG + ['gdpr.strict-disclosed-vendors-treatment': 'true']
+    private static final PbsContainerConfig BASE_STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG + VENDOR_LIST_EMPTY_CONFIG
+    private static final PbsContainerConfig FULL_STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG.withFiles(GVL_LISTS_FILES)
 
     private static PrebidServerService pbsWithoutGvlVendorsWithStrictDvTreatment
     private static PrebidServerService pbsWithMultipleGvlListsWithStrictDvTreatment
 
     def setupSpec() {
-        pbsWithoutGvlVendorsWithStrictDvTreatment = pbsServiceFactory.getService(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
-        pbsWithMultipleGvlListsWithStrictDvTreatment = pbsServiceFactory.getService(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG, GLV_LISTS_FILES)
+        pbsWithoutGvlVendorsWithStrictDvTreatment = pbsServiceFactory.getService(BASE_STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG)
+        pbsWithMultipleGvlListsWithStrictDvTreatment = pbsServiceFactory.getService(FULL_STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG)
     }
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
-        pbsServiceFactory.removeContainer(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG)
+        pbsServiceFactory.removeContainer(BASE_STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG)
+        pbsServiceFactory.removeContainer(FULL_STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG)
     }
 
     def "PBS should accept base consent when disclosedVendors includes vendor after TCF v2.3 enforcement"() {

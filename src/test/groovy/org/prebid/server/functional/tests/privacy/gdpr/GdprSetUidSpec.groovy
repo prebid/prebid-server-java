@@ -11,7 +11,7 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -25,20 +25,25 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.getDefaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 
 class GdprSetUidSpec extends PrivacyBaseSpec {
 
-    private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
+    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final Map<String, String> VENDOR_GENERIC_PBS_CONFIG = GENERIC_VENDOR_CONFIG +
-            ["gdpr.purposes.p1.enforce-purpose"                                       : NO.value,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
+    private static final PbsContainerConfig VENDOR_GENERIC_PBS_CONFIG = new PbsContainerConfig(GENERIC_VENDOR_CONFIG +
+            ["gdpr.purposes.p1.enforce-purpose"                              : NO.value,
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url": USER_SYNC_URL])
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
 
-    private static final PrebidServerService prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
+    private static PrebidServerService prebidServerService
+
+    def setupSpec() {
+        prebidServerService = pbsServiceFactory.getService(VENDOR_GENERIC_PBS_CONFIG)
+    }
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(VENDOR_GENERIC_PBS_CONFIG)

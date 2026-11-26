@@ -17,14 +17,14 @@ import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtPrebid
+import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
-import org.prebid.server.functional.model.request.profile.Profile
 import org.prebid.server.functional.model.request.profile.ImpProfile
+import org.prebid.server.functional.model.request.profile.Profile
 import org.prebid.server.functional.model.request.profile.ProfileMergePrecedence
-import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.request.profile.ProfileType
-import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
@@ -32,9 +32,9 @@ import org.prebid.server.functional.repository.dao.ProfileImpDao
 import org.prebid.server.functional.repository.dao.ProfileRequestDao
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
+import org.prebid.server.functional.util.ContainerFileUtil
 import org.prebid.server.functional.util.PBSUtils
-import org.testcontainers.images.builder.Transferable
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -54,20 +54,20 @@ class ProfileSpec extends BaseSpec {
     private static final Integer LIMIT_HOST_PROFILE = 2
     private static final Integer ACCOUNT_ID_FILE_STORAGE = PBSUtils.randomNumber
 
-    private static final Map<String, String> FILESYSTEM_CONFIG = [
+    private static final PbsContainerConfig FILESYSTEM_CONFIG = new PbsContainerConfig([
             'settings.filesystem.settings-filename'   : SETTINGS_FILENAME,
             'settings.filesystem.profiles-dir'        : PROFILES_PATH,
             'settings.filesystem.stored-requests-dir' : REQUESTS_PATH,
             'settings.filesystem.stored-imps-dir'     : IMPS_PATH,
             'settings.filesystem.stored-responses-dir': RESPONSES_PATH,
             'settings.filesystem.categories-dir'      : CATEGORIES_PATH
-    ]
+    ])
 
-    private static final Map<String, String> PROFILES_CONFIG = [
+    private static final PbsContainerConfig PROFILES_CONFIG = new PbsContainerConfig([
             'auction.profiles.fail-on-unknown': "false",
             'auction.profiles.limit'          : LIMIT_HOST_PROFILE.toString(),
             'settings.database.profiles-query': "SELECT accountId, profileId, profile, mergePrecedence, type FROM profiles " +
-                    "WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)".toString()]
+                    "WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)".toString()])
 
     private static final String LIMIT_ERROR_MESSAGE = 'Profiles exceeded the limit.'
     private static final String CONFIG_ERROR_MESSAGE = 'Profiles storage not configured.'
@@ -82,7 +82,6 @@ class ProfileSpec extends BaseSpec {
     private static final ProfileImpDao profileImpDao = repository.profileImpDao
     private static final ProfileRequestDao profileRequestDao = repository.profileRequestDao
 
-    private static PrebidServerContainer pbsContainer
     private static PrebidServerService pbsWithStoredProfiles
     private static RequestProfile fileRequestProfile
     private static RequestProfile fileRequestProfileWithEmptyMerge
@@ -90,11 +89,8 @@ class ProfileSpec extends BaseSpec {
     private static ImpProfile fileImpProfileWithEmptyMerge
 
     def setupSpec() {
-        pbsContainer = new PrebidServerContainer(FILESYSTEM_CONFIG + PROFILES_CONFIG)
         fileRequestProfile = RequestProfile.getProfile(ACCOUNT_ID_FILE_STORAGE.toString())
         fileImpProfile = ImpProfile.getProfile(ACCOUNT_ID_FILE_STORAGE.toString())
-        pbsContainer.withCopyToContainer(Transferable.of(encode(fileRequestProfile)), "$PROFILES_PATH/${fileRequestProfile.fileName}")
-        pbsContainer.withCopyToContainer(Transferable.of(encode(fileImpProfile)), "$PROFILES_PATH/${fileImpProfile.fileName}")
         fileRequestProfileWithEmptyMerge = RequestProfile.getProfile(ACCOUNT_ID_FILE_STORAGE.toString()).tap {
             mergePrecedence = null
         }
@@ -105,21 +101,13 @@ class ProfileSpec extends BaseSpec {
             }
             mergePrecedence = null
         }
-        pbsContainer.withCopyToContainer(Transferable.of(encode(fileRequestProfileWithEmptyMerge)), "$PROFILES_PATH/${fileRequestProfileWithEmptyMerge.fileName}")
-        pbsContainer.withCopyToContainer(Transferable.of(encode(fileImpProfileWithEmptyMerge)), "$PROFILES_PATH/${fileImpProfileWithEmptyMerge.fileName}")
-        pbsContainer.withFolder(REQUESTS_PATH)
-        pbsContainer.withFolder(IMPS_PATH)
-        pbsContainer.withFolder(RESPONSES_PATH)
-        pbsContainer.withFolder(CATEGORIES_PATH)
+        def profiles = [fileRequestProfile, fileImpProfile, fileRequestProfileWithEmptyMerge, fileImpProfileWithEmptyMerge]
+                .collectEntries { profile -> ContainerFileUtil.jsonFile("$PROFILES_PATH/${profile.fileName}", profile)}
         def accountsConfig = new FileSystemAccountsConfig(accounts: [new AccountConfig(id: ACCOUNT_ID_FILE_STORAGE, status: ACTIVE)])
-        pbsContainer.withCopyToContainer(Transferable.of(encodeYaml(accountsConfig)),
-                SETTINGS_FILENAME)
-        pbsContainer.start()
-        pbsWithStoredProfiles = new PrebidServerService(pbsContainer)
-    }
+        def accountsFile = ContainerFileUtil.yamlFile(SETTINGS_FILENAME, accountsConfig)
+        def folders = ContainerFileUtil.emptyFolders(REQUESTS_PATH, IMPS_PATH, RESPONSES_PATH, CATEGORIES_PATH)
 
-    def cleanupSpec() {
-        pbsContainer.stop()
+        pbsWithStoredProfiles = pbsServiceFactory.getService((FILESYSTEM_CONFIG + PROFILES_CONFIG).withFiles(folders + profiles + accountsFile))
     }
 
     def "PBS should use profile for request when it exist in database"() {
@@ -934,9 +922,6 @@ class ProfileSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(PROFILES_CONFIG + ['auction.profiles.fail-on-unknown': 'true'])
     }
 
     def "PBS should fail auction when fail-on-unknown-profile default and profile is missing"() {
@@ -960,9 +945,6 @@ class ProfileSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(PROFILES_CONFIG + ['auction.profiles.fail-on-unknown': null])
     }
 
     def "PBS should prioritise fail-on-unknown-profile from account over host config"() {
@@ -1522,35 +1504,19 @@ class ProfileSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should throw exception when profiles are not configured for filesystem and request contain profileId"() {
-        given: "PBS with profiles.fail-on-unknown config"
-        def config = FILESYSTEM_CONFIG + PROFILES_CONFIG + ['settings.filesystem.profiles-dir': null]
-        pbsContainer = new PrebidServerContainer(config)
-        pbsContainer.withFolder(REQUESTS_PATH)
-        pbsContainer.withFolder(IMPS_PATH)
-        pbsContainer.withFolder(RESPONSES_PATH)
-        pbsContainer.withFolder(CATEGORIES_PATH)
-        def accountsConfig = new FileSystemAccountsConfig(accounts: [new AccountConfig(id: ACCOUNT_ID_FILE_STORAGE, status: ACTIVE)])
-        pbsContainer.withCopyToContainer(Transferable.of(encodeYaml(accountsConfig)),
-                SETTINGS_FILENAME)
-        pbsContainer.start()
-        pbsWithStoredProfiles = new PrebidServerService(pbsContainer)
-
-        and: "BidRequest with profile"
+    def "PBS should throw exception when profiles are not configured for filesystem and request contains profileId"() {
+        given: "BidRequest with profile"
         def requestWithProfile = BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profileNames = [PBSUtils.randomString]
+            ext.prebid.profileNames = [PBSUtils.randomString]
         }
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(requestWithProfile)
 
-        then: "PBs should throw error due to invalid profile config"
+        then: "PBS should throw error due to invalid profile config"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE
-
-        cleanup: "Stop and remove pbs container"
-        pbsContainer.stop()
     }
 
     private static BidRequest getRequestWithProfiles(String accountId, List<Profile> profiles) {

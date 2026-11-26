@@ -38,6 +38,7 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -111,15 +112,15 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static final Integer MAX_INVALID_TCF_POLICY_VERSION = 63
     protected static final Integer MIN_INVALID_TCF_POLICY_VERSION = 6
 
-    protected static final Map<String, String> GENERAL_PRIVACY_CONFIG =
-            GENERIC_CONFIG + GDPR_VENDOR_LIST_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG
+    protected static final PbsContainerConfig GENERAL_PRIVACY_CONFIG = new PbsContainerConfig(
+            GENERIC_CONFIG + GDPR_VENDOR_LIST_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG)
 
     protected static PrebidServerService privacyPbsService
     protected static PrebidServerService activityPbsService
 
     def setupSpec() {
         privacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + GDPR_EEA_COUNTRY)
-        activityPbsService = pbsServiceFactory.getService(OPENX_CONFIG + SETTING_CONFIG + GENERAL_PRIVACY_CONFIG)
+        activityPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG + OPENX_CONFIG + SETTING_CONFIG)
         vendorListResponse.setResponse()
     }
 

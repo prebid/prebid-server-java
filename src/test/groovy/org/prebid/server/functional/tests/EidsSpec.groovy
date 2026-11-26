@@ -11,14 +11,15 @@ import org.prebid.server.functional.model.request.auction.UidExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.testcontainers.container.PbsContainerConfig
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
-import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
@@ -162,9 +163,9 @@ class EidsSpec extends BaseSpec {
 
     def "PBs eid permissions should affect only specified on source"() {
         given: "PBs with openx bidder"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.openx.enabled" : "true",
-                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def config = new PbsContainerConfig(["adapters.openx.enabled" : "true",
+                                             "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default bid request with eidpremissions and openx bidder"
         def eidSource = PBSUtils.randomString
@@ -193,9 +194,9 @@ class EidsSpec extends BaseSpec {
 
     def "PBs eid permissions for non existing source should not stop auction"() {
         given: "PBs with openx bidder"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapters.openx.enabled" : "true",
-                 "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def config = new PbsContainerConfig(["adapters.openx.enabled" : "true",
+                                             "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def pbsService = pbsServiceFactory.getService(config)
 
         and: "Default bid request with eidpremissions and openx bidder"
         def firstEid = new Eid(source: PBSUtils.randomString, uids: [new Uid(id: PBSUtils.randomString)])
