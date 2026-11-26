@@ -1,6 +1,11 @@
 package org.prebid.server.bidder.optout.model;
 
+import lombok.Value;
+
 import java.util.List;
 
-public record OptoutResponse(List<OptoutBid> bids) {
+@Value(staticConstructor = "of")
+public class OptoutResponse {
+
+    List<OptoutBid> bids;
 }

@@ -90,7 +90,7 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
                 publisher = getPublisher(publisher, extImp, imp.getId());
 
                 slots.add(createSlot(imp, extImp));
-                includeOrtb2 = includeOrtb2 || extImp.getIncludeOrtb2();
+                includeOrtb2 = getIncludeOrtb2(includeOrtb2, extImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -115,14 +115,14 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException("invalid impression extension: %s".formatted(e.getMessage()));
         }
     }
 
     private String getPublisher(String publisher, ExtImpOptout extImp, String impId) {
         if (StringUtils.isBlank(publisher)) {
             return extImp.getPublisher();
-        } else if (extImp.getPublisher().equals(publisher)) {
+        } else if (!publisher.equals(extImp.getPublisher())) {
             throw new PreBidException("optout: imp %s has publisher %s, expected %s"
                     .formatted(impId, extImp.getPublisher(), publisher));
         }
@@ -138,18 +138,28 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
                 .build();
     }
 
+    private Boolean getIncludeOrtb2(Boolean includeOrtb2, ExtImpOptout extImp) {
+        return includeOrtb2 || (extImp.getIncludeOrtb2() != null && extImp.getIncludeOrtb2());
+    }
+
     private List<AdSize> getAllowedSizes(Imp imp) {
         final Banner banner = imp.getBanner();
         final Set<AdSize> uniqueSizes = new LinkedHashSet<>();
 
         if (banner.getW() != null && banner.getH() != null) {
-            uniqueSizes.add(new AdSize(banner.getW(), banner.getH()));
+            uniqueSizes.add(AdSize.builder()
+                    .w(banner.getW())
+                    .h(banner.getH())
+                    .build());
         }
 
         if (banner.getFormat() != null) {
             for (Format format : banner.getFormat()) {
                 if (format != null && format.getW() != null && format.getH() != null) {
-                    uniqueSizes.add(new AdSize(format.getW(), format.getH()));
+                    uniqueSizes.add(AdSize.builder()
+                            .w(banner.getW())
+                            .h(banner.getH())
+                            .build());
                 }
             }
         }
@@ -192,7 +202,7 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
     }
 
     private void mergeExtData(Map<String, String> customs, ObjectNode extData) {
-        if (customs.isEmpty()) {
+        if (extData.isEmpty()) {
             return;
         }
         customs.putAll(normalizeCustoms(extData));
@@ -367,6 +377,7 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
                 .uri(this.endpointUrl.toString())
                 .impIds(BidderUtil.impIds(bidRequest))
                 .headers(makeHeaders(bidRequest, mayForwardPersonalData))
+                .payload(optOutRequest)
                 .body(mapper.encodeToBytes(optOutRequest))
                 .build();
     }
@@ -396,35 +407,42 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<OptoutRequest> httpCall, BidRequest bidRequest) {
         try {
-            final List<OptoutSlot> slots = httpCall.getRequest().getPayload().slots();
+            final List<OptoutSlot> slots = httpCall.getRequest().getPayload().getSlots();
             if (slots == null || slots.isEmpty()) {
                 return Result.withError(BidderError.badServerResponse("optout: outgoing request has no slots"));
             }
 
             final List<BidderError> errors = new ArrayList<>();
             final List<BidderBid> bidderBids = new ArrayList<>();
-            final Set<String> validImpIDs = slots.stream().map(OptoutSlot::id).collect(Collectors.toSet());
+            final Set<String> validImpIDs = slots.stream().map(OptoutSlot::getId).collect(Collectors.toSet());
             final List<OptoutBid> bids = parseOptoutResponse(httpCall.getResponse().getBody());
-            final String currency = "";
+            String currency = "";
 
             for (OptoutBid optoutBid : bids) {
-                if (!validImpIDs.contains(optoutBid.requestId())) {
+                if (!validImpIDs.contains(optoutBid.getRequestId())) {
                     errors.add(BidderError.badServerResponse(
-                            "optout: unknown impression ID %s".formatted(optoutBid.requestId())));
+                            "optout: unknown impression ID %s".formatted(optoutBid.getRequestId())));
                     continue;
                 }
 
                 if (isBidInvalid(optoutBid)) {
                     errors.add(BidderError.badServerResponse(
-                            "optout: invalid bid for impression %s".formatted(optoutBid.requestId())));
+                            "optout: invalid bid for impression %s".formatted(optoutBid.getRequestId())));
                     continue;
                 }
 
-                if (StringUtils.isNotBlank(currency) && !currency.equals(optoutBid.currency())) {
+                if (StringUtils.isBlank(optoutBid.getBidId())) {
                     errors.add(BidderError.badServerResponse(
-                            "optout: mixed response currencies (%s and %s)".formatted(currency, optoutBid.currency())));
+                            "optout: missing bid ID for impression %s".formatted(optoutBid.getRequestId())));
+                }
+
+                final String currencyFromBid = optoutBid.getCurrency();
+                if (StringUtils.isNotBlank(currency) && !currency.equals(currencyFromBid)) {
+                    errors.add(BidderError.badServerResponse(
+                            "optout: mixed response currencies (%s and %s)".formatted(currency, currencyFromBid)));
                     continue;
                 }
+                currency = optoutBid.getCurrency();
 
                 bidderBids.add(createBidderBid(optoutBid));
             }
@@ -440,7 +458,7 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
             return mapper.mapper().convertValue(responseBody, OPTOUT_BID_LIST_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             try {
-                final List<OptoutBid> optoutBids = mapper.decodeValue(responseBody, OptoutResponse.class).bids();
+                final List<OptoutBid> optoutBids = mapper.decodeValue(responseBody, OptoutResponse.class).getBids();
                 if (optoutBids == null) {
                     throw new PreBidException("optout: DSP response is missing bids array");
                 }
@@ -452,35 +470,35 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
     }
 
     private boolean isBidInvalid(OptoutBid bid) {
-        return StringUtils.isBlank(bid.currency()) || StringUtils.isBlank(bid.ad()) || bid.width() <= 0
-                || bid.height() <= 0 || bid.cpm() == null || bid.cpm().compareTo(BigDecimal.ZERO) <= 0;
+        return StringUtils.isBlank(bid.getCurrency()) || StringUtils.isBlank(bid.getAd()) || bid.getWidth() <= 0
+                || bid.getHeight() <= 0 || bid.getCpm() == null || bid.getCpm().compareTo(BigDecimal.ZERO) <= 0;
     }
 
     private BidderBid createBidderBid(OptoutBid optoutBid) {
         final Bid bid = Bid.builder()
-                .id(optoutBid.requestId())
-                .impid(optoutBid.requestId())
-                .price(optoutBid.cpm())
-                .adm(optoutBid.ad())
-                .w(optoutBid.width())
-                .h(optoutBid.height())
-                .crid(optoutBid.creativeId())
+                .id(optoutBid.getBidId())
+                .impid(optoutBid.getRequestId())
+                .price(optoutBid.getCpm())
+                .adm(optoutBid.getAd())
+                .w(optoutBid.getWidth())
+                .h(optoutBid.getHeight())
+                .crid(optoutBid.getCreativeId())
                 .exp(getTtl(optoutBid))
                 .ext(getOptoutBidExt(optoutBid))
                 .build();
 
-        return BidderBid.of(bid, BidType.banner, getBidCurrency(optoutBid.currency()));
+        return BidderBid.of(bid, BidType.banner, getBidCurrency(optoutBid.getCurrency()));
     }
 
     private ObjectNode getOptoutBidExt(OptoutBid optoutBid) {
-        if (optoutBid.optOutExt() != null && !optoutBid.optOutExt().isEmpty()) {
-            return optoutBid.optOutExt();
+        if (optoutBid.getOptOutExt() != null && !optoutBid.getOptOutExt().isEmpty()) {
+            return optoutBid.getOptOutExt();
         }
         return null;
     }
 
     private Integer getTtl(OptoutBid optoutBid) {
-        final Integer ttl = optoutBid.ttl();
+        final Integer ttl = optoutBid.getTtl();
         if (ttl == null || ttl <= 0) {
             return DEFAULT_TTL;
         }

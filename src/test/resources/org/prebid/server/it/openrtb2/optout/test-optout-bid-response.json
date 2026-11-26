@@ -1,0 +1,15 @@
+{
+  "bids": [
+    {
+      "bidId": "bid_id",
+      "requestId": "imp-1",
+      "cpm": 1.2,
+      "currency": "EUR",
+      "width": 300,
+      "height": 250,
+      "ad": "<div>Sample creative</div>",
+      "ttl": 60,
+      "creativeId": "creative-1"
+    }
+  ]
+}

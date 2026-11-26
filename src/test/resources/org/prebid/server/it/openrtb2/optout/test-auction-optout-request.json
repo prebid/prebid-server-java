@@ -1,0 +1,51 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp-1",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "optout": {
+          "publisher": "152",
+          "adSlot": "home",
+          "customs" : {
+            "stringCustom" : "stringValue",
+            "numberCustom" : 1,
+            "listKey" : ["value1", 3, "value3", true],
+            "booleanCustom": true,
+            "mapCustom" : {
+              "mapCustomKey1": "mapValue1",
+              "mapCustomKey2": "mapValue2",
+              "mapCustomKey3": 3
+            }
+          },
+          "includeOrtb2": true
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "https://example.test/story",
+    "ext": {
+      "data": {
+        "siteCustomData": "siteCustomDataValue"
+      }
+    }
+  },
+  "user": {
+    "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+    "ext": {
+      "data": {
+        "userCustomData": "userCustomDataValue"
+      }
+    }
+  },
+  "cur": "EUR",
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}

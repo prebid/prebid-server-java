@@ -1,19 +1,39 @@
 package org.prebid.server.bidder.optout.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
+import lombok.Value;
 
 import java.math.BigDecimal;
 
+@Value
 @Builder(toBuilder = true)
-public record OptoutBid(String requestId,
-                        BigDecimal cpm,
-                        String currency,
-                        int width,
-                        int height,
-                        String ad,
-                        Integer ttl,
-                        String creativeId,
-                        ObjectNode optOutExt,
-                        String meta) {
+public class OptoutBid {
+
+    @JsonProperty("requestId")
+    String requestId;
+
+    @JsonProperty("bidId")
+    String bidId;
+
+    BigDecimal cpm;
+
+    String currency;
+
+    Integer width;
+
+    Integer height;
+
+    String ad;
+
+    Integer ttl;
+
+    @JsonProperty("creativeId")
+    String creativeId;
+
+    @JsonProperty("optOutExt")
+    ObjectNode optOutExt;
+
+    String meta;
 }

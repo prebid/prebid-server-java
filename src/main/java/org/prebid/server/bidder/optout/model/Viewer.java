@@ -1,8 +1,13 @@
 package org.prebid.server.bidder.optout.model;
 
 import lombok.Builder;
+import lombok.Value;
 
+@Value
 @Builder(toBuilder = true)
-public record Viewer(String id, String matcher) {
+public class Viewer {
 
+    String id;
+
+    String matcher;
 }
