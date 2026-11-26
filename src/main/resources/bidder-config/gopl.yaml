@@ -1,5 +1,5 @@
 adapters:
-  sspbc:
+  gopl:
     endpoint: https://ssp.wp.pl/v2/bidder/prebidserver
     meta-info:
       maintainer-email: prebid-dev@grupawp.pl
@@ -7,12 +7,18 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 676
+      vendor-id: 690
     usersync:
-      cookie-family-name: sspbc
+      cookie-family-name: gopl
       iframe:
         url: https://ssp.wp.pl/bidder/usersync?tcf=2&redirect={redirect_url}
         uid-macro: '$UID'
       redirect:
         url: https://ssp.wp.pl/v1/sync/prebid-server/pixel?gdpr={gdpr}&gdpr_consent={gdpr_consent}&redirect={redirect_url}
         uid-macro: '$UID'
+    aliases:
+      sspbc:
+        meta-info:
+          vendor-id: 676
+        usersync:
+          cookie-family-name: sspbc
