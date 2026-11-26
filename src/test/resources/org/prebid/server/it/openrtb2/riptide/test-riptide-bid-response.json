@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "cur": "USD",
+  "seatbid": [
+    {
+      "seat": "riptide",
+      "bid": [
+        {
+          "id": "bid_id",
+          "mtype": 1,
+          "impid": "imp_id",
+          "price": 1.25,
+          "crid": "crid",
+          "adm": "adm001",
+          "adomain": ["advertiser.example"],
+          "h": 250,
+          "w": 300
+        }
+      ]
+    }
+  ]
+}
