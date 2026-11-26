@@ -10,10 +10,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.commons.util.StringUtils;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -162,7 +160,6 @@ public class OptoutBidderTest extends VertxTest {
                 .isEqualTo("ios");
     }
 
-
     @Test
     public void makeHttpRequestShouldReturnHeaders() {
         // given
@@ -195,7 +192,6 @@ public class OptoutBidderTest extends VertxTest {
                 .extracting(map -> map.get("X-Forwarded-For"))
                 .containsOnly("127.0.0.1");
     }
-
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer,
                                               Imp... imps) {
