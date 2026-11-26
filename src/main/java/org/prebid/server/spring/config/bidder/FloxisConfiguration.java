@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.floxis.FloxisBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -25,11 +26,12 @@ public class FloxisConfiguration {
 
     @Bean
     BidderDeps floxisBidderDeps(BidderConfigurationProperties floxisConfigurationProperties,
+                                CurrencyConversionService currencyConversionService,
                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(floxisConfigurationProperties)
-                .bidderCreator(config -> new FloxisBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new FloxisBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }
