@@ -5,15 +5,12 @@ import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Uid;
+import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
-import org.prebid.server.hooks.v1.PayloadUpdate;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,33 +21,24 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> {
+public abstract class RequestEnricher {
 
     private static final String OPTABLE_CO_INSERTER = "optable.co";
 
     private final TargetingResult targetingResult;
     private final OptableTargetingProperties targetingProperties;
 
-    private BidRequestEnricher(TargetingResult targetingResult, OptableTargetingProperties targetingProperties) {
+    protected RequestEnricher(TargetingResult targetingResult, OptableTargetingProperties targetingProperties) {
         this.targetingResult = targetingResult;
         this.targetingProperties = targetingProperties;
     }
 
-    public static BidRequestEnricher of(TargetingResult targetingResult, OptableTargetingProperties properties) {
-        return new BidRequestEnricher(targetingResult, properties);
-    }
-
-    @Override
-    public AuctionRequestPayload apply(AuctionRequestPayload payload) {
-        return AuctionRequestPayloadImpl.of(enrichBidRequest(payload.bidRequest()));
-    }
-
-    private BidRequest enrichBidRequest(BidRequest bidRequest) {
+    protected BidRequest enrichBidRequest(BidRequest bidRequest) {
         if (bidRequest == null || targetingResult == null) {
             return bidRequest;
         }
 
-        final User optableUser = Optional.of(targetingResult)
+        final var optableUser = Optional.of(targetingResult)
                 .map(TargetingResult::getOrtb2)
                 .map(Ortb2::getUser)
                 .orElse(null);
@@ -59,15 +47,18 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
             return bidRequest;
         }
 
-        final com.iab.openrtb.request.User bidRequestUser = Optional.ofNullable(bidRequest.getUser())
-                .orElseGet(() -> com.iab.openrtb.request.User.builder().build());
+        final User bidRequestUser = Optional.ofNullable(bidRequest.getUser())
+                .orElseGet(() -> User.builder().build());
 
         return bidRequest.toBuilder()
                 .user(mergeUserData(bidRequestUser, optableUser))
                 .build();
     }
 
-    private com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
+    private User mergeUserData(
+            User user,
+            org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User optableUser) {
+
         return user.toBuilder()
                 .eids(filterOptableEids(mergeEids(user.getEids(), optableUser.getEids())))
                 .data(mergeData(user.getData(), optableUser.getData()))
@@ -84,7 +75,7 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
         }
 
         final Map<String, Eid> idToSourceEid = source.stream().collect(Collectors.toMap(
-                BidRequestEnricher::eidIdExtractor,
+                RequestEnricher::eidIdExtractor,
                 Function.identity(),
                 (a, b) -> b,
                 HashMap::new));
@@ -105,7 +96,7 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                         : destinationEid)
                 .toList();
 
-        return merge(mergedEid, source, BidRequestEnricher::eidIdExtractor);
+        return merge(mergedEid, source, RequestEnricher::eidIdExtractor);
     }
 
     private List<Eid> filterOptableEids(List<Eid> eids) {
