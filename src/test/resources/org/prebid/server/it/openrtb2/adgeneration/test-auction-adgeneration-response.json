@@ -4,11 +4,11 @@
     {
       "bid": [
         {
-          "id": "id",
-          "impid": "id",
-          "exp": 300,
+          "id": "request_id-imp_id",
+          "impid": "imp_id",
           "price": 46.6,
-          "adm": "",
+          "exp": 300,
+          "adm": "<div id=\"medibasspContainer\">sample-banner</div>\n  <img src=\"https://tg.socdm.com/bc/v3?b=beaconID&t=.gif\" width=\"1\" height=\"1\" style=\"display:none;border:none;padding:0;margin:0;width:1px;height:1px\"/>",
           "crid": "Dummy_supership.jp",
           "dealid": "test-deal-id",
           "w": 300,
@@ -21,7 +21,7 @@
               }
             },
             "origbidcpm": 46.6,
-            "origbidcur": "USD"
+            "origbidcur": "JPY"
           }
         }
       ],
@@ -29,7 +29,7 @@
       "group": 0
     }
   ],
-  "cur": "USD",
+  "cur": "JPY",
   "ext": {
     "responsetimemillis": {
       "adgeneration": "{{ adgeneration.response_time_ms }}"

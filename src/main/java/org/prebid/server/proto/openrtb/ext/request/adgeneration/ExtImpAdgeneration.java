@@ -6,4 +6,5 @@ import lombok.Value;
 public class ExtImpAdgeneration {
 
     String id;
+    String marginTop;
 }
