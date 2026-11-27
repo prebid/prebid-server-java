@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp-1",
+          "price": 1.2,
+          "adm": "<div>Sample creative</div>",
+          "crid": "creative-1",
+          "w": 300,
+          "h": 250,
+          "exp": 60,
+          "ext": {
+            "prebid" : {
+              "type" : "banner",
+              "meta" : {
+                "adaptercode" : "optout"
+              }
+            },
+            "origbidcpm" : 1.2,
+            "origbidcur" : "EUR"
+          }
+        }
+      ],
+      "seat": "optout",
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "responsetimemillis": {
+      "optout": "{{ optout.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
