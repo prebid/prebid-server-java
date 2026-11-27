@@ -191,6 +191,28 @@ The call is skipped (no action) when the account has no `partner-id`, when the r
 COPPA (`regs.coppa = 1`), or when GDPR applies (`regs.gdpr = 1`) and the request carries no consent
 string (`user.consent`): IntentIQ rejects such a request. The consent string is sent in the `gdpr-consent` header.
 
+### Activity controls
+
+The module honors [activity controls](https://docs.prebid.org/prebid-server/features/pbs-activitycontrols.html)
+as component type `general`, name `intentiq-identity`:
+
+| Activity | Effect when not allowed |
+|----------|-------------------------|
+| `enrichUfpd` | no resolution call, `user.eids` unchanged |
+| `reportAnalytics` | no impression report |
+| `transmitUfpd` | user first party data and device ids (`device.ifa`) are not sent |
+| `transmitEids` | `user.eids` are not sent (no `iiquid`) |
+| `transmitPreciseGeo` | the IP is sent truncated |
+
+For example, to keep the module from calling IntentIQ for one account:
+
+```json
+{"privacy": {"allowactivities": {"enrichUfpd": {"rules": [{
+  "condition": {"componentType": ["general"], "componentName": ["intentiq-identity"]},
+  "allow": false
+}]}}}}
+```
+
 ### Caching
 
 When caching is enabled, resolved eids are cached in two layers: **Caffeine** (L1, in-process) backed
@@ -312,6 +334,7 @@ modules.module.intentiq-identity.custom.skip.no_partner                    # no 
 modules.module.intentiq-identity.custom.partner.not_allowed                # requested partner id not in allowed-partner-ids; partner-id used
 modules.module.intentiq-identity.custom.skip.no_consent_<dpi>              # regs.gdpr=1 without a consent string; resolution skipped
 modules.module.intentiq-identity.custom.skip.coppa_<dpi>                   # regs.coppa=1; resolution and reporting skipped
+modules.module.intentiq-identity.custom.skip.activity_<dpi>                # enrichUfpd / reportAnalytics not allowed; resolution / report skipped
 modules.module.intentiq-identity.custom.tc.<id>_<dpi>                      # one counter per enumerated termination-cause id
 modules.module.intentiq-identity.custom.impression.reported_<dpi>          # winning bid reported to reports-endpoint (overall)
 modules.module.intentiq-identity.custom.impression.error_<dpi>             # impression report call failed or answered non-2xx

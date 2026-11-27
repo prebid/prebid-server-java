@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityStore;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.RedisIdentityStore;
@@ -69,6 +70,7 @@ public class IntentiqIdentityConfigTest {
                 MAPPER,
                 new IntentiqIdentityMetrics(new MetricRegistry()),
                 new IntentiqIdentityProperties(),
+                mock(UserFpdActivityMask.class),
                 mock(IdentityCache.class));
 
         // then

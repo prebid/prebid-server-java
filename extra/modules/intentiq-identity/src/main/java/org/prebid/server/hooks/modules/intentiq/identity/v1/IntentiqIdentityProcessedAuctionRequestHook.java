@@ -22,6 +22,7 @@ import io.vertx.core.Promise;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheKey;
@@ -32,6 +33,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentity
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ActivityControls;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
@@ -90,6 +92,7 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
 
     private final ConfigResolver configResolver;
     private final HttpClient httpClient;
+    private final ActivityControls activityControls;
     private final JacksonMapper mapper;
     private final IdentityCache cache;
     private final FirstPartyKeyExtractor keyExtractor;
@@ -103,9 +106,11 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
                                                        JacksonMapper mapper,
                                                        IdentityCache cache,
                                                        FirstPartyKeyExtractor keyExtractor,
-                                                       IntentiqIdentityMetrics metrics) {
+                                                       IntentiqIdentityMetrics metrics,
+                                                       ActivityControls activityControls) {
         this.configResolver = Objects.requireNonNull(configResolver);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.activityControls = Objects.requireNonNull(activityControls);
         this.mapper = Objects.requireNonNull(mapper);
         this.cache = cache;
         this.keyExtractor = Objects.requireNonNull(keyExtractor);
@@ -150,8 +155,13 @@ public class IntentiqIdentityProcessedAuctionRequestHook implements ProcessedAuc
             metrics.skipNoConsent(dpi);
             return skipped(startNanos, dpi, stripRequestField, trace, "regs.gdpr=1 without a consent string");
         }
+        if (!activityControls.isAllowed(invocationContext, bidRequest, Activity.MODIFY_UFDP)) {
+            metrics.skipActivity(dpi);
+            return skipped(startNanos, dpi, stripRequestField, trace, "enrichUfpd activity not allowed");
+        }
 
-        return resolveEids(properties, dpi, bidRequest)
+        // The cache keys and the API call see only what the module may transmit.
+        return resolveEids(properties, dpi, activityControls.maskForTransmission(invocationContext, bidRequest))
                 .map(resolution -> {
                     final List<Eid> eids = resolution.eids();
                     final IntentiqIdentityModuleContext context = new IntentiqIdentityModuleContext(

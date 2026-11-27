@@ -11,12 +11,14 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ActivityControls;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.HookTrace;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.IiqParam;
@@ -65,15 +67,18 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
 
     private final ConfigResolver configResolver;
     private final HttpClient httpClient;
+    private final ActivityControls activityControls;
     private final JacksonMapper mapper;
     private final IntentiqIdentityMetrics metrics;
 
     public IntentiqIdentityAuctionResponseHook(ConfigResolver configResolver,
                                                HttpClient httpClient,
                                                JacksonMapper mapper,
-                                               IntentiqIdentityMetrics metrics) {
+                                               IntentiqIdentityMetrics metrics,
+                                               ActivityControls activityControls) {
         this.configResolver = Objects.requireNonNull(configResolver);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.activityControls = Objects.requireNonNull(activityControls);
         this.mapper = Objects.requireNonNull(mapper);
         this.metrics = Objects.requireNonNull(metrics);
     }
@@ -115,6 +120,11 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
         if (bidRequest != null && PrivacySignals.isGdprWithoutConsent(bidRequest)) {
             return skipped(trace, "regs.gdpr=1 without a consent string");
         }
+        if (!activityControls.isAllowed(invocationContext, bidRequest, Activity.REPORT_ANALYTICS)) {
+            metrics.skipActivity(dpi);
+            return skipped(trace, "reportAnalytics activity not allowed");
+        }
+        final BidRequest reportedRequest = activityControls.maskForTransmission(invocationContext, bidRequest);
 
         final String abTestUuid = context != null ? context.abTestUuid() : null;
         final Long terminationCause = context != null ? context.terminationCause() : null;
@@ -122,7 +132,7 @@ public class IntentiqIdentityAuctionResponseHook implements AuctionResponseHook 
 
         final List<SeatBidRef> winners = winningBids(bidResponse);
         for (final SeatBidRef winner : winners) {
-            report(properties, dpi, bidRequest, winner.seat(), winner.bid(), currency, abTestUuid,
+            report(properties, dpi, reportedRequest, winner.seat(), winner.bid(), currency, abTestUuid,
                     terminationCause);
         }
 

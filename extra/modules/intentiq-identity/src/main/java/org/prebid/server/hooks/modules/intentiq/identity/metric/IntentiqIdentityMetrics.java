@@ -96,6 +96,11 @@ public class IntentiqIdentityMetrics {
         inc("partner.not_allowed", null);
     }
 
+    /** Resolution (enrichUfpd) or reporting (reportAnalytics) skipped because the activity is not allowed. */
+    public void skipActivity(String dpi) {
+        inc("skip.activity", dpi);
+    }
+
     /** Resolution and reporting skipped because the request is subject to COPPA (regs.coppa=1). */
     public void skipCoppa(String dpi) {
         inc("skip.coppa", dpi);

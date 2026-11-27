@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ActivityControls;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.config.IntentiqIdentityProperties;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
@@ -20,6 +22,7 @@ import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 public class IntentiqIdentityModuleTest {
@@ -46,7 +49,8 @@ public class IntentiqIdentityModuleTest {
         final List<? extends Hook<?, ? extends InvocationContext>> hooks = List.of(
                 new IntentiqIdentityProcessedAuctionRequestHook(
                         configResolver, httpClient, MAPPER, null,
-                        new FirstPartyKeyExtractor(10), new IntentiqIdentityMetrics(new MetricRegistry())));
+                        new FirstPartyKeyExtractor(10), new IntentiqIdentityMetrics(new MetricRegistry()),
+                        new ActivityControls(mock(UserFpdActivityMask.class))));
         final IntentiqIdentityModule target = new IntentiqIdentityModule(hooks);
 
         // when and then

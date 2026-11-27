@@ -22,6 +22,12 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ActivityControls;
 import org.prebid.server.hooks.modules.intentiq.identity.metric.IntentiqIdentityMetrics;
 import org.prebid.server.hooks.modules.intentiq.identity.model.IntentiqIdentityModuleContext;
 import org.prebid.server.hooks.modules.intentiq.identity.model.RequestPartnerContext;
@@ -41,11 +47,13 @@ import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -73,6 +81,8 @@ public class IntentiqIdentityAuctionResponseHookTest {
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final IntentiqIdentityMetrics metrics = new IntentiqIdentityMetrics(metricRegistry);
+    private final ActivityControls activityControls = new ActivityControls(
+            new UserFpdActivityMask(new UserFpdTcfMask(new IpAddressHelper(64, 56, List.of()))));
 
     @BeforeEach
     public void setUp() {
@@ -89,7 +99,7 @@ public class IntentiqIdentityAuctionResponseHookTest {
         properties.setPartnerId(partnerId);
         properties.setTimeout(1000L);
         final ConfigResolver configResolver = new ConfigResolver(MAPPER.mapper(), MERGER, properties);
-        return new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, MAPPER, metrics);
+        return new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, MAPPER, metrics, activityControls);
     }
 
     @Test
@@ -160,7 +170,7 @@ public class IntentiqIdentityAuctionResponseHookTest {
         properties.setPartnerId(partnerId);
         properties.setAllowedPartnerIds(allowed);
         final ConfigResolver configResolver = new ConfigResolver(MAPPER.mapper(), MERGER, properties);
-        return new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, MAPPER, metrics);
+        return new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, MAPPER, metrics, activityControls);
     }
 
     private AuctionResponsePayload payload(BidResponse bidResponse) {
@@ -332,7 +342,7 @@ public class IntentiqIdentityAuctionResponseHookTest {
         properties.setTimeout(80L);
         properties.setReportsTimeout(1500L);
         final IntentiqIdentityAuctionResponseHook hook = new IntentiqIdentityAuctionResponseHook(
-                new ConfigResolver(MAPPER.mapper(), MERGER, properties), httpClient, MAPPER, metrics);
+                new ConfigResolver(MAPPER.mapper(), MERGER, properties), httpClient, MAPPER, metrics, activityControls);
 
         // when
         hook.call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE).build())),
@@ -390,6 +400,45 @@ public class IntentiqIdentityAuctionResponseHookTest {
 
         // then
         verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldNotReportWhenReportAnalyticsIsNotAllowed() {
+        // given
+        givenRequest(BidRequest.builder().device(Device.builder().ip("1.2.3.4").ua("UA").build()).build());
+        givenDisallowedActivities(Activity.REPORT_ANALYTICS);
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(metricRegistry.counter("modules.module.intentiq-identity.custom.skip.activity_999").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void callShouldReportMaskedIpWhenTransmitPreciseGeoIsNotAllowed() {
+        // given
+        givenRequest(BidRequest.builder().device(Device.builder().ip("1.2.3.4").ua("UA").build()).build());
+        givenDisallowedActivities(Activity.TRANSMIT_GEO);
+
+        // when
+        target(REPORTS, "999").call(payload(response("seat", Bid.builder().impid("a").price(BigDecimal.ONE)
+                .build())), invocationContext);
+
+        // then
+        final String url = URLDecoder.decode(urlCaptor.getValue(), StandardCharsets.UTF_8);
+        assertThat(url).contains("1.2.3.0").doesNotContain("1.2.3.4");
+    }
+
+    private void givenDisallowedActivities(Activity... disallowed) {
+        final ActivityInfrastructure activityInfrastructure = mock(ActivityInfrastructure.class);
+        final Set<Activity> disallowedSet = Set.of(disallowed);
+        when(activityInfrastructure.isAllowed(any(), any()))
+                .thenAnswer(invocation -> !disallowedSet.contains(invocation.<Activity>getArgument(0)));
+        when(auctionContext.getActivityInfrastructure()).thenReturn(activityInfrastructure);
     }
 
     @Test

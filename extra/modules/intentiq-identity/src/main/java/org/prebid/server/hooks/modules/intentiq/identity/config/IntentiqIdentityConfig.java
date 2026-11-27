@@ -15,6 +15,7 @@ import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.RedisClientType;
 import io.vertx.redis.client.RedisOptions;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.AerospikeIdentityStore;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheTtlPolicy;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
@@ -34,6 +35,7 @@ import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityEntr
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityModule;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.IntentiqIdentityRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ActivityControls;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.intentiq.identity.v1.core.FirstPartyKeyExtractor;
 import org.prebid.server.json.JacksonMapper;
@@ -173,16 +175,19 @@ public class IntentiqIdentityConfig {
                                                   JacksonMapper mapper,
                                                   IntentiqIdentityMetrics metrics,
                                                   IntentiqIdentityProperties properties,
+                                                  UserFpdActivityMask userFpdActivityMask,
                                                   @Autowired(required = false) IdentityCache identityCache) {
         final FirstPartyKeyExtractor keyExtractor =
                 new FirstPartyKeyExtractor(properties.getCache().getMaxKeys());
+        final ActivityControls activityControls = new ActivityControls(userFpdActivityMask);
 
         return new IntentiqIdentityModule(List.of(
                 new IntentiqIdentityEntrypointHook(mapper),
                 new IntentiqIdentityRawAuctionRequestHook(),
                 new IntentiqIdentityProcessedAuctionRequestHook(
-                        configResolver, httpClient, mapper, identityCache, keyExtractor, metrics),
-                new IntentiqIdentityAuctionResponseHook(configResolver, httpClient, mapper, metrics)));
+                        configResolver, httpClient, mapper, identityCache, keyExtractor, metrics, activityControls),
+                new IntentiqIdentityAuctionResponseHook(
+                        configResolver, httpClient, mapper, metrics, activityControls)));
     }
 
     private static AerospikeIdentityStore createAerospikeStore(AerospikeProperties aerospike) {

@@ -27,6 +27,12 @@ import org.mockito.quality.Strictness;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
+import org.prebid.server.hooks.modules.intentiq.identity.v1.core.ActivityControls;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheKey;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.CacheResult;
 import org.prebid.server.hooks.modules.intentiq.identity.cache.IdentityCache;
@@ -57,6 +63,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,6 +103,8 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final IntentiqIdentityMetrics metrics = new IntentiqIdentityMetrics(metricRegistry);
+    private final ActivityControls activityControls = new ActivityControls(
+            new UserFpdActivityMask(new UserFpdTcfMask(new IpAddressHelper(64, 56, List.of()))));
 
     @BeforeEach
     public void setUp() {
@@ -122,7 +131,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         }
         final ConfigResolver configResolver = new ConfigResolver(MAPPER.mapper(), MERGER, properties);
         return new IntentiqIdentityProcessedAuctionRequestHook(
-                configResolver, httpClient, MAPPER, cache, new FirstPartyKeyExtractor(10), metrics);
+                configResolver, httpClient, MAPPER, cache, new FirstPartyKeyExtractor(10), metrics, activityControls);
     }
 
     @Test
@@ -878,6 +887,73 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
     }
 
     @Test
+    public void callShouldSkipHttpWhenEnrichUfpdIsNotAllowed() {
+        // given
+        givenDisallowedActivities(Activity.MODIFY_UFDP);
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ip("1.2.3.4").ua("UA").build())
+                .build();
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target(API_ENDPOINT, "123")
+                .call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext).result();
+
+        // then
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(counter("skip.activity")).isEqualTo(1);
+        verifyNoInteractions(httpClient);
+    }
+
+    @Test
+    public void callShouldNotSendEidsDeviceIdOrPreciseIpWhenTransmitActivitiesAreNotAllowed() {
+        // given
+        givenCapturedResponse();
+        givenDisallowedActivities(Activity.TRANSMIT_UFPD, Activity.TRANSMIT_EIDS, Activity.TRANSMIT_GEO);
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ip("1.2.3.4").ua("UA").ifa("maid-1").build())
+                .user(User.builder().eids(singletonList(Eid.builder()
+                        .source("intentiq.com")
+                        .uids(singletonList(Uid.builder().id("IIQ-UID-1").build()))
+                        .build())).build())
+                .build();
+
+        // when
+        target(API_ENDPOINT, "123").call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue())
+                .contains("&ip=1.2.3.0")
+                .doesNotContain("1.2.3.4")
+                .doesNotContain("iiquid")
+                .doesNotContain("pcid");
+    }
+
+    @Test
+    public void callShouldSendFullRequestWhenAllActivitiesAreAllowed() {
+        // given
+        givenCapturedResponse();
+        givenDisallowedActivities();
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ip("1.2.3.4").ua("UA").ifa("maid-1").build())
+                .build();
+
+        // when
+        target(API_ENDPOINT, "123").call(AuctionRequestPayloadImpl.of(bidRequest), invocationContext);
+
+        // then
+        assertThat(urlCaptor.getValue()).contains("&ip=1.2.3.4").contains("&pcid=maid-1");
+    }
+
+    private void givenDisallowedActivities(Activity... disallowed) {
+        final ActivityInfrastructure activityInfrastructure = mock(ActivityInfrastructure.class);
+        final Set<Activity> disallowedSet = Set.of(disallowed);
+        when(activityInfrastructure.isAllowed(any(), any()))
+                .thenAnswer(invocation -> !disallowedSet.contains(invocation.<Activity>getArgument(0)));
+        when(invocationContext.auctionContext())
+                .thenReturn(AuctionContext.builder().activityInfrastructure(activityInfrastructure).build());
+    }
+
+    @Test
     public void callShouldSkipHttpWhenCoppaApplies() {
         // given
         final BidRequest bidRequest = BidRequest.builder().regs(Regs.builder().coppa(1).build()).build();
@@ -1260,7 +1336,7 @@ public class IntentiqIdentityProcessedAuctionRequestHookTest {
         }
         final ConfigResolver configResolver = new ConfigResolver(MAPPER.mapper(), MERGER, properties);
         return new IntentiqIdentityProcessedAuctionRequestHook(
-                configResolver, httpClient, MAPPER, cache, new FirstPartyKeyExtractor(10), metrics);
+                configResolver, httpClient, MAPPER, cache, new FirstPartyKeyExtractor(10), metrics, activityControls);
     }
 
     private static BidRequest.BidRequestBuilder requestWithPartner(String partnerId) {
