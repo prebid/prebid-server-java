@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import com.iabtcf.encoder.TCStringEncoder;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import org.prebid.server.bidder.optout.model.OptoutBid;
 import org.prebid.server.bidder.optout.model.OptoutRequest;
 import org.prebid.server.bidder.optout.model.OptoutResponse;
 import org.prebid.server.bidder.optout.model.OptoutSlot;
+import org.prebid.server.bidder.optout.model.Viewer;
 import org.prebid.server.bidder.viant.ViantBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -166,6 +168,53 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnGdpr() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.regs(Regs.builder().gdpr(1).build()),
+                givenImp(imp -> imp.ext(
+                        givenImpExt("publisher", "adslot"))));
+
+        // when
+        final Result<List<HttpRequest<OptoutRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(OptoutRequest::getGdpr)
+                .singleElement()
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnViewerIfMayForwardPersonalData() {
+        // given
+        final String consent = TCStringEncoder.newBuilder().version(2).addPurposesConsent(2).encode();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request
+                        .regs(Regs.builder().gdpr(0).build())
+                        .user(User.builder().buyeruid("buyeruid").consent(consent).build()),
+                givenImp(imp -> imp.ext(
+                        givenImpExt("publisher", "adslot"))));
+
+        // when
+        final Result<List<HttpRequest<OptoutRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(OptoutRequest::getViewer)
+                .singleElement()
+                .isEqualTo(Viewer.builder().id("buyeruid").matcher("PREBID").build());
+    }
+
+    @Test
     public void makeHttpRequestShouldReturnHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -199,7 +248,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnFromAllSeatBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnFromAllSeatBid() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("123")),
@@ -222,7 +271,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorForUnknownImpressionID() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorForUnknownImpressionID() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("789")),
@@ -273,7 +322,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidCurrencyIsBlank() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidCurrencyIsBlank() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("123")));
@@ -295,7 +344,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidAdIsBlank() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidAdIsBlank() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("123")));
@@ -316,7 +365,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidWidthLessThanZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidWidthLessThanZero() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("123")));
@@ -338,7 +387,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidHeightLessThanZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidHeightLessThanZero() {
         // given
         final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
                 .requestId("123")
@@ -366,7 +415,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidCpmLessThanZero() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidCpmLessThanZero() {
         // given
         final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
                 .requestId("123")
@@ -395,7 +444,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidIdIsBlank() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidIdIsBlank() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("123")));
@@ -416,7 +465,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorForMixedResponseCurrencies() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorForMixedResponseCurrencies() {
         // given
         final OptoutRequest bidRequest = givenOptoutRequest(
                 givenSlot(slot -> slot.id("123")),
@@ -439,7 +488,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldUseDefaultTllIfBidTtlIsNull() throws JsonProcessingException {
+    public void makeBidsShouldUseDefaultTllIfBidTtlIsNull() {
         // given
         final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
                 .requestId("123")
@@ -467,7 +516,7 @@ public class OptoutBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldCreateValidBidderBid() throws JsonProcessingException {
+    public void makeBidsShouldCreateValidBidderBid() {
         // given
         final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
                 .requestId("123")
