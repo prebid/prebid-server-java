@@ -10,14 +10,18 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.optout.model.CurrencySettings;
 import org.prebid.server.bidder.optout.model.OptoutBid;
 import org.prebid.server.bidder.optout.model.OptoutRequest;
 import org.prebid.server.bidder.optout.model.OptoutResponse;
@@ -27,11 +31,12 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.optout.ExtImpOptout;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -193,6 +198,304 @@ public class OptoutBidderTest extends VertxTest {
                 .containsOnly("127.0.0.1");
     }
 
+    @Test
+    public void makeBidsShouldReturnFromAllSeatBid() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")),
+                givenSlot(slot -> slot.id("456")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(
+                        givenOptoutBid("123", "bid-1"),
+                        givenOptoutBid("456", "bid-2")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .containsExactly("bid-1", "bid-2");
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorForUnknownImpressionID() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("789")),
+                givenSlot(slot -> slot.id("456")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(
+                        givenOptoutBid("123", "bid-1"),
+                        givenOptoutBid("456", "bid-2")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: unknown impression ID");
+                });
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .containsOnly("bid-2");
+    }
+
+    @Test
+    public void makeBidsShouldParseOptoutBidsAsList() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")),
+                givenSlot(slot -> slot.id("456")));
+        final String optoutBidsListResponse = mapper.writeValueAsString(List.of(
+                givenOptoutBid("123", "bid-1").apply(OptoutBid.builder()).build(),
+                givenOptoutBid("456", "bid-2").apply(OptoutBid.builder()).build()
+        ));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(bidRequest, optoutBidsListResponse);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .containsExactly("bid-1", "bid-2");
+
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidCurrencyIsBlank() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(
+                        bid -> bid.requestId("123").bidId("bid-1").currency("")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: invalid bid for impression");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidAdIsBlank() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(
+                        bid -> bid.requestId("123").bidId("bid-1").currency("EUR").ad("")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: invalid bid for impression"); });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidWidthLessThanZero() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(
+                        bid -> bid.requestId("123").bidId("bid-1").currency("EUR").ad("ad").width(-100)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: invalid bid for impression");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidHeightLessThanZero() throws JsonProcessingException {
+        // given
+        final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
+                .requestId("123")
+                .bidId("bid-1")
+                .currency("EUR")
+                .ad("ad")
+                .width(100)
+                .height(-100);
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(_ -> bidBuilder));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: invalid bid for impression");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidCpmLessThanZero() throws JsonProcessingException {
+        // given
+        final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
+                .requestId("123")
+                .bidId("bid-1")
+                .currency("EUR")
+                .ad("ad")
+                .width(100)
+                .height(100)
+                .cpm(BigDecimal.valueOf(-2.3));
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(_ -> bidBuilder));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: invalid bid for impression");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidIdIsBlank() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(givenOptoutBid("123", null)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: missing bid ID for impression");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorForMixedResponseCurrencies() throws JsonProcessingException {
+        // given
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")),
+                givenSlot(slot -> slot.id("456")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(givenOptoutBid("123", "bid0-1", "JPY"),
+                        givenOptoutBid("456", "bid-2", "USD")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("optout: mixed response currencies");
+                });
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeBidsShouldUseDefaultTllIfBidTtlIsNull() throws JsonProcessingException {
+        // given
+        final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
+                .requestId("123")
+                .bidId("bid-1")
+                .currency("EUR")
+                .ad("ad")
+                .width(100)
+                .height(100)
+                .cpm(BigDecimal.valueOf(2.3));
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(_ -> bidBuilder));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExp)
+                .containsOnly(300);
+    }
+
+    @Test
+    public void makeBidsShouldCreateValidBidderBid() throws JsonProcessingException {
+        // given
+        final OptoutBid.OptoutBidBuilder bidBuilder = OptoutBid.builder()
+                .requestId("123")
+                .bidId("bid-1")
+                .currency("EUR")
+                .ad("ad")
+                .width(100)
+                .height(200)
+                .cpm(BigDecimal.valueOf(2.3))
+                .creativeId("789")
+                .ttl(567);
+        final OptoutRequest bidRequest = givenOptoutRequest(
+                givenSlot(slot -> slot.id("123")));
+        final BidderCall<OptoutRequest> httpCall = givenHttpCall(
+                bidRequest,
+                givenOptoutResponse(_ -> bidBuilder));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .containsExactly(Bid.builder().id("bid-1").impid("123").price(BigDecimal.valueOf(2.3))
+                        .adm("ad").w(100).h(200).crid("789").exp(567).build());
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer,
                                               Imp... imps) {
         return requestCustomizer.apply(BidRequest.builder()
@@ -228,15 +531,60 @@ public class OptoutBidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, extImpOptout));
     }
 
-    private String givenBidResponse(ObjectNode... objectNode) throws JsonProcessingException {
-        return mapper.writeValueAsString(
-                OptoutResponse.of(singletonList(OptoutBid.builder().build())));
+    private static OptoutRequest givenOptoutRequest(UnaryOperator<OptoutRequest.OptoutRequestBuilder> requestCustomizer,
+                                                    OptoutSlot... slots) {
+        return requestCustomizer.apply(OptoutRequest.builder()
+                .publisher("publisher")
+                .slots(List.of(slots))
+                .cur(CurrencySettings.builder()
+                        .adServerCurrency("EUR")
+                        .granularityMultiplier(1)
+                        .build())
+                .sdkVersion("prebid-server")
+                .gdpr(0)
+        ).build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(String body) {
+    private static OptoutRequest givenOptoutRequest(OptoutSlot... slots) {
+        return givenOptoutRequest(identity(), slots);
+    }
+
+    private static OptoutSlot givenSlot(UnaryOperator<OptoutSlot.OptoutSlotBuilder> slotCustomizer) {
+        return slotCustomizer.apply(OptoutSlot.builder()
+                        .id("123")
+                        .adSlot("adSlot"))
+                .build();
+    }
+
+    @SafeVarargs
+    @SneakyThrows
+    private String givenOptoutResponse(UnaryOperator<OptoutBid.OptoutBidBuilder>... bidCustomizers) {
+        return mapper.writeValueAsString(
+                OptoutResponse.of(Arrays.stream(bidCustomizers)
+                        .map(bid -> bid.apply(OptoutBid.builder())
+                                .build())
+                        .toList()));
+    }
+
+    private UnaryOperator<OptoutBid.OptoutBidBuilder> givenOptoutBid(String requestId, String bidId, String currency) {
+        return _ -> OptoutBid.builder()
+                .requestId(requestId)
+                .bidId(bidId)
+                .currency(currency)
+                .height(100)
+                .width(200)
+                .cpm(BigDecimal.valueOf(1.2))
+                .ad("ad");
+    }
+
+    private UnaryOperator<OptoutBid.OptoutBidBuilder> givenOptoutBid(String requestId, String bidId) {
+        return givenOptoutBid(requestId, bidId, "EUR");
+    }
+
+    private static BidderCall<OptoutRequest> givenHttpCall(OptoutRequest request, String response) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().build(),
-                HttpResponse.of(200, null, body),
+                HttpRequest.<OptoutRequest>builder().payload(request).build(),
+                HttpResponse.of(200, null, response),
                 null);
     }
 }

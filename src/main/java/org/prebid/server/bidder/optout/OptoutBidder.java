@@ -434,6 +434,7 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
                 if (StringUtils.isBlank(optoutBid.getBidId())) {
                     errors.add(BidderError.badServerResponse(
                             "optout: missing bid ID for impression %s".formatted(optoutBid.getRequestId())));
+                    continue;
                 }
 
                 final String currencyFromBid = optoutBid.getCurrency();
@@ -455,10 +456,14 @@ public class OptoutBidder implements Bidder<OptoutRequest> {
 
     private List<OptoutBid> parseOptoutResponse(String responseBody) {
         try {
-            return mapper.mapper().convertValue(responseBody, OPTOUT_BID_LIST_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
+            final List<OptoutBid> optoutBids = mapper.decodeValue(responseBody, OptoutResponse.class).getBids();
+            if (optoutBids == null || optoutBids.isEmpty()) {
+                return mapper.decodeValue(responseBody, OPTOUT_BID_LIST_TYPE_REFERENCE);
+            }
+            return optoutBids;
+        } catch (IllegalArgumentException | DecodeException e) {
             try {
-                final List<OptoutBid> optoutBids = mapper.decodeValue(responseBody, OptoutResponse.class).getBids();
+                final List<OptoutBid> optoutBids = mapper.decodeValue(responseBody, OPTOUT_BID_LIST_TYPE_REFERENCE);
                 if (optoutBids == null) {
                     throw new PreBidException("optout: DSP response is missing bids array");
                 }

@@ -7,8 +7,8 @@ import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value
-@Builder(toBuilder = true)
+@Builder
+@Value(staticConstructor = "of")
 public class OptoutBid {
 
     @JsonProperty("requestId")
